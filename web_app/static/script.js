@@ -25,6 +25,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentMermaidCode = "";
     let currentTranscript = "";
 
+    // --- Simple Progress Helper (Replaced ProgressManager) ---
+    const updateProgress = (percent, message) => {
+        progressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+        if (message) loaderStatus.textContent = message;
+
+        if (percent >= 100) {
+            progressBar.parentElement.classList.add('finished');
+        } else {
+            progressBar.parentElement.classList.remove('finished');
+        }
+    };
+
     // --- Tab Switching Logic ---
     const tabs = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -283,15 +295,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const mode = document.getElementById('summarize-mode').value;
             const focus = document.getElementById('analysis-focus').value;
 
-            // UI Reset
-            submitButton.disabled = true;
+            // Reset UI
+            updateProgress(0, "正在连接...");
             loader.style.display = 'block';
-            loaderStatus.textContent = "正在连接服务器...";
-            progressBar.style.width = "0%";
             resultContainer.style.display = 'none';
             summarizeError.classList.add('hidden');
             document.getElementById('chat-section')?.classList.remove('show');
             document.getElementById('chat-messages').innerHTML = '';
+
+            // Connection
+            updateProgress(5, "正在连接服务器...");
 
             // Fetch video info in parallel
             fetchVideoInfo(url);
@@ -314,15 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 let transcriptText = "";
                 let buffer = "";
 
-                // Track current progress to prevent regression
-                let currentProgress = 0;
-                const setProgress = (value) => {
-                    if (value > currentProgress) {
-                        currentProgress = value;
-                        progressBar.style.width = value + "%";
-                    }
-                };
-
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
@@ -335,52 +339,60 @@ document.addEventListener('DOMContentLoaded', () => {
                         line = line.trim();
                         if (!line || !line.includes('{')) continue;
 
-                        // (Progress tracking moved outside loop)
-
                         try {
                             const data = JSON.parse(line.substring(line.indexOf('{')));
                             if (data.error) throw new Error(data.error);
 
                             if (data.status) {
-                                loaderStatus.textContent = data.status;
-
-                                // Progress bar logic - use specific patterns to avoid false matches
                                 const status = data.status;
 
-                                if (status.includes('Downloading')) {
-                                    const match = status.match(/(\d+(\.\d+)?)/);
-                                    if (match) setProgress(parseFloat(match[0]) * 0.4); // 0-40%
-                                } else if (status.includes('Reading subtitle') || status.includes('字幕')) {
-                                    setProgress(42);
-                                } else if (status.includes('Uploading')) {
-                                    setProgress(50);
-                                } else if (status.includes('uploaded!') && status.includes('Waiting')) {
-                                    // "Video uploaded! Waiting for processing..." - 上传完成等待处理
-                                    setProgress(60);
-                                } else if (status.includes('Cloud processing')) {
-                                    // "Cloud processing: ACTIVE" - 云端正在处理
-                                    setProgress(70);
-                                } else if (status.includes('analyzing') || status.includes('AI is analyzing')) {
-                                    // "AI is analyzing content..." - AI 开始分析
-                                    setProgress(80);
-                                } else if (status.includes('still thinking') || status.includes('please wait')) {
-                                    // "AI is still thinking..." - AI 仍在思考
-                                    setProgress(85);
-                                } else if (status.includes('complete!') || status.includes('Formatting')) {
-                                    // "Analysis complete!" - 分析完成
-                                    setProgress(95);
-                                }
-
-                                if (data.status === 'complete') {
-                                    setProgress(100);
+                                // --- Improved Progress Logic ---
+                                if (status === 'complete') {
+                                    updateProgress(100, "处理完成！");
                                     summaryText = data.summary;
                                     transcriptText = data.transcript || "";
 
                                     await displaySummary(summaryText, data.usage, transcriptText);
                                     saveToHistory(url, summaryText, data.usage);
 
-                                    // Show chat section
                                     document.getElementById('chat-section')?.classList.add('show');
+                                    if (data.cached) {
+                                        loaderStatus.textContent = "✅ 已从缓存加载";
+                                    }
+                                }
+                                else if (status.includes('Found in cache')) {
+                                    updateProgress(90, "发现缓存，准备渲染...");
+                                }
+                                else if (status.includes('Downloading')) {
+                                    const match = status.match(/(\d+(\.\d+)?)/);
+                                    if (match) {
+                                        const percent = parseFloat(match[0]);
+                                        // 5-40% range
+                                        updateProgress(5 + (percent * 0.35), status);
+                                    } else {
+                                        updateProgress(10, "正在下载视频...");
+                                    }
+                                }
+                                else if (status.includes('Processing subtitles') || status.includes('字幕')) {
+                                    updateProgress(45, "正在解析字幕...");
+                                }
+                                else if (status.includes('Uploading')) {
+                                    updateProgress(50, "正在上传至 AI...");
+                                }
+                                else if (status.includes('uploaded')) {
+                                    updateProgress(60, "上传完成，等待 AI 响应...");
+                                }
+                                else if (status.includes('Cloud processing')) {
+                                    updateProgress(70, "云端处理中，请耐心等待...");
+                                }
+                                else if (status.includes('analyzing') || status.includes('thinking')) {
+                                    updateProgress(80, "AI 正在分析核心观点...");
+                                }
+                                else if (status.includes('Extracting transcript')) {
+                                    updateProgress(90, "生成 AI 字幕...");
+                                }
+                                else {
+                                    loaderStatus.textContent = status;
                                 }
                             }
                         } catch (e) {
@@ -393,6 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 summarizeError.textContent = `错误: ${error.message}`;
                 summarizeError.classList.remove('hidden');
                 loader.style.display = 'none';
+                updateProgress(0, "失败");
             } finally {
                 submitButton.disabled = false;
             }
@@ -566,4 +579,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize History
     renderHistory();
 });
-
