@@ -9,3 +9,12 @@ videos/
 *.mp4
 *.flv
 *.webm
+
+# Ignore runtime data and logs
+summarizer.db
+app.log
+.gemini-clipboard/
+
+# Ignore system files
+.DS_Store
+web_app/.DS_Store
