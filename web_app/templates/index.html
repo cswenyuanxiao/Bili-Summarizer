@@ -1063,10 +1063,10 @@
         }
 
         /* --- 📄 PDF Export Button Style --- */
-        .export-pdf-btn {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-            border: none;
+        .export-btn {
+            background: white;
+            color: var(--text-main);
+            border: 1px solid var(--border);
             padding: 8px 16px;
             border-radius: var(--radius-sm);
             cursor: pointer;
@@ -1369,7 +1369,7 @@
                             <button class="export-btn secondary" id="download-txt-btn">📝 TXT</button>
                             <button class="export-btn secondary" id="export-mindmap-svg-btn">🧠 导图 SVG</button>
                             <button class="export-btn secondary" id="export-mindmap-png-btn">🖼️ 导图 PNG</button>
-                            <button class="export-pdf-btn" id="export-pdf-btn">📕 导出 PDF</button>
+                            <button class="export-btn secondary" id="export-pdf-btn">📕 导出 PDF</button>
                         </div>
 
                         <div class="usage-info" id="usage-info"></div>

@@ -266,57 +266,65 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 1. Create a temporary container to enforce layout
-        // Position off-screen but valid for rendering
+        // 1. Create a temporary container
         const container = document.createElement('div');
-        container.style.position = 'absolute';
-        container.style.top = '-9999px';
+        container.style.position = 'fixed';
         container.style.left = '0';
-        container.style.width = '800px'; // A4 width approx
+        container.style.top = '0';
+        container.style.width = '820px'; // Approx A4 width
+        container.style.zIndex = '-9999';
+        container.style.opacity = '0';
         container.style.background = '#ffffff';
-        container.style.color = '#000000';
         container.style.padding = '40px';
-        container.style.fontFamily = 'sans-serif'; // Ensure font consistency
+        container.style.boxSizing = 'border-box';
 
-        // 2. Clone content
+        // 2. Clone and clean content
         const clone = element.cloneNode(true);
-
-        // 3. Force expand styling on the clone
         clone.style.height = 'auto';
         clone.style.overflow = 'visible';
-        clone.style.maxHeight = 'none';
+        clone.style.color = '#111827'; // Dark text
+        clone.style.backgroundColor = '#ffffff';
 
-        // Ensure all text is black for PDF readability
-        clone.querySelectorAll('*').forEach(el => {
-            el.style.color = '#000000';
-            // Optional: reset backgrounds if needed, but keeping code blocks highlights is usually good
+        // Special fix for elements that might have inherited white color in dark mode
+        const allElements = clone.querySelectorAll('*');
+        allElements.forEach(el => {
+            el.style.color = '#111827';
+            if (el.tagName === 'CODE' || el.tagName === 'PRE') {
+                el.style.backgroundColor = '#f3f4f6';
+                el.style.padding = '4px';
+                el.style.borderRadius = '4px';
+                el.style.color = '#111827';
+            }
         });
 
         container.appendChild(clone);
         document.body.appendChild(container);
 
-        // 4. Generate PDF
+        // 3. Capture with options
         const opt = {
-            margin: [10, 10, 10, 10], // mm
-            filename: 'bili-summary.pdf',
+            margin: 10,
+            filename: 'summarization.pdf',
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: {
                 scale: 2,
                 useCORS: true,
-                scrollY: 0,
-                windowWidth: 1200 // Simulate larger desktop for better layout
+                logging: false,
+                letterRendering: true,
+                scrollY: 0
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } // Try to avoid bad breaks
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         };
 
-        html2pdf().set(opt).from(container).save().then(() => {
-            document.body.removeChild(container);
-        }).catch(err => {
-            console.error(err);
-            alert('导出 failed: ' + err.message);
-            if (document.body.contains(container)) document.body.removeChild(container);
-        });
+        // Give it a bit more time to settle (async layout)
+        setTimeout(() => {
+            html2pdf().set(opt).from(container).save().then(() => {
+                document.body.removeChild(container);
+            }).catch(err => {
+                console.error("PDF Export Error:", err);
+                if (document.body.contains(container)) document.body.removeChild(container);
+            });
+        }, 500);
     };
 
     document.getElementById('export-pdf-btn')?.addEventListener('click', exportToPDF);
