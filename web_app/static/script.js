@@ -199,20 +199,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const svg = mermaidContainer.querySelector('svg');
         if (!svg) return alert('没有可导出的思维导图');
 
-        const svgData = new XMLSerializer().serializeToString(svg);
+        // 1. Get accurate dimensions from viewBox
+        // Mermaid SVGs usually have a viewBox but width/height might be 100% or max-width
+        const viewBox = svg.viewBox.baseVal;
+        const width = viewBox ? viewBox.width : svg.getBoundingClientRect().width;
+        const height = viewBox ? viewBox.height : svg.getBoundingClientRect().height;
+
+        // 2. Clone and force explicit dimensions
+        const clone = svg.cloneNode(true);
+        clone.setAttribute('width', width);
+        clone.setAttribute('height', height);
+        clone.style.backgroundColor = '#ffffff'; // Ensure white background
+
+        const svgData = new XMLSerializer().serializeToString(clone);
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
 
+        // 3. Load image and draw to canvas with scaling
         img.onload = () => {
-            // Use higher resolution for better quality
-            const scale = 2;
-            canvas.width = img.width * scale;
-            canvas.height = img.height * scale;
+            const scale = 3; // High resolution
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+
+            // White background for PNG
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             ctx.scale(scale, scale);
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, width, height);
 
             canvas.toBlob(blob => {
                 const a = document.createElement('a');
@@ -223,6 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 'image/png');
         };
 
+        // Fix unicode/emoji issues by encoding
         img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
     };
 
@@ -250,21 +266,57 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 1. Create a temporary container to enforce layout
+        // Position off-screen but valid for rendering
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.top = '-9999px';
+        container.style.left = '0';
+        container.style.width = '800px'; // A4 width approx
+        container.style.background = '#ffffff';
+        container.style.color = '#000000';
+        container.style.padding = '40px';
+        container.style.fontFamily = 'sans-serif'; // Ensure font consistency
+
+        // 2. Clone content
+        const clone = element.cloneNode(true);
+
+        // 3. Force expand styling on the clone
+        clone.style.height = 'auto';
+        clone.style.overflow = 'visible';
+        clone.style.maxHeight = 'none';
+
+        // Ensure all text is black for PDF readability
+        clone.querySelectorAll('*').forEach(el => {
+            el.style.color = '#000000';
+            // Optional: reset backgrounds if needed, but keeping code blocks highlights is usually good
+        });
+
+        container.appendChild(clone);
+        document.body.appendChild(container);
+
+        // 4. Generate PDF
         const opt = {
-            margin: [10, 10, 10, 10],
+            margin: [10, 10, 10, 10], // mm
             filename: 'bili-summary.pdf',
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                scrollY: 0,
+                windowWidth: 1200 // Simulate larger desktop for better layout
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } // Try to avoid bad breaks
         };
 
-        // Clone element to add styling
-        const clone = element.cloneNode(true);
-        clone.style.padding = '20px';
-        clone.style.background = 'white';
-        clone.style.color = '#1f2937';
-
-        html2pdf().set(opt).from(clone).save();
+        html2pdf().set(opt).from(container).save().then(() => {
+            document.body.removeChild(container);
+        }).catch(err => {
+            console.error(err);
+            alert('导出 failed: ' + err.message);
+            if (document.body.contains(container)) document.body.removeChild(container);
+        });
     };
 
     document.getElementById('export-pdf-btn')?.addEventListener('click', exportToPDF);
