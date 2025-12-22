@@ -1,20 +1,43 @@
-# Ignore python cache
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Ignore environment variables
+# Environment
 .env
+.env.local
 
-# Ignore downloaded videos
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
 videos/
 *.mp4
-*.flv
 *.webm
-
-# Ignore runtime data and logs
+*.flv
+*.mkv
 summarizer.db
 app.log
-.gemini-clipboard/
+*.log
 
-# Ignore system files
-.DS_Store
-web_app/.DS_Store
+# Docker
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp

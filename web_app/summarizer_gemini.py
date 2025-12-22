@@ -27,7 +27,8 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
     
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name="gemini-3-flash-preview")
+        # 使用完整的模型名称，并确保是 Gemini 3 Flash Preview
+        model = genai.GenerativeModel(model_name="models/gemini-3-flash-preview")
     except Exception as e:
         raise Exception(f"Google AI SDK 配置失败: {e}")
 
@@ -105,8 +106,12 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
         if progress_callback:
             progress_callback("AI is analyzing content...")
             
-        print("AI 正在分析内容...")
-        response = model.generate_content(content_parts, request_options={"timeout": 600})
+        print(f"AI 正在使用 {model.model_name} 分析内容...")
+        # 增加超时时间到 1200 秒 (20分钟)，针对视频分析
+        response = model.generate_content(content_parts, request_options={"timeout": 1200})
+        
+        if progress_callback:
+            progress_callback("Analysis complete! Formatting result...")
         
         # 4. 清理
         if file_to_delete:
@@ -148,7 +153,7 @@ if __name__ == '__main__':
             sys.exit(1)
 
         print("--- 开始测试 AI 总结模块 ---")
-        summary = summarize_video(test_video_path)
+        summary = summarize_content(test_video_path, 'video')
         print("\n--- 视频摘要 ---")
         print(summary)
         print("\n--- 测试成功! ---")

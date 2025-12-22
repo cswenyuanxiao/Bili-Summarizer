@@ -1,62 +1,228 @@
-# Bili-Summarizer 部署与上线指南
+# 🚀 部署指南
 
-您的视频总结工具已准备就绪。以下是正式上线的步骤：
+本文档提供三种云平台部署方案，让您的 Bili-Summarizer 上线并测试能否在云环境中爬取 B 站数据。
 
-## 1. 环境变量配置
-确保根目录下的 `.env` 文件包含最新的配置：
-```env
-GOOGLE_API_KEY=您的谷歌API密钥
-# 如果使用了 PayPal 等支付功能，请确保 ClientID 和 Secret 也是生产环境的
-```
+---
 
-## 2. 数据库迁移
-如果是首次部署，程序会自动创建 `summarizer.db`。如果您需要重置数据库：
-```bash
-rm summarizer.db
-```
+## 📋 部署前准备
 
-## 3. 运行生产环境
-我们提供了一个一键启动脚本：
-```bash
-chmod +x start_prod.sh
-./start_prod.sh
-```
-该脚本使用 `gunicorn` 运行，比开发环境的 `uvicorn --reload` 更稳定。
-
-## 4. 测试与正式版区别
-| 功能 | 正式版 (Port 8000) | 测试版 (Port 8001) |
-| :--- | :--- | :--- |
-| **入口逻辑** | `web_app/main.py` | `web_app/main_test.py` |
-| **点数消耗** | 每次总结扣除 10 点 | **不扣点数** |
-| **Token 核验** | **隐藏** (用户无感) | **显示** (方便成本测算) |
-| **新用户赠送** | 30 点数 | 30 点数 |
-
-## 5. 维护建议
-- 定期清理 `videos/` 文件夹（虽然程序会自动清理，但如果中途崩溃可能会有残余）。
-- 监控 `summarizer.db` 以备份用户信息。
-
-## 6. Docker 一键私有化部署 (推荐)
-如果您希望在服务器（如 VPS, NAS）上稳定运行，请使用以下步骤：
-
-1. **克隆代码**:
+1. **确保代码已推送到 GitHub**
    ```bash
-   git clone https://github.com/cswenyuanxiao/Bili-Summarizer.git
-   cd Bili-Summarizer
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin https://github.com/你的用户名/bili-summarizer.git
+   git push -u origin main
    ```
 
-2. **配置环境**:
-   复制 `.env.example` 为 `.env` 并填入您的 API Key。
+2. **准备环境变量**
+   - `GOOGLE_API_KEY`: 从 [Google AI Studio](https://aistudio.google.com/app/apikey) 获取
+
+---
+
+## 🎯 方案 1: Railway (推荐，最简单)
+
+### 优点
+- ✅ 免费额度充足（每月 $5）
+- ✅ 自动部署 Docker
+- ✅ 支持持久化存储
+
+### 部署步骤
+
+1. **访问 [Railway](https://railway.app/)**
+2. 点击 "Start a New Project"
+3. 选择 "Deploy from GitHub repo"
+4. 授权并选择您的 `bili-summarizer` 仓库
+5. Railway 会自动检测到 `railway.json` 和 `Dockerfile`
+6. **设置环境变量**：
+   - 进入项目 → Variables
+   - 添加 `GOOGLE_API_KEY`
+7. 部署完成后获得公网 URL（如 `https://bili-summarizer-xxx.railway.app`）
+
+### 测试 B 站爬取
+
+部署成功后，访问您的应用 URL，输入一个 B 站视频链接测试是否能正常下载和总结。
+
+---
+
+## 🎯 方案 2: Render
+
+### 优点
+- ✅ 完全免费（有使用限制）
+- ✅ 自动 HTTPS
+- ⚠️ 免费版会休眠（15 分钟无活动）
+
+### 部署步骤
+
+1. **访问 [Render](https://render.com/)**
+2. 点击 "New" → "Web Service"
+3. 连接 GitHub 仓库
+4. Render 会自动检测到 `render.yaml`
+5. **设置环境变量**：
+   - `GOOGLE_API_KEY`: 填入您的密钥
+6. 点击 "Create Web Service"
+7. 等待构建完成（约 3-5 分钟）
+
+### ⚠️ 注意事项
+- 免费版磁盘空间有限（512MB），可能不够存储视频
+- 建议修改代码，总结完成后立即删除视频文件
+
+---
+
+## 🎯 方案 3: Fly.io
+
+### 优点
+- ✅ 全球边缘网络
+- ✅ 免费额度（3 个共享 CPU VM）
+- ✅ 更接近 Docker 原生体验
+
+### 部署步骤
+
+1. **安装 Fly CLI**
    ```bash
-   cp .env.example .env
-   vim .env
+   curl -L https://fly.io/install.sh | sh
    ```
 
-3. **一键启动**:
+2. **登录 Fly.io**
    ```bash
-   chmod +x deploy.sh
-   ./deploy.sh
+   fly auth login
    ```
-   脚本会自动拉取最新代码、构建镜像并在后台启动服务。
 
-4. **访问服务**:
-   打开浏览器访问 `http://<服务器IP>:7860`。
+3. **启动应用（在项目目录）**
+   ```bash
+   cd /Users/wenyuan/Desktop/summarizer
+   fly launch
+   ```
+   - 应用名称：`bili-summarizer`（或自定义）
+   - 选择区域：Singapore (sin) 或 Hong Kong (hkg)
+   - 不创建数据库
+   - 不创建 Redis
+
+4. **设置环境变量**
+   ```bash
+   fly secrets set GOOGLE_API_KEY="你的密钥"
+   ```
+
+5. **部署**
+   ```bash
+   fly deploy
+   ```
+
+6. **查看状态**
+   ```bash
+   fly status
+   fly open  # 在浏览器中打开应用
+   ```
+
+---
+
+## 🧪 测试 B 站反爬虫
+
+部署成功后，依次测试以下场景：
+
+### 测试 1: 公开视频（无字幕）
+```
+https://www.bilibili.com/video/BV1xx411c7mD
+```
+- ✅ 能下载：说明云服务器 IP 未被封
+- ❌ 403/429 错误：IP 被限流或封禁
+
+### 测试 2: 有字幕视频
+```
+https://www.bilibili.com/video/BV1QB4y1X7t3
+```
+- ✅ 能获取字幕：优先使用字幕模式成功
+- ⚠️ 字幕为空但能下载视频：可能需要视频模式
+
+### 测试 3: 高清视频
+```
+https://www.bilibili.com/video/BV1GJ411x7h7
+```
+- ✅ 正常下载：无速度限制
+- ⚠️ 下载超时：可能有带宽限制
+
+---
+
+## 🔧 可能遇到的问题
+
+### 问题 1: IP 被封禁
+
+**症状**：
+```
+ERROR: unable to download video data: HTTP Error 403: Forbidden
+```
+
+**解决方案**：
+1. **使用代理**（修改 `downloader.py`）：
+   ```python
+   ydl_opts = {
+       'proxy': 'http://your-proxy:port',
+       # ...
+   }
+   ```
+
+2. **降低请求频率**（添加延迟）
+3. **切换云服务商**（不同 IP 段）
+
+### 问题 2: 磁盘空间不足
+
+**症状**：
+```
+No space left on device
+```
+
+**解决方案**：
+修改 `main.py`，下载后立即清理：
+```python
+finally:
+    if video_path and video_path.exists():
+        video_path.unlink()  # 立即删除
+```
+
+### 问题 3: 构建超时
+
+**症状**：
+```
+Build exceeded maximum time limit
+```
+
+**解决方案**：
+- 减少 Docker 镜像大小
+- 使用预构建基础镜像
+
+---
+
+## 📊 性能对比
+
+| 平台 | 免费额度 | 冷启动 | 持久化 | 推荐度 |
+|------|---------|--------|--------|--------|
+| **Railway** | $5/月 | 无 | ✅ | ⭐⭐⭐⭐⭐ |
+| **Render** | ∞ | 1-2min | ⚠️ | ⭐⭐⭐ |
+| **Fly.io** | 3 VM | 无 | ✅ | ⭐⭐⭐⭐ |
+
+---
+
+## 🎯 推荐方案
+
+1. **Railway** - 最适合测试和小规模使用
+2. **Fly.io** - 适合需要全球加速的场景
+3. **Render** - 适合极简部署但访问量小
+
+---
+
+## 📝 后续优化
+
+如果云端爬取成功，可以考虑：
+
+1. **添加代理池**：轮换 IP 避免封禁
+2. **使用 CDN**：加速视频下载
+3. **队列系统**：处理并发请求
+4. **缓存机制**：避免重复下载
+
+---
+
+## 🆘 获取帮助
+
+- Railway: https://docs.railway.app/
+- Render: https://render.com/docs
+- Fly.io: https://fly.io/docs/

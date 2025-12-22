@@ -24,5 +24,5 @@ RUN mkdir -p videos
 # 网络端口 (Hugging Face 默认使用 7860)
 EXPOSE 7860
 
-# 启动命令
-CMD ["sh", "-c", "gunicorn web_app.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:7860 --timeout 600"]
+# 启动命令 (增加 timeout 以支持长时间视频分析)
+CMD ["sh", "-c", "gunicorn web_app.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:7860 --timeout 1500"]

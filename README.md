@@ -1,77 +1,231 @@
-# Bili-Summarizer (B站视频总结助手)
+# 🎬 Bili-Summarizer
 
-Bili-Summarizer 是一个旨在帮助用户快速获取 Bilibili 视频核心内容的自动化工具。用户只需提供一个 Bilibili 视频链接，该工具即可自动完成视频下载、上传至 Google AI Studio 进行分析，并最终生成一份简洁、准确的视频内容摘要文本。
+> AI 视频总结助手 - 一键获取 Bilibili 视频的智能总结、思维导图和完整转录
 
----
-
-## 需求文档 (Product Requirements Document)
-
-**1. 核心功能 (Features)**
-*   **视频链接输入:** 支持用户输入标准的 Bilibili 视频链接。
-*   **自动视频下载:** 工具后台自动将原始视频文件保存到本地。
-*   **调用 AI 总结:** 自动将下载好的视频通过 Google AI Studio (Gemini API) 请求视频内容总结服务。
-*   **文本摘要输出:** 在终端清晰地展示由 AI 生成的视频摘要。
-*   **状态反馈:** 在处理过程中向用户提供明确的状态提示。
-
-**2. 用户流程 (User Flow)**
-1.  用户通过命令行启动 Bili-Summarizer。
-2.  根据提示，输入一个 Bilibili 视频的 URL。
-3.  应用界面显示“正在下载视频...”。
-4.  下载完成后，界面显示“正在上传并分析视频...”。
-5.  分析完成后，界面显示最终的视频内容摘要。
-
-**3. 输入与输出 (Input & Output)**
-*   **输入:** 一个有效的 Bilibili 视频 URL。
-*   **输出:** 一段格式化好的视频摘要文本。
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template)
 
 ---
 
-## 技术文档 (Technical Specification)
+## ✨ 核心功能
 
-**1. 系统架构 (System Architecture)**
-本工具将采用模块化的单体应用架构，主要由一个主程序（Orchestrator）调度三个核心模块完成任务。
-
-`用户 -> CLI -> 主程序 (main.py)`
-    `-> 1. 下载模块 (downloader.py)`
-    `-> 2. AI总结模块 (summarizer_gemini.py)`
-    `-> 3. 输出模块 (display.py)`
-
-**2. 技术选型 (Technology Stack)**
-*   **编程语言:** Python 3
-*   **视频下载:** `yt-dlp`
-*   **API 交互:** `google-generativeai` (Google官方Python SDK)
-*   **依赖管理:** `requirements.txt`
-*   **AI 服务:** Google AI Studio (Gemini 2.5 Pro / Flash API)
-
-**3. 核心组件**
-*   **`main.py`**: 主程序，负责调度和流程控制。
-*   **`downloader.py`**: 下载模块，负责调用 `yt-dlp` 下载视频。
-*   **`summarizer_gemini.py`**: AI总结模块，负责与 Gemini API 交互。
-*   **`display.py`**: 输出模块，负责在终端格式化并显示文本。
-*   **`.env`**: 配置文件，用于存储 `GOOGLE_API_KEY`。
+- 🤖 **AI 智能总结** - 使用 Google Gemini 2.0 Flash 模型分析视频内容
+- 🧠 **思维导图** - 自动生成 Mermaid 格式的知识结构图
+- 📜 **完整转录** - 提取视频字幕或通过 AI 分析画面
+- 💬 **AI 追问** - 基于视频内容的智能问答
+- 🎬 **视频回放** - 点击封面即可在线观看原视频
+- 🌙 **暗色模式** - 支持亮色/暗色主题切换
+- 📱 **响应式设计** - 完美适配桌面和移动设备
+- 📥 **多格式导出** - 支持 Markdown、TXT、SVG、PNG
 
 ---
 
-## 如何获得在线访问链接 (部署到云端)
+## 🚀 快速开始
 
-目前的程序运行在您的本地电脑（Localhost）。如果您想获得一个像 `https://your-app.railway.app` 这样可以直接打开的链接，通常需要将其部署到“云服务器”上。
+### 方案 1: Docker（推荐）
 
-### 推荐部署方案：Railway.app (最快最简单)
-Railway 是一个支持 FastAPI 的云平台，自动处理 HTTPS 和域名。
+```bash
+# 1. 克隆仓库
+git clone https://github.com/你的用户名/bili-summarizer.git
+cd bili-summarizer
 
-1.  **准备代码**：将代码上传到您的 **GitHub** 私有仓库。
-2.  **关联 Railway**：
-    *   登录 [Railway.app](https://railway.app/)。
-    *   点击 **New Project** -> **Deploy from GitHub repo**，选择您的仓库。
-3.  **配置环境变量**：
-    *   在 Railway 的项目设置中找到 **Variables**。
-    *   添加 `GOOGLE_API_KEY`（必填）。
-4.  **开启公开访问**：
-    *   在 **Settings** -> **Networking** 中点击 **Generate Domain**。
-    *   您将获得一个以 `.up.railway.app` 结尾的 **公开链接**。
+# 2. 创建 .env 文件
+echo "GOOGLE_API_KEY=你的密钥" > .env
 
-### 为什么需要这样做？
-*   **24/7 在线**：云服务器不会断电，任何人随时可以访问。
-*   **固定链接**：提供一个全球可访问的 HTTPS 网址，而不仅仅是本地的 `127.0.0.1`。
-*   **环境一致性**：我已经为您创建了 `Dockerfile`，它会告诉云服务器如何安装 `ffmpeg` 等视频处理所需的组件。
+# 3. 启动服务
+docker-compose up -d
 
+# 4. 访问应用
+open http://localhost:7860
+```
+
+### 方案 2: 本地开发
+
+```bash
+# 1. 安装依赖
+pip install -r requirements.txt
+
+# 2. 配置环境变量
+export GOOGLE_API_KEY="你的密钥"
+
+# 3. 启动服务
+uvicorn web_app.main:app --reload --port 7860
+```
+
+---
+
+## ☁️ 云端部署
+
+### Railway（免费，推荐）
+
+1. 点击 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/)
+2. 连接 GitHub 仓库
+3. 添加环境变量 `GOOGLE_API_KEY`
+4. 自动部署完成
+
+### Render / Fly.io
+
+详见 [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+---
+
+## 📋 环境变量
+
+| 变量名 | 说明 | 获取方式 |
+|--------|------|----------|
+| `GOOGLE_API_KEY` | Google Gemini API 密钥 | [Google AI Studio](https://aistudio.google.com/app/apikey) |
+
+---
+
+## 🎯 使用方法
+
+1. **输入视频链接**
+   ```
+   https://www.bilibili.com/video/BV1xx411c7mD
+   ```
+
+2. **选择分析模式**
+   - **智能模式**：优先使用字幕（快速）
+   - **视频模式**：AI 分析画面（深度）
+
+3. **选择分析视角**
+   - 综合总结
+   - 深度学习
+   - 趣味互动
+   - 商业洞察
+
+4. **查看结果**
+   - 📝 智能总结
+   - 🧠 思维导图
+   - 📜 视频转录
+   - 🎬 点击封面播放视频
+   - 💬 向 AI 追问
+
+---
+
+## 🛠️ 技术栈
+
+**后端**
+- FastAPI - 高性能 Web 框架
+- Google Gemini 2.0 Flash - AI 模型
+- yt-dlp - 视频下载
+- httpx - HTTP 客户端
+
+**前端**
+- Vanilla JavaScript - 无框架依赖
+- Mermaid.js - 思维导图渲染
+- Marked.js - Markdown 解析
+- Inter Font - 现代字体
+
+**基础设施**
+- Docker - 容器化
+- Nginx (可选) - 反向代理
+
+---
+
+## 📂 项目结构
+
+```
+bili-summarizer/
+├── web_app/
+│   ├── main.py              # FastAPI 主应用
+│   ├── downloader.py        # 视频下载模块
+│   ├── summarizer_gemini.py # AI 总结模块
+│   ├── templates/           # HTML 模板
+│   │   └── index.html      # 主页面
+│   └── static/             # 静态资源
+│       └── script.js       # 前端逻辑
+├── Dockerfile              # Docker 镜像配置
+├── docker-compose.yml      # Docker Compose 配置
+├── requirements.txt        # Python 依赖
+├── deploy.sh              # 快速部署脚本
+├── DEPLOYMENT.md          # 部署文档
+└── README.md              # 本文件
+```
+
+---
+
+## 🔧 配置说明
+
+### 使用代理（如遇下载失败）
+
+编辑 `web_app/downloader.py`：
+
+```python
+ydl_opts = {
+    'proxy': 'http://your-proxy:port',
+    # ...
+}
+```
+
+### 修改端口
+
+编辑 `docker-compose.yml`：
+
+```yaml
+ports:
+  - "8080:7860"  # 左侧改为您想要的端口
+```
+
+---
+
+## 🐛 常见问题
+
+### Q: 视频下载失败（403 错误）
+
+**A:** B 站可能限制了您的 IP，尝试：
+1. 使用代理
+2. 降低请求频率
+3. 切换网络环境
+
+### Q: 封面加载失败
+
+**A:** 已实现后端图片代理，如仍失败请检查网络连接。
+
+### Q: AI 分析超时
+
+**A:** 视频过长或网络不稳定，建议：
+1. 使用字幕模式（更快）
+2. 检查 API 密钥配额
+3. 重试请求
+
+### Q: 部署到云端后爬取失败
+
+**A:** 云服务器 IP 可能被 B 站限制，可以：
+1. 使用代理池
+2. 降低请求频率
+3. 联系云服务商更换 IP
+
+---
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
+---
+
+## 📄 开源协议
+
+本项目采用 MIT 协议 - 详见 [LICENSE](LICENSE) 文件
+
+---
+
+## 🙏 致谢
+
+- [Google Gemini](https://ai.google.dev/) - AI 模型支持
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) - 视频下载工具
+- [Mermaid](https://mermaid.js.org/) - 思维导图渲染
+- [FastAPI](https://fastapi.tiangolo.com/) - Web 框架
+
+---
+
+## 📮 联系方式
+
+如有问题或建议，欢迎通过 GitHub Issues 联系我们。
+
+**⭐ 如果这个项目对您有帮助，请给个 Star！**
