@@ -230,6 +230,33 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('copy-summary-btn')?.addEventListener('click', function () { copyToClipboard(currentSummaryRaw, this); });
     document.getElementById('copy-transcript-btn')?.addEventListener('click', function () { copyToClipboard(currentTranscript, this); });
 
+    // PDF Export Function
+    const exportToPDF = () => {
+        const element = document.getElementById('summary-output');
+        if (!element || !window.html2pdf) {
+            alert('PDF 导出功能加载中，请稍后再试');
+            return;
+        }
+
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: 'bili-summary.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // Clone element to add styling
+        const clone = element.cloneNode(true);
+        clone.style.padding = '20px';
+        clone.style.background = 'white';
+        clone.style.color = '#1f2937';
+
+        html2pdf().set(opt).from(clone).save();
+    };
+
+    document.getElementById('export-pdf-btn')?.addEventListener('click', exportToPDF);
+
     document.getElementById('refresh-btn')?.addEventListener('click', () => {
         if (videoUrlInput.value) {
             summarizeForm.dispatchEvent(new Event('submit'));

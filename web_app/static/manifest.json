@@ -1,0 +1,21 @@
+{
+    "name": "Bili-Summarizer",
+    "short_name": "Bili-Sum",
+    "description": "AI 视频总结助手 - 一键获取 Bilibili 视频总结、思维导图和转录",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f8fafc",
+    "theme_color": "#4f46e5",
+    "icons": [
+        {
+            "src": "/static/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

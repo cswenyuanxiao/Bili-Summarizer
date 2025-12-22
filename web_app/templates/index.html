@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bili-Summarizer | AI 视频总结助手</title>
     <meta name="description" content="使用 AI 一键总结 Bilibili 视频内容，生成思维导图和转录文本。">
+
+    <!-- 🔧 PWA Support -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+
     <!-- 🎨 Master Design Resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,6 +24,9 @@
     <!-- Utilities & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- 📄 PDF Export Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <!-- Internal Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -34,6 +45,15 @@
                 tertiaryColor: '#f8fafc'
             }
         });
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
+        }
     </script>
     <style>
         :root {
@@ -986,6 +1006,95 @@
             opacity: 1;
         }
 
+        /* --- 💀 Skeleton Screen Loading Animation --- */
+        .skeleton {
+            background: linear-gradient(90deg,
+                    var(--border-light) 25%,
+                    var(--border) 50%,
+                    var(--border-light) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: var(--radius-sm);
+        }
+
+        @keyframes skeleton-loading {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .skeleton-text {
+            height: 1em;
+            margin-bottom: 0.5em;
+        }
+
+        .skeleton-text.title {
+            height: 1.5em;
+            width: 60%;
+        }
+
+        .skeleton-text.subtitle {
+            width: 80%;
+        }
+
+        .skeleton-box {
+            height: 200px;
+            margin-bottom: 1rem;
+        }
+
+        .skeleton-card {
+            padding: 1.5rem;
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Loader with skeleton effect */
+        #loader .skeleton-preview {
+            display: none;
+        }
+
+        #loader.show-skeleton .skeleton-preview {
+            display: block;
+        }
+
+        /* --- 📄 PDF Export Button Style --- */
+        .export-pdf-btn {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .export-pdf-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        /* --- Cache Badge --- */
+        .cache-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--success);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
         /* --- Fluid Mobile Responsive Optimizations --- */
         @media (max-width: 768px) {
 
@@ -1260,6 +1369,7 @@
                             <button class="export-btn secondary" id="download-txt-btn">📝 TXT</button>
                             <button class="export-btn secondary" id="export-mindmap-svg-btn">🧠 导图 SVG</button>
                             <button class="export-btn secondary" id="export-mindmap-png-btn">🖼️ 导图 PNG</button>
+                            <button class="export-pdf-btn" id="export-pdf-btn">📕 导出 PDF</button>
                         </div>
 
                         <div class="usage-info" id="usage-info"></div>

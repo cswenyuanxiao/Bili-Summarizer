@@ -8,6 +8,75 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 
 
+def extract_ai_transcript(file_path: Path, progress_callback=None) -> str:
+    """
+    使用 Gemini AI 从视频/音频中提取语音转录。
+    
+    Args:
+        file_path: 视频或音频文件路径
+        progress_callback: 进度回调函数
+        
+    Returns:
+        str: 带时间戳的转录文本
+    """
+    load_dotenv()
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        return ""
+    
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
+        
+        if progress_callback:
+            progress_callback("Extracting transcript with AI...")
+        
+        # 上传文件
+        media_file = genai.upload_file(path=str(file_path))
+        
+        # 等待处理完成
+        while media_file.state.name == "PROCESSING":
+            time.sleep(2)
+            media_file = genai.get_file(media_file.name)
+        
+        if media_file.state.name == "FAILED":
+            return ""
+        
+        # 使用专门的转录提示词
+        transcript_prompt = """请仔细听取这个视频/音频中的所有语音内容，并生成完整的转录文本。
+
+要求：
+1. 逐句转录所有语音内容，不要遗漏
+2. 每隔30秒左右添加一个时间戳标记，格式如：[00:30]、[01:00]、[01:30]
+3. 保持原始语言（中文内容用中文，英文用英文）
+4. 如果有多个说话者，尽量区分标注
+5. 只输出转录内容，不要添加总结或分析
+
+示例格式：
+[00:00] 大家好，欢迎来到今天的视频...
+[00:30] 今天我们要讨论的话题是...
+[01:00] 首先让我们来看第一个观点...
+"""
+        
+        response = model.generate_content(
+            [transcript_prompt, media_file],
+            request_options={"timeout": 600}
+        )
+        
+        # 清理云端文件
+        try:
+            genai.delete_file(media_file.name)
+        except:
+            pass
+        
+        if response.parts:
+            return response.text
+        return ""
+        
+    except Exception as e:
+        print(f"AI转录提取失败: {e}", file=sys.stderr)
+        return ""
+
 
 def summarize_content(file_path: Path, media_type: str, progress_callback=None, focus: str = "default") -> str:
     """

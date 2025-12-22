@@ -12,7 +12,9 @@ from pydantic import BaseModel
 
 # --- web_app 内部模块导入 ---
 from .downloader import download_content
-from .summarizer_gemini import summarize_content
+from .summarizer_gemini import summarize_content, extract_ai_transcript
+from .cache import get_cached_result, save_to_cache, get_cache_stats
+from typing import List
 
 # --- 配置日志 ---
 logging.basicConfig(
@@ -41,6 +43,12 @@ class SummarizeRequest(BaseModel):
     url: str
     mode: str = "smart" # "smart" or "video"
     focus: str = "default" # "default", "study", "gossip", "business"
+    skip_cache: bool = False  # 是否跳过缓存
+
+class BatchSummarizeRequest(BaseModel):
+    urls: List[str]
+    mode: str = "smart"
+    focus: str = "default"
 
 @app.post("/summarize")
 async def run_summarization(request: SummarizeRequest):
@@ -49,6 +57,15 @@ async def run_summarization(request: SummarizeRequest):
     async def event_generator():
         video_path = None
         try:
+            # 检查缓存
+            if not request.skip_cache:
+                cached = get_cached_result(request.url, request.mode, request.focus)
+                if cached:
+                    logger.info(f"命中缓存: {request.url}")
+                    yield f"data: {json.dumps({'status': 'Found in cache! Loading...'})}\n\n"
+                    yield f"data: {json.dumps({'status': 'complete', 'summary': cached['summary'], 'transcript': cached['transcript'], 'credits': 999, 'usage': cached['usage'], 'cached': True})}\n\n"
+                    return
+            
             loop = asyncio.get_event_loop()
             queue = asyncio.Queue()
 
@@ -62,7 +79,17 @@ async def run_summarization(request: SummarizeRequest):
                     if media_type == 'subtitle':
                          progress_callback("Processing subtitles...")
                     
+                    # 调用AI总结
                     summary, usage = await loop.run_in_executor(None, summarize_content, video_path, media_type, progress_callback, request.focus)
+                    
+                    # 如果没有内置字幕且是视频/音频模式，使用AI提取转录
+                    if not transcript and media_type in ['video', 'audio']:
+                        progress_callback("Extracting transcript with AI...")
+                        transcript = await loop.run_in_executor(None, extract_ai_transcript, video_path, progress_callback)
+                    
+                    # 保存到缓存
+                    save_to_cache(request.url, request.mode, request.focus, summary, transcript, usage)
+                    
                     return summary, usage, transcript
                 except Exception as e:
                     logger.error(f"处理任务时发生错误: {str(e)}")
@@ -72,11 +99,9 @@ async def run_summarization(request: SummarizeRequest):
 
             while not task.done():
                 try:
-                    # 将超时缩短，并增加心跳机制，防止 SSE 连接因长时间无数据而断开
                     status = await asyncio.wait_for(queue.get(), timeout=5.0)
                     yield f"data: {json.dumps({'status': status})}\n\n"
                 except asyncio.TimeoutError:
-                    # 发送心跳/中间状态，保持连接活跃
                     yield f"data: {json.dumps({'status': 'AI is still thinking... please wait'})}\n\n"
                     continue
 
@@ -107,6 +132,44 @@ async def run_summarization(request: SummarizeRequest):
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
+
+# --- 批量处理端点 ---
+@app.post("/batch-summarize")
+async def batch_summarize(request: BatchSummarizeRequest):
+    """批量处理多个视频URL，返回处理状态"""
+    results = []
+    
+    for url in request.urls:
+        # 检查缓存
+        cached = get_cached_result(url, request.mode, request.focus)
+        if cached:
+            results.append({
+                "url": url,
+                "status": "cached",
+                "summary": cached["summary"][:200] + "..." if len(cached["summary"]) > 200 else cached["summary"],
+                "cached": True
+            })
+        else:
+            results.append({
+                "url": url,
+                "status": "pending",
+                "cached": False
+            })
+    
+    return {
+        "total": len(request.urls),
+        "cached_count": sum(1 for r in results if r.get("cached")),
+        "pending_count": sum(1 for r in results if not r.get("cached")),
+        "results": results
+    }
+
+
+# --- 缓存统计端点 ---
+@app.get("/cache-stats")
+async def cache_stats():
+    """获取缓存统计信息"""
+    stats = get_cache_stats()
+    return stats
 
 # --- Video Info Endpoint ---
 class VideoInfoRequest(BaseModel):
