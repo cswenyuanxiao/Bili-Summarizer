@@ -329,6 +329,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('export-pdf-btn')?.addEventListener('click', exportToPDF);
 
+    // PPT Export
+    const exportPPTBtn = document.getElementById('export-ppt-btn');
+    exportPPTBtn?.addEventListener('click', async () => {
+        if (!currentSummaryRaw) return alert('请先生成视频总结');
+
+        const originalText = exportPPTBtn.innerHTML;
+        exportPPTBtn.disabled = true;
+        exportPPTBtn.innerHTML = '🎥 生成中...';
+
+        try {
+            const response = await fetch('/generate-ppt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ summary: currentSummaryRaw })
+            });
+
+            if (!response.ok) throw new Error('生成失败');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bili-summary-ppt-${Date.now()}.pptx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            exportPPTBtn.innerHTML = '✅ 生成成功';
+            setTimeout(() => {
+                exportPPTBtn.innerHTML = originalText;
+                exportPPTBtn.disabled = false;
+            }, 2000);
+
+        } catch (e) {
+            console.error(e);
+            alert('PPT 生成失败: ' + e.message);
+            exportPPTBtn.innerHTML = originalText;
+            exportPPTBtn.disabled = false;
+        }
+    });
+
     document.getElementById('refresh-btn')?.addEventListener('click', () => {
         if (videoUrlInput.value) {
             summarizeForm.dispatchEvent(new Event('submit'));

@@ -209,6 +209,79 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
                 pass
         raise Exception(f"AI 总结失败: {e}")
 
+import json
+
+def generate_ppt_structure(summary_text: str) -> dict:
+    """
+    根据视频总结内容，生成 PPT 结构的 JSON 数据。
+    使用 Gemini 模型进行转换。
+    """
+    load_dotenv()
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GOOGLE_API_KEY not found.")
+    
+    genai.configure(api_key=api_key)
+    # 使用较快的模型处理简单的格式转换任务
+    model = genai.GenerativeModel("models/gemini-2.0-flash")
+    
+    prompt = """User wants to turn the following textual summary into a PowerPoint presentation.
+    Please act as a Presentation Expert and structure the content into a JSON format suitable for generating slides.
+
+    Output Rules:
+    1. Language: Use the same language as the input summary (mostly Chinese).
+    2. Slides count: 5 to 12 slides depending on content length.
+    3. Content: Use concise bullet points.
+    4. Format: STRICTLY JSON format. Do not obscure it with markdown code blocks if possible, or I will have to strip them.
+
+    Target JSON Structure:
+    {
+        "title": "Presentation Title",
+        "subtitle": "Subtitle or Author",
+        "slides": [
+            {
+                "title": "Slide Title",
+                "content": [
+                    "Bullet point 1",
+                    "Bullet point 2",
+                    "Bullet point 3"
+                ]
+            }
+        ]
+    }
+
+    --- INPUT SUMMARY START ---
+    """ + summary_text + "\n--- INPUT SUMMARY END ---"
+
+    try:
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        
+        # Clean Markdown Code Blocks
+        if text.startswith("```json"):
+            text = text[7:]
+        elif text.startswith("```"):
+            text = text[3:]
+        
+        if text.endswith("```"):
+            text = text[:-3]
+            
+        return json.loads(text)
+    except Exception as e:
+        print(f"PPT Structure Generation Failed: {e}", file=sys.stderr)
+        # Return a fallback structure
+        return {
+            "title": "自动生成失败",
+            "subtitle": "请重试或检查日志",
+            "slides": [
+                {
+                    "title": "Error",
+                    "content": [str(e)]
+                }
+            ]
+        }
+
+
 if __name__ == '__main__':
     # 用于直接测试 summarizer_gemini.py 模块
     # 这个测试需要一个已下载的视频文件

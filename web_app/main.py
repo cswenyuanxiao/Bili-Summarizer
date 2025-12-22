@@ -297,3 +297,47 @@ async def chat_with_ai(request: ChatRequest):
         logger.error(f"AI Chat 失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# --- PPT Generation Endpoint ---
+from .ppt_generator import PPTGenerator
+from .summarizer_gemini import generate_ppt_structure
+from urllib.parse import quote
+
+class PPTRequest(BaseModel):
+    summary: str
+
+@app.post("/generate-ppt")
+async def generate_ppt_endpoint(request: PPTRequest):
+    """
+    Generate a PPT file from the summary content.
+    """
+    logger.info("Generating PPT...")
+    try:
+        # 1. Use AI to structure the JSON
+        # Run in executor to avoid blocking
+        loop = asyncio.get_event_loop()
+        ppt_json = await loop.run_in_executor(None, generate_ppt_structure, request.summary)
+        
+        logger.info("PPT Structure Generated successfully.")
+
+        # 2. Generate PPT bytes
+        generator = PPTGenerator()
+        ppt_file = await loop.run_in_executor(None, generator.generate_from_json, ppt_json)
+        
+        # 3. Return as downloadable file
+        filename = f"bili-ppt-{int(datetime.now().timestamp())}.pptx"
+        
+        # Configure headers for file download
+        headers = {
+            'Content-Disposition': f'attachment; filename="{filename}"'
+        }
+        
+        return StreamingResponse(
+            ppt_file, 
+            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            headers=headers
+        )
+        
+    except Exception as e:
+        logger.error(f"PPT generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
