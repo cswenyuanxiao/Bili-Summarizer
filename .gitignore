@@ -1,0 +1,11 @@
+# Ignore python cache
+__pycache__/
+
+# Ignore environment variables
+.env
+
+# Ignore downloaded videos
+videos/
+*.mp4
+*.flv
+*.webm

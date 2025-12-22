@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bili-Summarizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+    </script>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --primary-hover: #0063D1;
+            --bg: #F5F7F9;
+            --card-bg: #FFFFFF;
+            --text-main: #1D1D1F;
+            --text-secondary: #86868B;
+            --border: #D2D2D7;
+            --success: #34C759;
+            --warning: #FFCC00;
+            --radius: 18px;
+            --shadow: 0 20px 60px rgba(0, 0, 0, 0.05), 0 4px 15px rgba(0, 0, 0, 0.02);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 5rem 1.5rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background: var(--card-bg);
+            padding: 4rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            text-align: center;
+            margin-bottom: 3.5rem;
+            background: linear-gradient(135deg, #1d1d1f 0%, #434343 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #summarize-form {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-bottom: 3rem;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .field-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-left: 4px;
+        }
+
+        select,
+        input {
+            padding: 16px 20px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            font-size: 1.05rem;
+            outline: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #FDFDFF;
+            width: 100%;
+        }
+
+        select:focus,
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12);
+            background: white;
+            transform: translateY(-1px);
+        }
+
+        #summarize-mode {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2386868B' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 18px center;
+            padding-right: 50px;
+        }
+
+        #submit-button {
+            padding: 18px 32px;
+            border: none;
+            background: linear-gradient(135deg, #007AFF 0%, #0056D2 100%);
+            color: white;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 8px;
+            box-shadow: 0 8px 25px rgba(0, 122, 255, 0.15);
+        }
+
+        #submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0, 122, 255, 0.25);
+        }
+
+        #submit-button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #F2F2F7 !important;
+            color: #AEAEB2 !important;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        #results {
+            margin-top: 3rem;
+            animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #loader {
+            text-align: center;
+            padding: 3rem 0;
+        }
+
+        #loader p {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background-color: #F2F2F7;
+            border-radius: 100px;
+            overflow: hidden;
+            border: 1px solid #E5E5EA;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #007AFF, #5AC8FA);
+            border-radius: 100px;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .mode-badge {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 10px;
+            background: #E5F1FF;
+            color: #007AFF;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        #summary-output {
+            background: #FFFFFF;
+            border: 1px solid #F2F2F7;
+            padding: 3.5rem;
+            border-radius: 20px;
+            line-height: 1.8;
+            color: #1C1C1E;
+            font-size: 1.15rem;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.02);
+        }
+
+        #summary-output h1,
+        #summary-output h2,
+        #summary-output h3 {
+            color: #000;
+            margin-top: 2em;
+            margin-bottom: 1em;
+            letter-spacing: -0.02em;
+        }
+
+        #summary-output p {
+            margin-bottom: 1.5em;
+        }
+
+        #summary-output ul,
+        #summary-output ol {
+            padding-left: 28px;
+            margin-bottom: 2em;
+        }
+
+        #summary-output li {
+            margin-bottom: 0.8em;
+        }
+
+        .usage-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2rem;
+            padding: 1.5rem 0;
+            border-top: 1px solid #F2F2F7;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .error-output {
+            background: #FFF2F2;
+            color: #FF3B30;
+            padding: 1.5rem;
+            border-radius: 16px;
+            font-size: 1rem;
+            margin-top: 1.5rem;
+            border: 1px solid rgba(255, 59, 48, 0.08);
+            font-weight: 500;
+        }
+
+        #download-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 2.5rem;
+            justify-content: center;
+        }
+
+        #download-buttons button {
+            background: white;
+            color: var(--primary);
+            border: 1.5px solid var(--primary);
+            font-size: 1rem;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        #download-buttons button:hover {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 122, 255, 0.2);
+        }
+
+        #history-section {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1.5px solid #F2F2F7;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .history-header h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-main);
+        }
+
+        #clear-history-btn {
+            background: none;
+            border: none;
+            color: #FF3B30;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        #clear-history-btn:hover {
+            background: #FFF2F2;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: #FAFAFB;
+            border: 1px solid #F2F2F7;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            background: #FFFFFF;
+            transform: scale(1.01);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            border-color: var(--primary);
+        }
+
+        .history-item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow: hidden;
+        }
+
+        .history-item-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-main);
+        }
+
+        .history-item-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 3rem 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            background: #FAFAFB;
+            border-radius: 14px;
+            border: 1px dashed var(--border);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Summarizer Section -->
+        <div id="summarizer-section">
+            <div id="user-info" style="display: none;">
+                <span id="user-email"></span>
+                <span id="user-credits"></span>
+                <button id="open-buy-modal-btn">购买/订阅</button>
+                <button id="logout-btn">登出</button>
+            </div>
+            <h1>Bili-Summarizer</h1>
+            <form id="summarize-form">
+                <div class="field-group">
+                    <label class="field-label">分析模式</label>
+                    <select id="summarize-mode">
+                        <option value="smart">智能模式 (优先分析字幕, 适合有字幕的视频)</option>
+                        <option value="video">视频模式 (直接分析视频, 适合注重画面分析的视频, 但Token消耗更多)</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label">分析视角 (AI 关注点)</label>
+                    <select id="analysis-focus">
+                        <option value="default">✨ 综合总结 (默认)</option>
+                        <option value="study">🎓 深度学习 (提取知识点、核心逻辑、参考文献)</option>
+                        <option value="gossip">🍿 趣味互动 (提取槽点、梗、弹幕热评、娱乐性内容)</option>
+                        <option value="business">💼 商业洞察 (提取商业模式、市场机会、营销技巧)</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label">视频链接</label>
+                    <input type="url" id="video-url" placeholder="请在此处粘贴 Bilibili 视频链接..." required>
+                </div>
+
+                <button type="submit" id="submit-button">✨ 开始 AI 深度总结</button>
+            </form>
+            <div id="results">
+                <div id="loader" style="display: none;">
+                    <p>
+                        <span id="loader-status">正在连接服务器...</span>
+                    </p>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="real-progress-bar"></div>
+                    </div>
+                </div>
+                <div id="summary-output" style="display:none;"></div>
+                <div id="usage-info" class="usage-info"></div>
+                <div class="error-output" id="summarize-error" style="display:none;"></div>
+                <div id="download-buttons" style="display:none;">
+                    <button id="copy-btn">📋 复制总结内容</button>
+                    <button id="download-txt-btn">保存为 TXT 文档</button>
+                    <button id="download-md-btn">保存为 Markdown 文档</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div id="history-section">
+            <div class="history-header">
+                <h2>最近总结</h2>
+                <button id="clear-history-btn">清空记录</button>
+            </div>
+            <div id="history-list" class="history-list">
+                <div class="history-empty">暂无历史记录</div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="/static/script.js"></script>
+</body>
+
+
+</html>

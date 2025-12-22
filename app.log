@@ -1,0 +1,34 @@
+2025-12-22 18:15:32,346 - INFO - 收到总结请求: URL=https://www.bilibili.com/video/BV1imq6BAEwF/?spm_id_from=333.1007.tianma.1-2-2.click, Mode=smart
+2025-12-22 18:16:09,704 - INFO - 总结成功: https://www.bilibili.com/video/BV1imq6BAEwF/?spm_id_from=333.1007.tianma.1-2-2.click
+2025-12-22 18:16:09,705 - INFO - 清理临时文件: /Users/wenyuan/Desktop/summarizer/videos/BV1imq6BAEwF.mp4
+2025-12-22 18:32:01,633 - INFO - 收到总结请求: URL=https://www.bilibili.com/video/BV1u84y1P7vX/, Mode=smart
+2025-12-22 18:32:23,579 - INFO - 总结成功: https://www.bilibili.com/video/BV1u84y1P7vX/
+2025-12-22 18:32:23,581 - INFO - 清理临时文件: /Users/wenyuan/Desktop/summarizer/videos/BV1u84y1P7vX.mp4
+2025-12-22 18:40:13,438 - INFO - 收到总结请求: URL=https://www.bilibili.com/video/BV1QK4y1d7Zj, Mode=smart
+2025-12-22 18:40:38,320 - INFO - 总结成功: https://www.bilibili.com/video/BV1QK4y1d7Zj
+2025-12-22 18:40:38,321 - INFO - 清理临时文件: /Users/wenyuan/Desktop/summarizer/videos/BV1QK4y1d7Zj.mp4
+2025-12-22 18:45:54,089 - INFO - 收到总结请求: URL=https://www.bilibili.com/video/BV1QK4y1d7Zj, Mode=smart
+2025-12-22 18:46:18,363 - INFO - 总结成功: https://www.bilibili.com/video/BV1QK4y1d7Zj
+2025-12-22 18:46:18,365 - INFO - 清理临时文件: /Users/wenyuan/Desktop/summarizer/videos/BV1QK4y1d7Zj.mp4
+2025-12-22 19:00:38,038 - INFO - 收到总结请求: URL=https://www.bilibili.com/video/BV1QK4y1d7Zj, Mode=smart
+2025-12-22 19:00:58,517 - INFO - 总结成功: https://www.bilibili.com/video/BV1QK4y1d7Zj
+2025-12-22 19:00:58,518 - INFO - 清理临时文件: /Users/wenyuan/Desktop/summarizer/videos/BV1QK4y1d7Zj.mp4
+2025-12-22 19:03:32,360 - INFO - 收到总结请求: URL=https://www.bilibili.com/video/BV1wD4y1o7AS, Mode=smart
+2025-12-22 19:08:11,881 - ERROR - 处理任务时发生错误: Failed to retrieve content. Error: [0;31mERROR:[0m [BiliBili] 1wD4y1o7AS: Unable to download webpage: timed out (caused by TransportError('timed out'))
+2025-12-22 19:08:11,935 - ERROR - 流式响应异常: Failed to retrieve content. Error: [0;31mERROR:[0m [BiliBili] 1wD4y1o7AS: Unable to download webpage: timed out (caused by TransportError('timed out'))
+2025-12-22 19:12:00,040 - INFO - 收到总结请求: URL=https://www.bilibili.com/video/BV1QK4y1d7Zj, Mode=smart
+2025-12-22 19:12:24,044 - ERROR - 处理任务时发生错误: AI 总结失败: EOF occurred in violation of protocol (_ssl.c:1002)
+2025-12-22 19:12:24,126 - ERROR - 流式响应异常: AI 总结失败: EOF occurred in violation of protocol (_ssl.c:1002)
+2025-12-22 19:12:24,126 - INFO - 清理临时文件: /Users/wenyuan/Desktop/summarizer/videos/BV1QK4y1d7Zj.mp4
+2025-12-22 19:20:42,991 - INFO - 收到总结请求: URL=https://www.bilibili.com/video/BV1QK4y1d7Zj, Mode=smart
+2025-12-22 19:21:05,490 - INFO - 总结成功: https://www.bilibili.com/video/BV1QK4y1d7Zj
+2025-12-22 19:21:05,490 - INFO - 清理临时文件: /Users/wenyuan/Desktop/summarizer/videos/BV1QK4y1d7Zj.mp4
+2025-12-22 19:52:36,739 - INFO - 收到总结请求: URL=https://www.bilibili.com/video/BV1QK4y1d7Zj, Mode=smart
+2025-12-22 19:53:00,162 - INFO - 总结成功: https://www.bilibili.com/video/BV1QK4y1d7Zj
+2025-12-22 19:53:00,163 - INFO - 清理临时文件: /Users/wenyuan/Desktop/summarizer/videos/BV1QK4y1d7Zj.mp4
+2025-12-22 20:01:40,568 - INFO - 收到总结请求: URL=https://www.bilibili.com/video/BV1ntadzWEPc/?spm_id_from=333.1391.0.0, Mode=smart, Focus=default
+2025-12-22 20:02:06,349 - INFO - 总结成功: https://www.bilibili.com/video/BV1ntadzWEPc/?spm_id_from=333.1391.0.0
+2025-12-22 20:02:06,352 - INFO - 已删除文件: videos/.DS_Store
+2025-12-22 20:02:06,353 - INFO - 已删除文件: videos/BV1ntadzWEPc.m4a
+2025-12-22 20:02:06,353 - INFO - 已删除文件: videos/BV1ntadzWEPc.danmaku.xml
+2025-12-22 20:02:06,353 - INFO - 已删除文件: videos/BV1QK4y1d7Zj.danmaku.xml

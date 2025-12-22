@@ -1,0 +1,7 @@
+google-generativeai
+python-dotenv
+yt-dlp
+fastapi
+uvicorn[standard]
+python-multipart
+jinja2
