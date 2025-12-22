@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: bili-summarizer
+    ports:
+      - "7860:7860"
+    volumes:
+      # Persist database and logs
+      - ./summarizer.db:/app/summarizer.db
+      - ./app.log:/app/app.log
+      # Ensure temp video directory is accessible/cleanable
+      - ./videos:/app/videos
+    env_file:
+      - .env
+    restart: unless-stopped

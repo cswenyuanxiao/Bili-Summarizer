@@ -34,3 +34,29 @@ chmod +x start_prod.sh
 ## 5. 维护建议
 - 定期清理 `videos/` 文件夹（虽然程序会自动清理，但如果中途崩溃可能会有残余）。
 - 监控 `summarizer.db` 以备份用户信息。
+
+## 6. Docker 一键私有化部署 (推荐)
+如果您希望在服务器（如 VPS, NAS）上稳定运行，请使用以下步骤：
+
+1. **克隆代码**:
+   ```bash
+   git clone https://github.com/cswenyuanxiao/Bili-Summarizer.git
+   cd Bili-Summarizer
+   ```
+
+2. **配置环境**:
+   复制 `.env.example` 为 `.env` 并填入您的 API Key。
+   ```bash
+   cp .env.example .env
+   vim .env
+   ```
+
+3. **一键启动**:
+   ```bash
+   chmod +x deploy.sh
+   ./deploy.sh
+   ```
+   脚本会自动拉取最新代码、构建镜像并在后台启动服务。
+
+4. **访问服务**:
+   打开浏览器访问 `http://<服务器IP>:7860`。
