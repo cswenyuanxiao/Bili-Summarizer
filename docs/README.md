@@ -21,6 +21,12 @@
   - 待实现功能
   - 优先级建议
 
+### 使用说明
+- **[usage-guide.md](./usage-guide.md)** - 本地/容器/云端启动与访问入口说明
+  - 前端/后端/Docker/Render 启动命令
+  - 推荐访问链接
+  - 历史记录显示规则
+
 ### 详细实施文档
 - **[phase8_1_walkthrough.md](./implementation/phase8_1_walkthrough.md)** - API Key 系统实施记录
 - **[phase10_2_walkthrough.md](./implementation/phase10_2_walkthrough.md)** - AI 追问功能实施记录
@@ -65,6 +71,7 @@ cat docs/implementation/browser_test_report.md
 
 - [功能路线图](./feature-roadmap.md)
 - [系统架构分析](./system-analysis.md)
+- [使用说明](./usage-guide.md)
 - [README](../README.md)
 
 ## 🗂️ 文档结构
@@ -74,6 +81,7 @@ docs/
 ├── README.md                    # 本文件
 ├── feature-roadmap.md           # 功能路线图
 ├── system-analysis.md           # 系统架构分析
+├── usage-guide.md               # 使用说明
 ├── progress_summary.md          # 进度总结
 └── implementation/              # 实施文档
     ├── three_phases_summary.md      # 三个Phase综合总结 ⭐

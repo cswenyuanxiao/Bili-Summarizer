@@ -1,10 +1,11 @@
 <template>
-  <section v-if="items.length > 0" class="history-section mt-8">
+  <section class="history-section mt-8">
     <div class="section-header flex justify-between items-center mb-6 px-2">
       <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
         📚 历史记录
       </h2>
       <button
+        v-if="items.length > 0"
         @click="$emit('clear')"
         class="px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
       >
@@ -12,7 +13,18 @@
       </button>
     </div>
 
-    <div class="history-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div v-if="items.length === 0" class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 p-8 text-center">
+      <div class="text-4xl mb-3">🧭</div>
+      <p class="text-sm text-gray-500 dark:text-gray-400">完成一次总结后，历史记录会出现在这里。</p>
+      <button
+        @click="$emit('guide')"
+        class="mt-4 inline-flex items-center justify-center px-4 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+      >
+        查看使用文档
+      </button>
+    </div>
+
+    <div v-else class="history-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       <div
         v-for="item in items"
         :key="item.id"
@@ -26,6 +38,15 @@
           <span>{{ item.mode === 'smart' ? '智能模式' : '视频模式' }}</span>
           <span>·</span>
           <span>{{ formatTime(item.timestamp) }}</span>
+        </div>
+        <div class="mt-4 flex items-center justify-between text-xs text-gray-400">
+          <span>快速访问</span>
+          <button
+            @click.stop="$emit('share', item)"
+            class="px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            分享
+          </button>
         </div>
       </div>
     </div>
@@ -41,6 +62,7 @@ interface HistoryItem {
   url: string
   summary: string
   transcript: string
+  mindmap?: string
 }
 
 defineProps<{
@@ -50,6 +72,8 @@ defineProps<{
 defineEmits<{
   select: [item: HistoryItem]
   clear: []
+  guide: []
+  share: [item: HistoryItem]
 }>()
 
 const formatTime = (timestamp: number) => {

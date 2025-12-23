@@ -10,7 +10,7 @@ This document describes the current architecture, execution flow, and data paths
 - **Storage**: Local cache in `cache.db`, local media in `videos/`.
 
 ## Summarize Pipeline
-1. Frontend sends `GET /api/summarize?url=...&mode=...&focus=...` as SSE.
+1. Frontend sends `GET /api/summarize?url=...&mode=...&focus=...` as SSE (可选 `skip_cache=true` 强制重算).
 2. Backend checks cache; if hit, emits transcript and summary immediately.
 3. If cache miss, backend:
    - Attempts subtitles via `yt-dlp`.
@@ -64,6 +64,24 @@ flowchart LR
   - `transcript`: string (timestamped lines)
   - `videoFile`: string | null (local media)
   - `usage`: token metadata
+
+- **UserCredits**
+  - `credits`: int (default 30 for new users)
+  - `total_used`: int
+
+## Export Paths
+- **Summary Export**: Frontend supports Markdown, TXT, and PDF (html2pdf.js).
+- **Mindmap Export**: Mermaid SVG can be exported to SVG/PNG.
+
+## Dashboard
+- `GET /api/dashboard` provides credits and usage summary (including daily usage for 14 days) for the account panel.
+- `GET /api/subscription` returns current plan status; `POST /api/subscribe` updates plan (local stub).
+- `GET /api/billing` returns billing history for the billing modal.
+- `GET /api/keys/usage` returns API key usage counts for the API key panel.
+- `POST /api/payments` creates payment orders (WeChat/Alipay, needs env config).
+- `GET /api/billing/{id}/invoice` returns invoice PDF for paid orders.
+- `GET /api/invites`/`POST /api/invites` manage invite codes; `POST /api/invites/redeem` redeems.
+- `POST /api/share` creates share links; `GET /share/{id}` renders read-only page.
 
 ## Cache Strategy
 - `cache.db` stores summary/transcript keyed by `url + mode + focus`.

@@ -54,3 +54,8 @@ frontend/node_modules/
 # Local caches
 cache.db
 web_app/cache.db
+
+# Local credentials (DO NOT COMMIT)
+.credentials
+credentials.txt
+CREDENTIALS.md

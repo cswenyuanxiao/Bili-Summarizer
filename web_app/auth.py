@@ -24,6 +24,24 @@ async def verify_session_token(token: str) -> dict:
     except Exception as e:
         raise HTTPException(401, f"Session verification failed: {str(e)}")
 
+def record_api_key_usage(key_id: str, user_id: str) -> None:
+    """记录 API Key 使用次数（按天汇总）"""
+    conn = sqlite3.connect("cache.db")
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO api_key_usage_daily (key_id, user_id, date, count)
+            VALUES (?, ?, DATE('now'), 1)
+            ON CONFLICT(key_id, date)
+            DO UPDATE SET count = count + 1
+        """, (key_id, user_id))
+        conn.commit()
+    except Exception:
+        # Usage tracking should never block auth
+        conn.rollback()
+    finally:
+        conn.close()
+
 async def verify_api_key(api_key: str) -> dict:
     """验证 API Key 并返回用户信息"""
     if not api_key.startswith("sk-bili-"):
@@ -37,7 +55,7 @@ async def verify_api_key(api_key: str) -> dict:
     
     try:
         cursor.execute("""
-            SELECT user_id, is_active 
+            SELECT id, user_id, is_active 
             FROM api_keys 
             WHERE key_hash = ?
         """, (key_hash,))
@@ -47,7 +65,7 @@ async def verify_api_key(api_key: str) -> dict:
         if not row:
             raise HTTPException(401, "Invalid API key")
         
-        user_id, is_active = row
+        key_id, user_id, is_active = row
         
         if not is_active:
             raise HTTPException(401, "API key has been revoked")
@@ -60,7 +78,8 @@ async def verify_api_key(api_key: str) -> dict:
         """, (datetime.now().isoformat(), key_hash))
         conn.commit()
         
-        return {"user_id": user_id, "source": "api_key"}
+        record_api_key_usage(key_id, user_id)
+        return {"user_id": user_id, "source": "api_key", "api_key_id": key_id}
     
     finally:
         conn.close()
@@ -80,12 +99,18 @@ async def get_current_user(
     """
     # 优先级1: API Key
     if x_api_key:
-        return await verify_api_key(x_api_key)
+        user = await verify_api_key(x_api_key)
+        from .credits import ensure_user_credits
+        ensure_user_credits(user["user_id"])
+        return user
     
     # 优先级2: Session Token
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
-        return await verify_session_token(auth_header[7:])
+        user = await verify_session_token(auth_header[7:])
+        from .credits import ensure_user_credits
+        ensure_user_credits(user["user_id"])
+        return user
     
     # 两者都无
     raise HTTPException(401, "Missing authentication credentials (API key or session token required)")

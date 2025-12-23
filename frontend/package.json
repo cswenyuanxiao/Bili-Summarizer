@@ -12,6 +12,7 @@
     "@supabase/supabase-js": "^2.89.0",
     "@vueuse/core": "^14.1.0",
     "axios": "^1.13.2",
+    "html2pdf.js": "^0.12.1",
     "marked": "^17.0.1",
     "mermaid": "^11.12.2",
     "pinia": "^3.0.4",

@@ -24,7 +24,11 @@ export function useHistorySync() {
         if (!isSupabaseConfigured) return {}
         const { data: { session } } = await import('../supabase').then(m => m.supabase.auth.getSession())
         const token = session?.access_token
-        return token ? { 'Authorization': `Bearer ${token}` } : {}
+        const headers: Record<string, string> = {}
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`
+        }
+        return headers
     }
 
     // 获取本地历史

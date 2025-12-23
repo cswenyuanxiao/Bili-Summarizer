@@ -72,13 +72,22 @@
               7x24 专属客服
             </li>
           </ul>
-          <button 
-            @click="handleSubscribe"
-            :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
-            class="w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 text-white font-medium hover:shadow-lg hover:scale-105 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '立即升级') }}
-          </button>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <button 
+              @click="handleSubscribe('alipay')"
+              :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
+              class="w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 text-white font-medium hover:shadow-lg hover:scale-105 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '支付宝升级') }}
+            </button>
+            <button 
+              @click="handleSubscribe('wechat')"
+              :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
+              class="w-full py-2.5 rounded-xl border border-primary/50 text-primary font-medium hover:bg-primary/10 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '微信升级') }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -99,7 +108,7 @@ const { user } = useAuth()
 const loading = ref(false)
 const subscriptionUnavailable = ref(false)
 
-const handleSubscribe = async () => {
+const handleSubscribe = async (provider: 'alipay' | 'wechat') => {
     if (!isSupabaseConfigured) {
         alert('当前环境未配置登录服务，无法订阅。')
         return
@@ -115,13 +124,13 @@ const handleSubscribe = async () => {
         const { data: { session } } = await import('../supabase').then(m => m.supabase.auth.getSession())
         const token = session?.access_token
 
-        const res = await fetch('/api/subscribe', {
+        const res = await fetch('/api/payments', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ plan_id: 'pro_monthly' })
+            body: JSON.stringify({ plan_id: 'pro_monthly', provider })
         })
 
         if (res.status === 404 || res.status === 501) {
@@ -131,9 +140,13 @@ const handleSubscribe = async () => {
         if (!res.ok) throw new Error('订阅失败')
         
         const data = await res.json()
-        alert('🎉 升级成功！您现在是 Pro 用户了。')
-        emit('success')
-        emit('close')
+        if (data.payment_url) {
+          window.open(data.payment_url, '_blank', 'noopener')
+          alert('已打开支付页面，请完成支付。')
+          emit('success')
+        } else {
+          alert('支付已创建，请等待支付回调完成升级。')
+        }
     } catch (e: any) {
         alert(e.message)
     } finally {

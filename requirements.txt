@@ -8,3 +8,5 @@ jinja2
 gunicorn
 httpx
 python-pptx
+supabase
+reportlab

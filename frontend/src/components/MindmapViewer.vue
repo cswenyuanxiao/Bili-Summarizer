@@ -27,7 +27,7 @@
         正在渲染思维导图...
       </p>
       <div v-if="error" class="text-red-500">{{ error }}</div>
-      <div v-if="svgMarkup" class="w-full flex justify-center" v-html="svgMarkup"></div>
+      <div v-if="svgMarkup" ref="svgContainer" class="w-full flex justify-center" v-html="svgMarkup"></div>
     </div>
   </div>
 </template>
@@ -48,6 +48,17 @@ defineEmits<{
 const isRendering = ref(false)
 const error = ref('')
 const svgMarkup = ref('')
+const svgContainer = ref<HTMLElement | null>(null)
+
+const getSvgElement = () => {
+  return svgContainer.value?.querySelector('svg') as SVGSVGElement | null
+}
+
+defineExpose({
+  getSvgElement,
+  getSvgMarkup: () => svgMarkup.value,
+  isRendering
+})
 
 onMounted(() => {
   mermaid.initialize({

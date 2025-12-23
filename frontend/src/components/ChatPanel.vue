@@ -161,7 +161,10 @@ async function sendMessage() {
             
             if (data.content) {
               assistantMessage += data.content
-              messages.value[messages.value.length - 1].content = assistantMessage
+              const lastMessage = messages.value[messages.value.length - 1]
+              if (lastMessage) {
+                lastMessage.content = assistantMessage
+              }
               scrollToBottom()
             }
             
@@ -184,7 +187,8 @@ async function sendMessage() {
     console.error('Chat error:', error)
     alert('追问失败，请重试')
     // 移除失败的消息
-    if (messages.value.length > 0 && messages.value[messages.value.length - 1].role === 'assistant' && !messages.value[messages.value.length - 1].content) {
+    const lastMessage = messages.value[messages.value.length - 1]
+    if (lastMessage?.role === 'assistant' && !lastMessage.content) {
       messages.value.pop()
     }
   } finally {

@@ -96,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, onBeforeUpdate } from 'vue'
+import { computed, ref, watch, nextTick, onBeforeUpdate, type ComponentPublicInstance } from 'vue'
 
 const props = defineProps<{
   content: string
@@ -127,8 +127,12 @@ onBeforeUpdate(() => {
   lineRefs.value = []
 })
 
-const setLineRef = (el: Element | null) => {
-  if (el) lineRefs.value.push(el as HTMLElement)
+const setLineRef = (el: Element | ComponentPublicInstance | null) => {
+  if (!el) return
+  const node = (el as ComponentPublicInstance).$el ?? el
+  if (node instanceof Element) {
+    lineRefs.value.push(node as HTMLElement)
+  }
 }
 
 const parsedLines = computed(() => {
@@ -138,9 +142,10 @@ const parsedLines = computed(() => {
   return lines.map(line => {
     const timestampMatch = line.match(/^\[?(\d{1,2}:\d{2}(?::\d{2})?)\]?/)
     if (timestampMatch) {
-      const seconds = parseTime(timestampMatch[1])
+      const timeLabel = timestampMatch[1] || ''
+      const seconds = timeLabel ? parseTime(timeLabel) : null
       return {
-        timestamp: timestampMatch[1],
+        timestamp: timeLabel,
         seconds,
         text: line.replace(timestampMatch[0], '').trim()
       }
@@ -156,8 +161,9 @@ const parsedLines = computed(() => {
 const activeLineIndex = computed(() => {
   if (activeSeconds.value === null) return -1
   let index = -1
+  const currentSeconds = activeSeconds.value ?? -1
   parsedLines.value.forEach((line, i) => {
-    if (line.seconds !== null && line.seconds <= activeSeconds.value) {
+    if (line.seconds !== null && line.seconds <= currentSeconds) {
       index = i
     }
   })
@@ -234,8 +240,11 @@ watch(activeLineIndex, async (index) => {
 
 const parseTime = (timeStr: string) => {
   const parts = timeStr.split(':').map(part => Number(part))
-  if (parts.length === 2) return parts[0] * 60 + parts[1]
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
+  const first = parts[0] ?? 0
+  const second = parts[1] ?? 0
+  const third = parts[2] ?? 0
+  if (parts.length === 2) return first * 60 + second
+  if (parts.length === 3) return first * 3600 + second * 60 + third
   return 0
 }
 

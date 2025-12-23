@@ -10,7 +10,7 @@ import glob
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 VIDEOS_DIR = PROJECT_ROOT / "videos"
 
-def download_content(url: str, mode: str = "smart", progress_callback=None) -> tuple[Path, str]:
+def download_content(url: str, mode: str = "smart", progress_callback=None) -> tuple[Path, str, str]:
     """
     下载内容：
     - smart模式: 优先下载字幕，其次视频, 最后音频。
@@ -43,7 +43,10 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
             try:
                 content = file_path.read_text(encoding='utf-8')
             except UnicodeDecodeError:
-                content = file_path.read_text(encoding='gbk')
+                try:
+                    content = file_path.read_text(encoding='gbk')
+                except UnicodeDecodeError:
+                    content = file_path.read_text(encoding='utf-8', errors='ignore')
             if not content.strip():
                 return ""
 

@@ -3,6 +3,7 @@ export interface SummarizeRequest {
     url: string;
     mode: 'smart' | 'video';
     focus: 'default' | 'study' | 'gossip' | 'business';
+    skip_cache?: boolean;
 }
 
 // SSE Event Types
@@ -13,6 +14,7 @@ export interface SSEEvent {
     transcript?: string;
     summary?: string;
     usage?: UsageInfo;
+    code?: string;
     error?: string;
 }
 

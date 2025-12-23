@@ -12,6 +12,14 @@
         >
           📋 复制
         </button>
+        <button
+          @click="$emit('refresh')"
+          :disabled="loading"
+          class="px-3 py-1.5 text-sm bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="重新总结"
+        >
+          ♻️ 重新总结
+        </button>
       </div>
     </div>
     <div class="p-6">
@@ -31,10 +39,12 @@ import { marked } from 'marked'
 
 const props = defineProps<{
   content: string
+  loading?: boolean
 }>()
 
 defineEmits<{
   copy: []
+  refresh: []
 }>()
 
 const renderedContent = computed(() => {

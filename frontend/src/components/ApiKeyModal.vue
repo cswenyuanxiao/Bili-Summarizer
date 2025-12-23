@@ -67,13 +67,16 @@
           </div>
           <div v-else class="space-y-3">
              <div v-for="key in keys" :key="key.id" class="flex items-center justify-between p-4 bg-white dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 rounded-xl hover:border-gray-300 transition-colors">
-                <div>
+                <div class="space-y-1">
                   <div class="font-medium text-gray-900 dark:text-white flex items-center gap-2">
                     {{ key.name }}
                     <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-600" v-if="key.is_active">Active</span>
                   </div>
-                  <div class="text-sm font-mono text-gray-500 mt-1">{{ key.prefix }}****************</div>
-                  <div class="text-xs text-gray-400 mt-1">创建于 {{ new Date(key.created_at).toLocaleDateString() }}</div>
+                  <div class="text-sm font-mono text-gray-500">{{ key.prefix }}****************</div>
+                  <div class="text-xs text-gray-400">创建于 {{ new Date(key.created_at).toLocaleDateString() }}</div>
+                  <div class="text-xs text-gray-500">
+                    近 7 天 {{ usageMap[key.id]?.uses_7d ?? 0 }} 次 · 累计 {{ usageMap[key.id]?.total_uses ?? 0 }} 次 · 上次使用 {{ formatDate(usageMap[key.id]?.last_used_at) }}
+                  </div>
                 </div>
                 <button 
                   @click="revokeKey(key.id)" 
@@ -114,11 +117,13 @@ const creating = ref(false)
 const newKeyName = ref('')
 const createdKey = ref('') // Raw key shown only once
 const featureUnavailable = ref(false)
+const usageMap = ref<Record<string, { total_uses: number; uses_7d: number; last_used_at?: string | null }>>({})
 
 // Load keys when modal opens
 watch(() => props.show, (newVal) => {
   if (newVal) {
     fetchKeys()
+    fetchUsage()
     createdKey.value = ''
     newKeyName.value = ''
   }
@@ -155,6 +160,22 @@ const fetchKeys = async () => {
   }
 }
 
+const fetchUsage = async () => {
+  if (!isSupabaseConfigured) return
+  try {
+    const headers = await getAuthHeaders()
+    const res = await fetch('/api/keys/usage', { headers })
+    if (!res.ok) return
+    const data = await res.json()
+    usageMap.value = data.reduce((acc: Record<string, any>, item: any) => {
+      acc[item.id] = item
+      return acc
+    }, {})
+  } catch (e) {
+    console.error('Usage fetch failed', e)
+  }
+}
+
 const createKey = async () => {
   if (!newKeyName.value) return
   if (featureUnavailable.value || !isSupabaseConfigured) return
@@ -178,6 +199,7 @@ const createKey = async () => {
         const data = await res.json()
         createdKey.value = data.key // This is the RAW key
         fetchKeys() // Refresh list
+        fetchUsage()
         newKeyName.value = ''
     }
   } catch (e) {
@@ -198,6 +220,7 @@ const revokeKey = async (id: string) => {
             throw new Error('API 密钥功能暂未开放')
         }
         fetchKeys()
+        fetchUsage()
     } catch (e) {
         alert('撤销失败')
     }
@@ -208,5 +231,12 @@ const copyKey = () => {
         navigator.clipboard.writeText(createdKey.value)
         alert('已复制到剪贴板')
     }
+}
+
+const formatDate = (value?: string | null) => {
+  if (!value) return '未使用'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString()
 }
 </script>

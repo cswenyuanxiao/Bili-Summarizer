@@ -19,6 +19,12 @@ Bili-Summarizer is a Vue + FastAPI app that summarizes Bilibili videos, generate
    `POST /api/chat` (stream) → `frontend/src/components/ChatPanel.vue`.
 5. **Cloud History**  
    `GET/POST/DELETE /api/history` → `frontend/src/composables/useHistorySync.ts`.
+6. **Export**  
+   Summary export (MD/TXT/PDF) and mindmap export (SVG/PNG) are handled in `frontend/src/App.vue`.
+7. **Resummarize**  
+   Summary card can trigger a re-run with `skip_cache=true` to force a fresh summary.
+8. **Dashboard**  
+   `GET /api/dashboard` returns credits and usage for the account panel.
 
 ## Auth & API Key
 - Supabase auth (optional) lives in `frontend/src/composables/useAuth.ts`.

@@ -10,6 +10,7 @@ export function useSummarize() {
     const progress = ref(0)
     const phase = ref<'idle' | 'connecting' | 'downloading' | 'transcript' | 'summarizing' | 'finalizing' | 'complete' | 'error'>('idle')
     const elapsedSeconds = ref(0)
+    const errorCode = ref<string | null>(null)
     const result = ref<SummaryResult>({
         summary: '',
         transcript: '',
@@ -57,9 +58,29 @@ export function useSummarize() {
 
     const summarize = async (request: SummarizeRequest) => {
         isLoading.value = true
+        errorCode.value = null
         setPhase('connecting', '正在连接服务器...', '准备请求并建立连接...', 3)
         detail.value = ''
         startTimer()
+
+        const handleError = (code: string | undefined, message: string) => {
+            const map: Record<string, { status: string; hint: string }> = {
+                AUTH_INVALID: { status: '登录已过期', hint: '请重新登录后再试' },
+                CREDITS_EXCEEDED: { status: '积分不足', hint: '请升级或等待获取积分' },
+                DOWNLOAD_FAILED: { status: '下载失败', hint: '请检查链接或稍后再试' },
+                SUMMARY_FAILED: { status: '总结失败', hint: '请稍后再试或更换模式' },
+                INTERNAL_ERROR: { status: '系统错误', hint: '服务暂时不可用，请稍后再试' },
+            }
+            const fallback = { status: '请求失败', hint: '请稍后再试' }
+            const selected = (code && map[code]) ? map[code] : fallback
+            errorCode.value = code || null
+            detail.value = message
+            setPhase('error', selected.status, selected.hint)
+            isLoading.value = false
+            eventSource?.close()
+            eventSource = null
+            stopTimer()
+        }
 
         try {
             if (eventSource) {
@@ -81,6 +102,9 @@ export function useSummarize() {
             if (token) {
                 params.append('token', token)
             }
+            if (request.skip_cache) {
+                params.append('skip_cache', 'true')
+            }
 
             eventSource = new EventSource(`${url}?${params}`)
 
@@ -91,6 +115,15 @@ export function useSummarize() {
                     if (data.type === 'status') {
                         const statusText = data.status || ''
                         detail.value = statusText
+
+                        if (statusText.trim().toLowerCase() === 'complete') {
+                            setPhase('complete', '完成！', '结果已准备好', 100)
+                            eventSource?.close()
+                            eventSource = null
+                            isLoading.value = false
+                            stopTimer()
+                            return
+                        }
 
                         if (statusText.includes('Found in cache')) {
                             setPhase('finalizing', '命中缓存，快速加载', '正在整理结果...', 92)
@@ -124,17 +157,17 @@ export function useSummarize() {
                         setPhase('downloading', '素材就绪', '准备生成字幕与总结...', 40)
                     } else if (data.type === 'transcript_complete') {
                         result.value.transcript = data.transcript || ''
-                        setPhase('transcript', '字幕完成', '正在生成总结...', 60)
+                        if (phase.value !== 'complete') {
+                            setPhase('transcript', '字幕完成', '正在生成总结...', 60)
+                        }
                     } else if (data.type === 'summary_complete') {
                         result.value.summary = data.summary || ''
                         result.value.usage = data.usage || null
                         setPhase('complete', '完成！', '结果已准备好', 100)
-                        eventSource?.close()
-                        eventSource = null
                         isLoading.value = false
                         stopTimer()
                     } else if (data.type === 'error' || data.error) {
-                        throw new Error(data.error || '未知错误')
+                        handleError(data.code, data.error || '未知错误')
                     }
                 } catch (err) {
                     console.error('SSE parsing error:', err)
@@ -143,6 +176,11 @@ export function useSummarize() {
 
             eventSource.onerror = (err) => {
                 console.error('SSE error:', err)
+                if (phase.value === 'complete' || result.value.summary) {
+                    eventSource?.close()
+                    eventSource = null
+                    return
+                }
                 eventSource?.close()
                 eventSource = null
                 isLoading.value = false
@@ -151,9 +189,7 @@ export function useSummarize() {
             }
         } catch (error) {
             console.error('Summarize error:', error)
-            isLoading.value = false
-            setPhase('error', '请求失败', '请稍后再试')
-            stopTimer()
+            handleError('INTERNAL_ERROR', '请求失败')
         }
     }
 
@@ -165,6 +201,7 @@ export function useSummarize() {
         progress,
         phase,
         elapsedSeconds,
+        errorCode,
         result,
         summarize,
     }
