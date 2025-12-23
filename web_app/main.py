@@ -525,6 +525,22 @@ class SubscribeRequest(BaseModel):
     plan_id: str
 
 
+class PaymentRequest(BaseModel):
+    plan_id: str
+    provider: str
+
+
+class RedeemInviteRequest(BaseModel):
+    code: str
+
+
+class ShareRequest(BaseModel):
+    title: Optional[str] = None
+    summary: str
+    transcript: Optional[str] = None
+    mindmap: Optional[str] = None
+
+
 @app.post("/api/subscribe")
 async def create_subscription(request: SubscribeRequest, user: dict = Depends(get_current_user)):
     plan_map = {
@@ -841,19 +857,6 @@ async def cache_stats():
 # --- API Key Management ---
 class CreateKeyRequest(BaseModel):
     name: str
-
-class PaymentRequest(BaseModel):
-    plan_id: str
-    provider: str
-
-class RedeemInviteRequest(BaseModel):
-    code: str
-
-class ShareRequest(BaseModel):
-    title: Optional[str] = None
-    summary: str
-    transcript: Optional[str] = None
-    mindmap: Optional[str] = None
 
 @app.post("/api/keys")
 async def create_api_key(request: CreateKeyRequest, user: dict = Depends(get_current_user)):
