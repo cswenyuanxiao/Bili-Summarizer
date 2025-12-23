@@ -25,6 +25,23 @@
 - 支付方式：支付宝 / 微信（需要配置支付环境变量）。
 - 如果支付未配置，界面会提示“暂未开放”。
 
+### 支付环境变量
+支付宝：
+- `ALIPAY_APP_ID`
+- `ALIPAY_PRIVATE_KEY`
+- `ALIPAY_PUBLIC_KEY`
+- `ALIPAY_NOTIFY_URL`
+
+微信支付：
+- `WECHAT_APP_ID`
+- `WECHAT_MCH_ID`
+- `WECHAT_SERIAL_NO`
+- `WECHAT_PRIVATE_KEY`
+- `WECHAT_API_V3_KEY`
+- `WECHAT_NOTIFY_URL`
+
+本地测试可设置 `PAYMENT_MOCK=1` 走模拟支付回调。
+
 ---
 
 ## 分享链接
