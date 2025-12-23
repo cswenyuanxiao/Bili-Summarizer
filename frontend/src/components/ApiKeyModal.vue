@@ -129,12 +129,12 @@ watch(() => props.show, (newVal) => {
   }
 })
 
-const getAuthHeaders = async () => {
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
     if (!isSupabaseConfigured || !supabase) return {}
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.access_token) return {}
     return {
-        'Authorization': `Bearer ${session.access_token}`
+        Authorization: `Bearer ${session.access_token}`
     }
 }
 
