@@ -90,7 +90,7 @@ export function useSummarize() {
             }
             // Get current session token
             const token = isSupabaseConfigured
-                ? (await import('../supabase').then(m => m.supabase.auth.getSession())).data.session?.access_token
+                ? (await import('../supabase').then(m => m.supabase!.auth.getSession())).data.session?.access_token
                 : undefined
 
             const url = `/api/summarize`

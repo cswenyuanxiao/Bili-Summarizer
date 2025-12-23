@@ -18,12 +18,12 @@ export function useAuth() {
         }
 
         // Get initial session
-        const { data } = await supabase.auth.getSession()
+        const { data } = await supabase!.auth.getSession()
         user.value = data.session?.user ?? null
         loading.value = false
 
         // Listen for auth changes
-        supabase.auth.onAuthStateChange((_event, session) => {
+        supabase!.auth.onAuthStateChange((_event, session) => {
             user.value = session?.user ?? null
             loading.value = false
         })
@@ -33,7 +33,7 @@ export function useAuth() {
 
     const loginWithEmail = async (email: string, password: string) => {
         if (!isSupabaseConfigured) throw new Error('Auth is not configured')
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase!.auth.signInWithPassword({
             email,
             password
         })
@@ -42,7 +42,7 @@ export function useAuth() {
 
     const signUpWithEmail = async (email: string, password: string) => {
         if (!isSupabaseConfigured) throw new Error('Auth is not configured')
-        const { error } = await supabase.auth.signUp({
+        const { error } = await supabase!.auth.signUp({
             email,
             password
         })
@@ -51,7 +51,7 @@ export function useAuth() {
 
     const loginWithGitHub = async () => {
         if (!isSupabaseConfigured) throw new Error('Auth is not configured')
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabase!.auth.signInWithOAuth({
             provider: 'github',
             options: {
                 redirectTo: window.location.origin
@@ -62,7 +62,7 @@ export function useAuth() {
 
     const loginWithGoogle = async () => {
         if (!isSupabaseConfigured) throw new Error('Auth is not configured')
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabase!.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 redirectTo: window.location.origin
@@ -73,7 +73,7 @@ export function useAuth() {
 
     const logout = async () => {
         if (!isSupabaseConfigured) throw new Error('Auth is not configured')
-        const { error } = await supabase.auth.signOut()
+        const { error } = await supabase!.auth.signOut()
         if (error) throw error
         user.value = null
     }

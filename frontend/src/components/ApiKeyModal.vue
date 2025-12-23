@@ -130,7 +130,7 @@ watch(() => props.show, (newVal) => {
 })
 
 const getAuthHeaders = async () => {
-    const { data: { session } } = await import('../supabase').then(m => m.supabase.auth.getSession())
+    const { data: { session } } = await import('../supabase').then(m => m.supabase!.auth.getSession())
     return {
         'Authorization': `Bearer ${session?.access_token}`
     }

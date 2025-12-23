@@ -9,4 +9,7 @@ if (!isSupabaseConfigured) {
     console.warn('Supabase URL or Key is missing. Auth features will be disabled.')
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '')
+// 只有配置完整时才创建客户端，否则导出 null
+export const supabase = isSupabaseConfigured
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null

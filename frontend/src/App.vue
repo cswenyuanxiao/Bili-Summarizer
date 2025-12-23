@@ -751,7 +751,7 @@ const shareHistoryItem = async (item: {
     return
   }
   try {
-    const token = (await import('./supabase').then(m => m.supabase.auth.getSession())).data.session?.access_token
+    const token = (await import('./supabase').then(m => m.supabase!.auth.getSession())).data.session?.access_token
     if (!token) throw new Error('未获取到登录凭证')
     const response = await fetch('/api/share', {
       method: 'POST',

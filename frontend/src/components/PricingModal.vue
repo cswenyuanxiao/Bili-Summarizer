@@ -205,7 +205,7 @@ const handlePayment = async (planId: string, provider: 'alipay' | 'wechat') => {
     loading.value = true
     try {
         // Get token
-        const { data: { session } } = await import('../supabase').then(m => m.supabase.auth.getSession())
+        const { data: { session } } = await import('../supabase').then(m => m.supabase!.auth.getSession())
         const token = session?.access_token
 
         const res = await fetch('/api/payments', {

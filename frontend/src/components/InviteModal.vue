@@ -92,7 +92,7 @@ const error = ref('')
 const fetchInvite = async () => {
   error.value = ''
   try {
-    const token = (await import('../supabase').then(m => m.supabase.auth.getSession())).data.session?.access_token
+    const token = (await import('../supabase').then(m => m.supabase!.auth.getSession())).data.session?.access_token
     if (!token) return
     const response = await fetch('/api/invites', {
       headers: { Authorization: `Bearer ${token}` }
@@ -109,7 +109,7 @@ const fetchInvite = async () => {
 const handleCreateCode = async () => {
   error.value = ''
   try {
-    const token = (await import('../supabase').then(m => m.supabase.auth.getSession())).data.session?.access_token
+    const token = (await import('../supabase').then(m => m.supabase!.auth.getSession())).data.session?.access_token
     if (!token) return
     const response = await fetch('/api/invites', {
       method: 'POST',
@@ -127,7 +127,7 @@ const handleRedeem = async () => {
   if (!redeemCode.value) return
   error.value = ''
   try {
-    const token = (await import('../supabase').then(m => m.supabase.auth.getSession())).data.session?.access_token
+    const token = (await import('../supabase').then(m => m.supabase!.auth.getSession())).data.session?.access_token
     if (!token) return
     const response = await fetch('/api/invites/redeem', {
       method: 'POST',
