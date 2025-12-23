@@ -207,10 +207,20 @@
       <div class="container mx-auto max-w-6xl px-4">
         <!-- URL Input Card -->
         <div id="start">
-        <UrlInputCard 
-          :is-loading="isLoading" 
-          @submit="handleSummarize" 
-        />
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-5 py-3 text-sm text-gray-600 dark:text-gray-300">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-gray-900 dark:text-gray-100">当前积分</span>
+              <span>{{ creditsLabel }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-gray-900 dark:text-gray-100">每次消耗</span>
+              <span>{{ costPerSummary }} 积分</span>
+            </div>
+          </div>
+          <UrlInputCard 
+            :is-loading="isLoading" 
+            @submit="handleSummarize" 
+          />
         </div>
 
         <!-- Loading Overlay -->
@@ -731,6 +741,14 @@ const cleanedSummary = computed(() => {
   // If no backticks but we matched fallback, we should ideally not remove text 
   // unless we are sure it's the diagram. For now, only remove if explicitly in backticks.
   return cleaned.trim() || result.value.summary
+})
+
+const costPerSummary = computed(() => dashboardData.value?.cost_per_summary ?? 10)
+
+const creditsLabel = computed(() => {
+  if (!user.value) return '登录后可查看'
+  if (!dashboardData.value) return '加载中...'
+  return `${dashboardData.value.credits} 积分`
 })
 
 const planLabel = computed(() => {

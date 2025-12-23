@@ -9,7 +9,6 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:7860',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
       },
       '/videos': {
         target: 'http://localhost:7860',

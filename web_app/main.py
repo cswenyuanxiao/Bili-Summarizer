@@ -464,6 +464,17 @@ async def run_summarization(
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
+@app.get("/api/summarize")
+async def run_summarization_api(
+    url: str,
+    mode: str = "smart",
+    focus: str = "default",
+    skip_cache: bool = False,
+    token: Optional[str] = None
+):
+    return await run_summarization(url, mode, focus, skip_cache, token)
+
+
 @app.get("/api/dashboard")
 async def get_dashboard(user: dict = Depends(get_current_user)):
     credits = get_user_credits(user["user_id"]) or ensure_user_credits(user["user_id"])
@@ -846,12 +857,22 @@ async def batch_summarize(request: BatchSummarizeRequest):
     }
 
 
+@app.post("/api/batch-summarize")
+async def batch_summarize_api(request: BatchSummarizeRequest):
+    return await batch_summarize(request)
+
+
 # --- 缓存统计端点 ---
 @app.get("/cache-stats")
 async def cache_stats():
     """获取缓存统计信息"""
     stats = get_cache_stats()
     return stats
+
+
+@app.get("/api/cache-stats")
+async def cache_stats_api():
+    return await cache_stats()
 
 
 # --- API Key Management ---
@@ -1219,6 +1240,11 @@ async def get_video_info(request: VideoInfoRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@app.post("/api/video-info")
+async def get_video_info_api(request: VideoInfoRequest):
+    return await get_video_info(request)
+
+
 # --- Image Proxy Endpoint (Bypass Bilibili Referer Check) ---
 @app.get("/proxy-image")
 async def proxy_image(url: str):
@@ -1253,6 +1279,11 @@ async def proxy_image(url: str):
     except Exception as e:
         logger.error(f"图片代理失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/proxy-image")
+async def proxy_image_api(url: str):
+    return await proxy_image(url)
 
 
 # --- AI Chat / Follow-up Endpoint (Legacy) ---
