@@ -204,11 +204,31 @@ const extractTitle = (summary: string) => {
   return firstLine?.replace(/^#+ /, '').trim() || '未命名总结'
 }
 
+// Robust Mermaid Diagram Extraction
 const extractedMindmap = computed(() => {
   if (!result.value.summary) return ''
-  // Extract mermaid diagram from summary
-  const match = result.value.summary.match(/```mermaid\n([\s\S]*?)\n```/)
-  return match ? match[1] : ''
+  
+  // 1. Standard pattern: ```mermaid ... ```
+  const standardMatch = result.value.summary.match(/```mermaid[\s\S]*?\n([\s\S]*?)\n```/)
+  if (standardMatch) return standardMatch[1].trim()
+  
+  // 2. Fallback: Check for graph/mindmap/pie keywords if backticks are missing
+  const fallbackMatch = result.value.summary.match(/(graph\s+(?:TD|LR|TB|BT)[\s\S]*|mindmap[\s\S]*|pie[\s\S]*)/i)
+  if (fallbackMatch) return fallbackMatch[0].trim()
+  
+  return ''
+})
+
+// Cleaned summary (remove mermaid code from text display)
+const cleanedSummary = computed(() => {
+  if (!result.value.summary) return ''
+  
+  // Remove the standard block
+  let cleaned = result.value.summary.replace(/```mermaid[\s\S]*?```/g, '')
+  
+  // If no backticks but we matched fallback, we should ideally not remove text 
+  // unless we are sure it's the diagram. For now, only remove if explicitly in backticks.
+  return cleaned.trim() || result.value.summary
 })
 
 const copySummary = () => {

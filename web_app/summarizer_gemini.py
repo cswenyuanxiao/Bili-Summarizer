@@ -173,7 +173,7 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
         "要求：\n"
         "1. 如果视频有视觉画面，请结合画面信息提供更丰富的描述。\n"
         "2. 摘要需要清晰、结构化且全面。\n"
-        "3. 【重要】必须在总结的末尾提供一个 Mermaid 格式的思维导图。请使用如下格式包裹：\n"
+        "3. 【重要】必须在总结的末尾提供一个 Mermaid 格式的思维导图。请严格使用 ```mermaid [换行] 代码 [换行] ``` 格式包裹，不要包含任何多余文字。\n"
         "```mermaid\n"
         "graph TD\n"
         "    A[核心主题] --> B(关键分支1)\n"
