@@ -11,6 +11,14 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/videos': {
+        target: 'http://localhost:7860',
+        changeOrigin: true,
+      },
+      '/proxy-image': {
+        target: 'http://localhost:7860',
+        changeOrigin: true,
+      },
     },
   },
 })

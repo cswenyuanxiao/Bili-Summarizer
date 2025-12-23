@@ -14,6 +14,9 @@
 
       <!-- Content -->
       <div class="p-8 space-y-4">
+        <div v-if="!isSupabaseConfigured" class="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+          当前环境未配置登录服务，暂时无法使用账号功能。
+        </div>
         
         <!-- Email Form -->
         <div class="space-y-3">
@@ -31,7 +34,7 @@
             />
             <button 
                 @click="handleEmailAuth"
-                :disabled="isLoading"
+                :disabled="isLoading || !isSupabaseConfigured"
                 class="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-medium transition-colors disabled:opacity-50"
             >
                 {{ isLoading ? '处理中...' : (isSignUp ? '注册账号' : '登录') }}
@@ -51,6 +54,7 @@
 
         <button
           @click="handleGitHubLogin"
+          :disabled="!isSupabaseConfigured"
           class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:text-gray-200"
         >
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -62,6 +66,7 @@
         <!-- Google Login -->
         <button
           @click="handleGoogleLogin"
+          :disabled="!isSupabaseConfigured"
           class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:text-gray-200"
         >
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -82,6 +87,7 @@
 <script setup lang="ts">
 import { useAuth } from '../composables/useAuth'
 import { ref } from 'vue'
+import { isSupabaseConfigured } from '../supabase'
 
 defineProps<{
   show: boolean

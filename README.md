@@ -204,12 +204,25 @@ bili-summarizer/
 │   ├── main.py              # API 路由
 │   ├── downloader.py        # 视频下载
 │   └── summarizer_gemini.py # AI 总结
+├── scripts/                 # 常用脚本（部署/启动/测试）
 ├── Dockerfile.backend       # 后端镜像
 ├── docker-compose.yml       # 生产环境编排
 ├── docker-compose.dev.yml   # 开发环境配置
 ├── requirements.txt         # Python 依赖
 └── DEPLOYMENT.md            # 部署完整指南
 ```
+
+---
+
+## 🧭 系统分析与流程图
+
+详见 `docs/system-analysis.md`（包含 SSE 总结流程、认证流程与数据路径）。
+
+---
+
+## 🧩 项目上下文
+
+新开会话快速了解项目可看 `docs/project-context.md`。
 
 ---
 
@@ -230,6 +243,12 @@ B 站可能限制了您的 IP，尝试：
 已实现后端图片代理，如仍失败请检查：
 1. 网络连接是否正常
 2. B 站是否可访问
+</details>
+
+<details>
+<summary><strong>Q: 账号功能不可用</strong></summary>
+
+请确认已配置 `VITE_SUPABASE_URL` 与 `VITE_SUPABASE_ANON_KEY`。未配置时登录/订阅/API Key 会被禁用。
 </details>
 
 <details>

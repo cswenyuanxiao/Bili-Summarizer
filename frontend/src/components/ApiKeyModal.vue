@@ -19,16 +19,19 @@
         <!-- Create New Key -->
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-5 border border-gray-100 dark:border-gray-700">
            <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">创建新密钥</h3>
+           <div v-if="featureUnavailable || !isSupabaseConfigured" class="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
+             该功能暂未开放或未配置登录服务。
+           </div>
            <div class="flex gap-3">
              <input 
                v-model="newKeyName" 
                type="text" 
                placeholder="密钥名称 (例如: Chrome Extension)" 
-               class="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                class="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
              />
              <button 
                @click="createKey" 
-               :disabled="!newKeyName || creating"
+               :disabled="!newKeyName || creating || featureUnavailable || !isSupabaseConfigured"
                class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 font-medium"
              >
                {{ creating ? '生成中...' : '生成密钥' }}
@@ -56,6 +59,9 @@
         <div>
           <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">现有密钥</h3>
           <div v-if="loading" class="text-center py-8 text-gray-500">加载中...</div>
+          <div v-else-if="featureUnavailable || !isSupabaseConfigured" class="text-center py-8 text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+             功能暂未开放
+          </div>
           <div v-else-if="keys.length === 0" class="text-center py-8 text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
              暂无 API 密钥
           </div>
@@ -85,7 +91,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch } from 'vue'
+import { isSupabaseConfigured } from '../supabase'
 
 const props = defineProps<{
   show: boolean
@@ -106,6 +113,7 @@ const loading = ref(false)
 const creating = ref(false)
 const newKeyName = ref('')
 const createdKey = ref('') // Raw key shown only once
+const featureUnavailable = ref(false)
 
 // Load keys when modal opens
 watch(() => props.show, (newVal) => {
@@ -124,12 +132,21 @@ const getAuthHeaders = async () => {
 }
 
 const fetchKeys = async () => {
+  if (!isSupabaseConfigured) {
+    featureUnavailable.value = true
+    return
+  }
   loading.value = true
   try {
     const headers = await getAuthHeaders()
     const res = await fetch('/api/keys', { headers })
+    if (res.status === 404 || res.status === 501) {
+       featureUnavailable.value = true
+       return
+    }
     if (res.ok) {
        keys.value = await res.json()
+       featureUnavailable.value = false
     }
   } catch (e) {
     console.error(e)
@@ -140,6 +157,7 @@ const fetchKeys = async () => {
 
 const createKey = async () => {
   if (!newKeyName.value) return
+  if (featureUnavailable.value || !isSupabaseConfigured) return
   creating.value = true
   try {
     const headers = await getAuthHeaders()
@@ -152,6 +170,10 @@ const createKey = async () => {
         body: JSON.stringify({ name: newKeyName.value })
     })
     
+    if (res.status === 404 || res.status === 501) {
+        featureUnavailable.value = true
+        throw new Error('API 密钥功能暂未开放')
+    }
     if (res.ok) {
         const data = await res.json()
         createdKey.value = data.key // This is the RAW key
@@ -170,7 +192,11 @@ const revokeKey = async (id: string) => {
     
     try {
         const headers = await getAuthHeaders()
-        await fetch(`/api/keys/${id}`, { method: 'DELETE', headers })
+        const res = await fetch(`/api/keys/${id}`, { method: 'DELETE', headers })
+        if (res.status === 404 || res.status === 501) {
+            featureUnavailable.value = true
+            throw new Error('API 密钥功能暂未开放')
+        }
         fetchKeys()
     } catch (e) {
         alert('撤销失败')

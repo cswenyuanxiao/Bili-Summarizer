@@ -19,10 +19,7 @@
         </button>
       </div>
     </div>
-    <div 
-      ref="containerRef" 
-      class="mindmap-container flex items-center justify-center min-h-[300px] p-6"
-    >
+    <div class="mindmap-container flex items-center justify-center min-h-[300px] p-6">
       <p v-if="!diagram && !isRendering" class="text-gray-500 dark:text-gray-400">
         暂无思维导图。
       </p>
@@ -30,6 +27,7 @@
         正在渲染思维导图...
       </p>
       <div v-if="error" class="text-red-500">{{ error }}</div>
+      <div v-if="svgMarkup" class="w-full flex justify-center" v-html="svgMarkup"></div>
     </div>
   </div>
 </template>
@@ -47,15 +45,17 @@ defineEmits<{
   'export-png': []
 }>()
 
-const containerRef = ref<HTMLElement | null>(null)
 const isRendering = ref(false)
 const error = ref('')
+const svgMarkup = ref('')
 
 onMounted(() => {
   mermaid.initialize({
     startOnLoad: false,
+    securityLevel: 'loose',
     theme: 'base',
     themeVariables: {
+      fontFamily: '"Inter", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif',
       primaryColor: '#4f46e5',
       primaryTextColor: '#fff',
       primaryBorderColor: '#4338ca',
@@ -67,16 +67,18 @@ onMounted(() => {
 })
 
 const renderDiagram = async () => {
-  if (!props.diagram || !containerRef.value) return
+  if (!props.diagram) {
+    svgMarkup.value = ''
+    return
+  }
   
   isRendering.value = true
   error.value = ''
+  svgMarkup.value = ''
   
   try {
     const { svg } = await mermaid.render(`mermaid-${Date.now()}`, props.diagram)
-    if (containerRef.value) {
-      containerRef.value.innerHTML = svg
-    }
+    svgMarkup.value = svg
   } catch (err) {
     console.error('Mermaid rendering error:', err)
     error.value = '思维导图渲染失败'

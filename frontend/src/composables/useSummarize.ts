@@ -1,26 +1,75 @@
 import { ref } from 'vue'
 import type { SummarizeRequest, SSEEvent, SummaryResult } from '../types/api'
+import { isSupabaseConfigured } from '../supabase'
 
 export function useSummarize() {
     const isLoading = ref(false)
     const status = ref('')
+    const hint = ref('')
+    const detail = ref('')
     const progress = ref(0)
+    const phase = ref<'idle' | 'connecting' | 'downloading' | 'transcript' | 'summarizing' | 'finalizing' | 'complete' | 'error'>('idle')
+    const elapsedSeconds = ref(0)
     const result = ref<SummaryResult>({
         summary: '',
         transcript: '',
         videoFile: null,
         usage: null,
     })
+    let timer: number | null = null
+    let eventSource: EventSource | null = null
+
+    const phaseCaps: Record<typeof phase.value, number> = {
+        idle: 0,
+        connecting: 12,
+        downloading: 45,
+        transcript: 60,
+        summarizing: 85,
+        finalizing: 95,
+        complete: 100,
+        error: 100,
+    }
+
+    const startTimer = () => {
+        if (timer !== null) return
+        elapsedSeconds.value = 0
+        timer = window.setInterval(() => {
+            elapsedSeconds.value += 1
+            const cap = phaseCaps[phase.value]
+            if (progress.value < cap - 1) {
+                progress.value = Math.min(cap - 1, progress.value + 0.5)
+            }
+        }, 1000)
+    }
+
+    const stopTimer = () => {
+        if (timer === null) return
+        window.clearInterval(timer)
+        timer = null
+    }
+
+    const setPhase = (next: typeof phase.value, nextStatus?: string, nextHint?: string, nextProgress?: number) => {
+        phase.value = next
+        if (nextStatus !== undefined) status.value = nextStatus
+        if (nextHint !== undefined) hint.value = nextHint
+        if (nextProgress !== undefined) progress.value = nextProgress
+    }
 
     const summarize = async (request: SummarizeRequest) => {
         isLoading.value = true
-        status.value = '正在连接服务器...'
-        progress.value = 0
+        setPhase('connecting', '正在连接服务器...', '准备请求并建立连接...', 3)
+        detail.value = ''
+        startTimer()
 
         try {
+            if (eventSource) {
+                eventSource.close()
+                eventSource = null
+            }
             // Get current session token
-            const { data: { session } } = await import('../supabase').then(m => m.supabase.auth.getSession())
-            const token = session?.access_token
+            const token = isSupabaseConfigured
+                ? (await import('../supabase').then(m => m.supabase.auth.getSession())).data.session?.access_token
+                : undefined
 
             const url = `/api/summarize`
             const params = new URLSearchParams({
@@ -33,31 +82,57 @@ export function useSummarize() {
                 params.append('token', token)
             }
 
-            const eventSource = new EventSource(`${url}?${params}`)
+            eventSource = new EventSource(`${url}?${params}`)
 
             eventSource.onmessage = (event) => {
                 try {
                     const data: SSEEvent = JSON.parse(event.data)
 
                     if (data.type === 'status') {
-                        status.value = data.status || ''
-                        // Simulate progress
-                        if (progress.value < 90) {
-                            progress.value += 10
+                        const statusText = data.status || ''
+                        detail.value = statusText
+
+                        if (statusText.includes('Found in cache')) {
+                            setPhase('finalizing', '命中缓存，快速加载', '正在整理结果...', 92)
+                        } else if (statusText.includes('Checking for subtitles')) {
+                            setPhase('downloading', '解析字幕', '尝试获取字幕/转录...', 15)
+                        } else if (statusText.includes('Downloading')) {
+                            const match = statusText.match(/(\d+(\.\d+)?)/)
+                            if (match) {
+                                const percent = parseFloat(match[0])
+                                setPhase('downloading', '下载媒体', '拉取视频/音频素材...', Math.min(45, 10 + percent * 0.35))
+                            } else {
+                                setPhase('downloading', '下载媒体', '拉取视频/音频素材...')
+                            }
+                        } else if (statusText.includes('Download complete')) {
+                            setPhase('downloading', '下载完成', '准备分析内容...', 45)
+                        } else if (statusText.includes('Uploading file')) {
+                            setPhase('summarizing', '上传至 AI', '上传分析素材...', 55)
+                        } else if (statusText.includes('Cloud processing')) {
+                            setPhase('summarizing', 'AI 预处理', '模型正在预处理素材...', 60)
+                        } else if (statusText.includes('AI is analyzing')) {
+                            setPhase('summarizing', '生成总结', 'AI 深度分析中...', 70)
+                        } else if (statusText.includes('Analysis complete')) {
+                            setPhase('finalizing', '整理结果', '生成结构化输出...', 90)
+                        } else if (statusText.includes('AI analysis is taking longer')) {
+                            setPhase('summarizing', '生成总结', '已在努力处理，可能需要更久...')
+                        } else {
+                            setPhase(phase.value, statusText || status.value, hint.value)
                         }
                     } else if (data.type === 'video_downloaded') {
                         result.value.videoFile = data.video_file || null
-                        progress.value = 30
+                        setPhase('downloading', '素材就绪', '准备生成字幕与总结...', 40)
                     } else if (data.type === 'transcript_complete') {
                         result.value.transcript = data.transcript || ''
-                        progress.value = 60
+                        setPhase('transcript', '字幕完成', '正在生成总结...', 60)
                     } else if (data.type === 'summary_complete') {
                         result.value.summary = data.summary || ''
                         result.value.usage = data.usage || null
-                        progress.value = 100
-                        status.value = '完成！'
-                        eventSource.close()
+                        setPhase('complete', '完成！', '结果已准备好', 100)
+                        eventSource?.close()
+                        eventSource = null
                         isLoading.value = false
+                        stopTimer()
                     } else if (data.type === 'error' || data.error) {
                         throw new Error(data.error || '未知错误')
                     }
@@ -68,21 +143,28 @@ export function useSummarize() {
 
             eventSource.onerror = (err) => {
                 console.error('SSE error:', err)
-                eventSource.close()
+                eventSource?.close()
+                eventSource = null
                 isLoading.value = false
-                status.value = '连接失败'
+                setPhase('error', '连接失败', '请检查网络或稍后重试')
+                stopTimer()
             }
         } catch (error) {
             console.error('Summarize error:', error)
             isLoading.value = false
-            status.value = '请求失败'
+            setPhase('error', '请求失败', '请稍后再试')
+            stopTimer()
         }
     }
 
     return {
         isLoading,
         status,
+        hint,
+        detail,
         progress,
+        phase,
+        elapsedSeconds,
         result,
         summarize,
     }

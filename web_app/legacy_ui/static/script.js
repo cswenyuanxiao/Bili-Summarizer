@@ -116,30 +116,39 @@ document.addEventListener('DOMContentLoaded', () => {
         resultContainer.style.display = 'grid';
         loader.style.display = 'none';
 
-        // 1. Extract Mermaid code
+        // 1. Extract Mermaid code and insert placeholder
         const mermaidRegex = /```mermaid([\s\S]*?)```/g;
         currentMermaidCode = "";
+
+        // Check if mermaid block exists
+        const hasMermaid = mermaidRegex.test(summaryText);
+
         const cleanedSummary = summaryText.replace(mermaidRegex, (m, code) => {
             currentMermaidCode += code.trim() + "\n";
-            return "";
+            // Return the container placeholder directly in the markdown stream
+            return `\n<div id="mermaid-container" class="mermaid-inline"></div>\n`;
         });
 
-        // 2. Render Summary
+        // 2. Render Summary (which now includes the placeholder div)
         summaryOutput.innerHTML = marked.parse(cleanedSummary);
 
-        // 3. Render Mermaid
-        mermaidContainer.innerHTML = '';
-        if (currentMermaidCode) {
+        // 3. Render Mermaid into the inline container
+        // Note: mermaidContainer global var needs to be refreshed since we removed the static one
+        const inlineContainer = document.getElementById('mermaid-container');
+
+        if (currentMermaidCode && inlineContainer) {
+            inlineContainer.innerHTML = ''; // Clear loading text if any
             try {
                 const id = `mermaid-diagram-${Date.now()}`;
                 const { svg } = await mermaid.render(id, currentMermaidCode);
-                mermaidContainer.innerHTML = svg;
+                inlineContainer.innerHTML = svg;
             } catch (err) {
                 console.error("Mermaid rendering failed:", err);
-                mermaidContainer.innerHTML = `<div style="color:var(--danger); padding:1rem;">思维导图渲染失败: ${err.message}</div><pre style="text-align:left; overflow-x:auto; font-size:0.8rem;">${currentMermaidCode}</pre>`;
+                inlineContainer.innerHTML = `<div style="color:var(--danger); padding:1rem; border:1px dashed var(--danger);">思维导图渲染失败: ${err.message}</div><pre style="text-align:left; overflow-x:auto; font-size:0.8rem;">${currentMermaidCode}</pre>`;
             }
-        } else {
-            mermaidContainer.innerHTML = '<p class="mindmap-empty">本次总结未生成思维导图。</p>';
+        } else if (inlineContainer) {
+            // If container exists but no code (shouldn't happen with regex replace logic, but just in case)
+            inlineContainer.innerHTML = '<p class="mindmap-empty">本次总结未生成思维导图。</p>';
         }
 
         // 4. Render Transcript
@@ -148,10 +157,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const lines = transcriptText.split('\n').filter(l => l.trim());
             let html = '';
             lines.forEach(line => {
-                // Check if line contains timestamp (e.g., "00:00:05.000 --> 00:00:10.000" or starts with time)
-                const timeMatch = line.match(/^(\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?)/);
+                // Support format: "[00:30] Text" or "00:30 Text"
+                // Regex looks for optional bracket, then timestamp, then optional bracket
+                const timeMatch = line.match(/^\[?(\d{1,2}:\d{2}(?::\d{2})?)\]?/);
+
                 if (timeMatch) {
-                    html += `<div class="transcript-line"><span class="transcript-time">${timeMatch[1]}</span></div>`;
+                    const timeStr = timeMatch[1]; // Get the clean time string "00:30"
+                    // Add pointer cursor style to indicate clickability
+                    html += `<div class="transcript-line" data-time="${timeStr}" style="cursor:pointer;" title="跳转到 ${timeStr}"><span class="transcript-time">[${timeStr}]</span> <span class="transcript-text">${line.replace(timeMatch[0], '').trim()}</span></div>`;
                 } else if (line.includes('-->')) {
                     // Skip VTT timing lines
                 } else {
@@ -159,6 +172,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             transcriptContainer.innerHTML = html || `<pre>${transcriptText}</pre>`;
+
+            // Add click listeners for seeking
+            document.querySelectorAll('.transcript-line[data-time]').forEach(el => {
+                el.addEventListener('click', () => {
+                    const timeStr = el.getAttribute('data-time');
+                    const seconds = parseTime(timeStr);
+
+                    // If player is not open, open it first
+                    if (!videoModal.classList.contains('active')) {
+                        openVideoPlayer();
+                        // Wait for player to be ready
+                        setTimeout(() => {
+                            if (localVideoPlayer) localVideoPlayer.currentTime = seconds;
+                        }, 500);
+                    } else if (localVideoPlayer) {
+                        localVideoPlayer.currentTime = seconds;
+                        localVideoPlayer.play();
+                    }
+                });
+            });
         } else {
             transcriptContainer.innerHTML = '<p class="mindmap-empty">未找到该视频的字幕/转录内容。</p>';
         }
@@ -189,14 +222,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const downloadSVG = () => {
-        const svg = mermaidContainer.querySelector('svg');
+        const container = document.getElementById('mermaid-container');
+        const svg = container ? container.querySelector('svg') : null;
         if (!svg) return alert('没有可导出的思维导图');
         const svgData = new XMLSerializer().serializeToString(svg);
         downloadFile('mindmap.svg', svgData, 'image/svg+xml');
     };
 
     const downloadPNG = () => {
-        const svg = mermaidContainer.querySelector('svg');
+        const container = document.getElementById('mermaid-container');
+        const svg = container ? container.querySelector('svg') : null;
         if (!svg) return alert('没有可导出的思维导图');
 
         // 1. Get accurate dimensions from viewBox
@@ -445,14 +480,72 @@ document.addEventListener('DOMContentLoaded', () => {
                             const data = JSON.parse(line.substring(line.indexOf('{')));
                             if (data.error) throw new Error(data.error);
 
-                            if (data.status) {
-                                const status = data.status;
+                            if (data.type) {
+                                const type = data.type;
+                                const payload = data.data || data; // Handle both wrapper formats if any
 
-                                // --- Improved Progress Logic ---
+                                if (type === 'status') {
+                                    const status = data.data || data.status;
+                                    // Handle legacy string status matching for progress bar
+                                    if (status.includes('Found in cache')) {
+                                        updateProgress(90, "发现缓存，加载中...");
+                                    } else if (status.includes('Downloading')) {
+                                        const match = status.match(/(\d+(\.\d+)?)/);
+                                        if (match) {
+                                            updateProgress(5 + (parseFloat(match[0]) * 0.35), status);
+                                        } else {
+                                            updateProgress(10, "正在下载视频...");
+                                        }
+                                    } else if (status.includes('Parallel Analysis')) {
+                                        updateProgress(75, "🚀 并行分析中：总结+转录...");
+                                    } else {
+                                        loaderStatus.textContent = status;
+                                    }
+                                }
+                                else if (type === 'video_downloaded') {
+                                    // Video is ready! Enable player.
+                                    currentLocalVideoFile = data.video_file || (data.data && data.data.filename);
+                                    updateProgress(45, "🎥 视频就绪！AI正在思考...");
+                                    console.log("Video ready:", currentLocalVideoFile);
+                                    // Optionally trigger a toast or small notification here
+                                }
+                                else if (type === 'transcript_complete') {
+                                    // Transcript is ready! Render it.
+                                    transcriptText = data.transcript || (data.data && data.data.transcript) || data.data; // Flexible parsing
+                                    updateProgress(80, "📝 字幕已生成！保持耐心...");
+
+                                    // Render transcript (partial update)
+                                    // We need to call displaySummary but with emptiness for others?
+                                    // Actually displaySummary clears everything. Let's create a partial renderer or just call the main one.
+                                    // calling displaySummary will render what we have so far.
+                                    // But we need to make sure summaryText is preserved or passed as empty string if not ready.
+                                    await displaySummary(summaryText, null, transcriptText);
+                                }
+                                else if (type === 'summary_complete') {
+                                    // Summary is ready!
+                                    summaryText = data.summary || (data.data && data.data.summary) || data.data;
+                                    const usage = data.usage || (data.data && data.data.usage);
+
+                                    updateProgress(95, "🧠 总结生成完毕！正在最终整理...");
+                                    await displaySummary(summaryText, usage, transcriptText);
+                                    saveToHistory(url, summaryText, usage);
+                                }
+                                else if (type === 'error') {
+                                    throw new Error(data.error || data.data);
+                                }
+                            }
+                            // Legacy/Standard Status Fallback
+                            else if (data.status) {
+                                const status = data.status;
                                 if (status === 'complete') {
                                     updateProgress(100, "处理完成！");
+                                    // ... existing complete logic ...
+                                    // Re-implement the complete logic here or ensure it's covered
+                                    // Since the previous block was just "else if (data.status === 'complete')", 
+                                    // we can just stick to the original logic structure but ensuring we catch other statuses.
                                     summaryText = data.summary;
                                     transcriptText = data.transcript || "";
+                                    currentLocalVideoFile = data.video_file || null;
 
                                     await displaySummary(summaryText, data.usage, transcriptText);
                                     saveToHistory(url, summaryText, data.usage);
@@ -461,40 +554,23 @@ document.addEventListener('DOMContentLoaded', () => {
                                     if (data.cached) {
                                         loaderStatus.textContent = "✅ 已从缓存加载";
                                     }
-                                }
-                                else if (status.includes('Found in cache')) {
-                                    updateProgress(90, "发现缓存，准备渲染...");
-                                }
-                                else if (status.includes('Downloading')) {
-                                    const match = status.match(/(\d+(\.\d+)?)/);
-                                    if (match) {
-                                        const percent = parseFloat(match[0]);
-                                        // 5-40% range
-                                        updateProgress(5 + (percent * 0.35), status);
+                                } else {
+                                    // Handle generic status messages (e.g. "Checking for subtitles...", "Downloading...")
+                                    // Reuse the logic we put inside type==='status'
+                                    if (status.includes('Found in cache')) {
+                                        updateProgress(90, "发现缓存，加载中...");
+                                    } else if (status.includes('Downloading')) {
+                                        const match = status.match(/(\d+(\.\d+)?)/);
+                                        if (match) {
+                                            updateProgress(5 + (parseFloat(match[0]) * 0.35), status);
+                                        } else {
+                                            updateProgress(10, "正在下载视频...");
+                                        }
+                                    } else if (status.includes('Parallel Analysis')) {
+                                        updateProgress(75, "🚀 并行分析中：总结+转录...");
                                     } else {
-                                        updateProgress(10, "正在下载视频...");
+                                        loaderStatus.textContent = status;
                                     }
-                                }
-                                else if (status.includes('Processing subtitles') || status.includes('字幕')) {
-                                    updateProgress(45, "正在解析字幕...");
-                                }
-                                else if (status.includes('Uploading')) {
-                                    updateProgress(50, "正在上传至 AI...");
-                                }
-                                else if (status.includes('uploaded')) {
-                                    updateProgress(60, "上传完成，等待 AI 响应...");
-                                }
-                                else if (status.includes('Cloud processing')) {
-                                    updateProgress(70, "云端处理中，请耐心等待...");
-                                }
-                                else if (status.includes('analyzing') || status.includes('thinking')) {
-                                    updateProgress(80, "AI 正在分析核心观点...");
-                                }
-                                else if (status.includes('Extracting transcript')) {
-                                    updateProgress(90, "生成 AI 字幕...");
-                                }
-                                else {
-                                    loaderStatus.textContent = status;
                                 }
                             }
                         } catch (e) {
@@ -626,12 +702,127 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') sendChatMessage();
     });
 
-    // --- Video Player Modal ---
+    // --- Video Player & Transcript Sync ---
     const videoModal = document.getElementById('video-modal');
     const videoModalClose = document.getElementById('video-modal-close');
-    const videoModalIframe = document.getElementById('video-modal-iframe');
-    const videoModalTitle = document.getElementById('video-modal-title');
+    const videoModalBody = document.querySelector('.video-modal-body'); // Container
     const videoPreviewPlay = document.getElementById('video-preview-play');
+
+    let localVideoPlayer = null; // HTMLVideoElement
+    let currentLocalVideoFile = null;
+
+    // Helper to parse time string "MM:SS" to seconds
+    const parseTime = (timeStr) => {
+        const parts = timeStr.split(':');
+        if (parts.length === 2) {
+            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        }
+        if (parts.length === 3) {
+            return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+        }
+        return 0;
+    };
+
+    // Open video player (prefer local, fallback to iframe)
+    const openVideoPlayer = (startTime = 0) => {
+        // If modal matches current state, just seek (optimize for avoiding reload)
+        if (videoModal.classList.contains('active')) {
+            if (localVideoPlayer) {
+                localVideoPlayer.currentTime = startTime;
+                localVideoPlayer.play();
+                return;
+            }
+        }
+
+        videoModalBody.innerHTML = ''; // Clear previous content
+        localVideoPlayer = null;
+
+        if (currentLocalVideoFile) {
+            // Use local video player
+            localVideoPlayer = document.createElement('video');
+            localVideoPlayer.src = `/videos/${currentLocalVideoFile}`;
+            localVideoPlayer.controls = true;
+            localVideoPlayer.style.width = '100%';
+            localVideoPlayer.style.height = '100%';
+            // Remove autoplay attribute here, handle play in event listener for better control
+            // localVideoPlayer.autoplay = true; 
+
+            // Critical: Wait for metadata to load before seeking
+            localVideoPlayer.addEventListener('loadedmetadata', () => {
+                if (startTime > 0) {
+                    localVideoPlayer.currentTime = startTime;
+                }
+                localVideoPlayer.play();
+            }, { once: true });
+
+            videoModalBody.appendChild(localVideoPlayer);
+            setupTranscriptSync(localVideoPlayer);
+
+        } else if (currentVideoUrl) {
+            // Fallback to Bilibili Iframe
+            const bvid = getBVid(currentVideoUrl);
+            if (bvid) {
+                const iframe = document.createElement('iframe');
+                // Append t parameter for start time
+                iframe.src = `https://player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&autoplay=1&t=${startTime}`;
+                iframe.allowFullscreen = true;
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                iframe.style.position = 'absolute';
+                iframe.style.top = '0';
+                iframe.style.left = '0';
+                videoModalBody.appendChild(iframe);
+            } else {
+                return alert('无法播放：未找到视频源');
+            }
+        } else {
+            return;
+        }
+
+        videoModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    };
+
+    // Sync transcript with video
+    const setupTranscriptSync = (video) => {
+        const lines = document.querySelectorAll('.transcript-line');
+        if (!lines.length) return;
+
+        // Auto-scroll logic
+        video.ontimeupdate = () => {
+            const currentTime = video.currentTime;
+
+            // Find active line
+            let activeLine = null;
+            lines.forEach((line) => {
+                const timeStr = line.getAttribute('data-time'); // "00:30"
+                if (timeStr) {
+                    const seconds = parseTime(timeStr);
+                    if (seconds <= currentTime) {
+                        activeLine = line;
+                    }
+                }
+            });
+
+            // Highlight and scroll
+            lines.forEach(l => l.classList.remove('active-line'));
+            if (activeLine) {
+                activeLine.classList.add('active-line');
+
+                // Smooth scroll to keep active line in view
+                activeLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        };
+    };
+
+    // Close video player
+    const closeVideoPlayer = () => {
+        videoModal.classList.remove('active');
+        videoModalBody.innerHTML = ''; // Stop playback
+        localVideoPlayer = null;
+        document.body.style.overflow = '';
+    };
 
     // Extract BV ID from Bilibili URL
     const getBVid = (url) => {
@@ -639,33 +830,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return match ? match[0] : null;
     };
 
-    // Open video player
-    const openVideoPlayer = () => {
-        if (!currentVideoUrl) return;
-
-        const bvid = getBVid(currentVideoUrl);
-        if (!bvid) {
-            alert('无法解析视频 ID');
-            return;
-        }
-
-        // Bilibili embed player URL
-        const embedUrl = `https://player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&autoplay=0`;
-
-        videoModalIframe.src = embedUrl;
-        videoModal.classList.add('active');
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
-    };
-
-    // Close video player
-    const closeVideoPlayer = () => {
-        videoModal.classList.remove('active');
-        videoModalIframe.src = ''; // Stop playback
-        document.body.style.overflow = ''; // Restore scrolling
-    };
-
     // Event listeners
-    videoPreviewPlay?.addEventListener('click', openVideoPlayer);
+    videoPreviewPlay?.addEventListener('click', () => openVideoPlayer(0));
     videoModalClose?.addEventListener('click', closeVideoPlayer);
     videoModal?.addEventListener('click', (e) => {
         if (e.target === videoModal) closeVideoPlayer();

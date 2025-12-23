@@ -4,18 +4,48 @@ import json
 import asyncio
 import logging
 from datetime import datetime
+from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException, Security, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
+from typing import List, Optional
+
+# --- 数据模型 ---
+class ChatMessage(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+class ChatRequest(BaseModel):
+    summary: str
+    transcript: Optional[str] = ""
+    question: str
+    history: List[ChatMessage] = []
+
+class HistoryItem(BaseModel):
+    id: Optional[str] = None
+    video_url: str
+    video_title: Optional[str] = None
+    video_thumbnail: Optional[str] = None
+    mode: str
+    focus: str
+    summary: str
+    transcript: Optional[str] = None
+    mindmap: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 # --- web_app 内部模块导入 ---
 from .downloader import download_content
 from .summarizer_gemini import summarize_content, extract_ai_transcript, upload_to_gemini, delete_gemini_file
 from .cache import get_cached_result, save_to_cache, get_cache_stats
+from .auth import get_current_user
 from typing import List
+import sqlite3
+import secrets
+import hashlib
 
 # --- 配置日志 ---
 logging.basicConfig(
@@ -30,6 +60,52 @@ logger = logging.getLogger(__name__)
 
 # --- 初始化 ---
 app = FastAPI(title="Bili-Summarizer")
+
+# --- 数据库初始化 ---
+@app.on_event("startup")
+async def init_database():
+    """初始化 API Key 和配额管理表"""
+    conn = sqlite3.connect("cache.db")
+    cursor = conn.cursor()
+    
+    # 创建 API Keys 表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS api_keys (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            prefix TEXT NOT NULL,
+            key_hash TEXT NOT NULL UNIQUE,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            last_used_at TEXT
+        )
+    """)
+    
+    # 创建使用配额表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usage_daily (
+            user_id TEXT NOT NULL,
+            date TEXT NOT NULL,
+            count INTEGER DEFAULT 0,
+            PRIMARY KEY (user_id, date)
+        )
+    """)
+    
+    # 创建索引
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_api_keys_user 
+        ON api_keys(user_id)
+    """)
+    
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_api_keys_hash 
+        ON api_keys(key_hash)
+    """)
+    
+    conn.commit()
+    conn.close()
+    logger.info("Database tables initialized successfully")
 
 # --- CORS 配置（允许 Vue 前端访问）---
 app.add_middleware(
@@ -46,6 +122,13 @@ app.add_middleware(
 # --- 静态文件（仅保留 videos 用于视频播放）---
 # 允许前端访问 videos 目录下的文件用于播放
 app.mount("/videos", StaticFiles(directory="videos"), name="videos")
+legacy_static = Path(__file__).resolve().parent / "legacy_ui" / "static"
+if legacy_static.exists():
+    app.mount("/static", StaticFiles(directory=str(legacy_static)), name="static")
+
+# --- Frontend Static (Render) ---
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+LEGACY_INDEX = Path(__file__).resolve().parent / "legacy_ui" / "index.html"
 
 # --- 健康检查路由 ---
 @app.get("/health")
@@ -84,12 +167,12 @@ async def run_summarization(
                 cached = get_cached_result(url, mode, focus)
                 if cached:
                     logger.info(f"命中缓存: {url}")
-                    yield f"data: {json.dumps({'status': 'Found in cache! Loading...'})}\n\n"
-                    # Emit all events for cached content
-                    yield f"data: {json.dumps({'type': 'transcript_complete', 'data': cached['transcript']})}\n\n"
-                    yield f"data: {json.dumps({'type': 'summary_complete', 'data': cached['summary'], 'usage': cached['usage'], 'cached': True})}\n\n"
-                     # Finally emit completion
-                    yield f"data: {json.dumps({'status': 'complete'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'status', 'status': 'Found in cache! Loading...'})}\n\n"
+                    # Emit all events for cached content using the same payload shape as live SSE
+                    yield f"data: {json.dumps({'type': 'transcript_complete', 'transcript': cached['transcript']})}\n\n"
+                    yield f"data: {json.dumps({'type': 'summary_complete', 'summary': cached['summary'], 'usage': cached['usage'], 'cached': True})}\n\n"
+                    # Finally emit completion
+                    yield f"data: {json.dumps({'type': 'status', 'status': 'complete'})}\n\n"
                     return
             
             loop = asyncio.get_event_loop()
@@ -260,25 +343,91 @@ async def cache_stats():
     return stats
 
 
-# --- API Key Management (TEMPORARILY DISABLED DUE TO IMPORT ISSUES) ---
-# class CreateKeyRequest(BaseModel):
-#     name: str
-# 
-# @app.post("/api/keys")
-# async def create_api_key(request: CreateKeyRequest, user=Depends(get_current_user)):
-#     ...
-# 
-# @app.get("/api/keys")
-# async def list_api_keys(user=Depends(get_current_user)):
-#     ...
-# 
-# @app.delete("/api/keys/{key_id}")
-# async def delete_api_key(key_id: str, user=Depends(get_current_user)):
-#     ...
-# 
-# @app.get("/api/v1/user")
-# async def get_user_info_api(api_user=Depends(get_user_by_api_key)):
-#     ...
+# --- API Key Management ---
+class CreateKeyRequest(BaseModel):
+    name: str
+
+@app.post("/api/keys")
+async def create_api_key(request: CreateKeyRequest, user: dict = Depends(get_current_user)):
+    """创建新的 API Key"""
+    # 生成密钥
+    raw_key = f"sk-bili-{secrets.token_urlsafe(32)}"
+    key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+    prefix = raw_key[:15] + "..."
+    key_id = secrets.token_urlsafe(16)
+    
+    # 存储到数据库
+    conn = sqlite3.connect("cache.db")
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            INSERT INTO api_keys (id, user_id, name, prefix, key_hash)
+            VALUES (?, ?, ?, ?, ?)
+        """, (key_id, user["user_id"], request.name, prefix, key_hash))
+        
+        conn.commit()
+        
+        return {
+            "id": key_id,
+            "name": request.name,
+            "key": raw_key,  # ⚠️ 仅返回一次
+            "prefix": prefix,
+            "created_at": datetime.now().isoformat()
+        }
+    finally:
+        conn.close()
+
+@app.get("/api/keys")
+async def list_api_keys(user: dict = Depends(get_current_user)):
+    """列出用户的所有 API Key"""
+    conn = sqlite3.connect("cache.db")
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT id, name, prefix, created_at, last_used_at, is_active
+            FROM api_keys
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+        """, (user["user_id"],))
+        
+        keys = []
+        for row in cursor.fetchall():
+            keys.append({
+                "id": row[0],
+                "name": row[1],
+                "prefix": row[2],
+                "created_at": row[3],
+                "last_used_at": row[4],
+                "is_active": bool(row[5])
+            })
+        
+        return keys
+    finally:
+        conn.close()
+
+@app.delete("/api/keys/{key_id}")
+async def delete_api_key(key_id: str, user: dict = Depends(get_current_user)):
+    """删除指定的 API Key"""
+    conn = sqlite3.connect("cache.db")
+    cursor = conn.cursor()
+    
+    try:
+        # 验证所有权并删除
+        cursor.execute("""
+            DELETE FROM api_keys
+            WHERE id = ? AND user_id = ?
+        """, (key_id, user["user_id"]))
+        
+        if cursor.rowcount == 0:
+            raise HTTPException(404, "API key not found or unauthorized")
+        
+        conn.commit()
+        return {"message": "API key deleted successfully"}
+    finally:
+        conn.close()
+
 
 
 # --- Video Info Endpoint ---
@@ -359,13 +508,13 @@ async def proxy_image(url: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# --- AI Chat / Follow-up Endpoint ---
-class ChatRequest(BaseModel):
+# --- AI Chat / Follow-up Endpoint (Legacy) ---
+class ChatSimpleRequest(BaseModel):
     question: str
     context: str  # The summary text to use as context
 
 @app.post("/chat")
-async def chat_with_ai(request: ChatRequest):
+async def chat_with_ai(request: ChatSimpleRequest):
     """Answer follow-up questions based on the video summary context."""
     import google.generativeai as genai
     from dotenv import load_dotenv
@@ -450,4 +599,192 @@ async def generate_ppt_endpoint(request: PPTRequest):
         
     except Exception as e:
         logger.error(f"PPT generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Frontend Static (Render) ---
+if FRONTEND_DIST.exists():
+    assets_dir = FRONTEND_DIST / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    @app.get("/", include_in_schema=False)
+    async def serve_frontend_root():
+        return FileResponse(FRONTEND_DIST / "index.html")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_frontend_spa(full_path: str):
+        candidate = FRONTEND_DIST / full_path
+        if candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(FRONTEND_DIST / "index.html")
+elif LEGACY_INDEX.exists():
+    @app.get("/", include_in_schema=False)
+    async def serve_legacy_root():
+        return FileResponse(LEGACY_INDEX)
+
+
+# --- AI Chat Endpoint ---
+@app.post("/api/chat")
+async def chat_with_ai(request: ChatRequest):
+    """基于视频内容的 AI 追问"""
+    try:
+        # 构建上下文
+        context = f"""你是一个视频内容分析专家。用户正在基于以下视频信息提问：
+
+【视频总结】
+{request.summary}
+
+【转录内容（节选）】
+{request.transcript[:5000] if request.transcript else '（无转录内容）'}
+
+请基于以上内容回答用户的问题。如果问题涉及视频中没有提到的内容，请明确说明。保持回答简洁准确。"""
+
+        # 组装消息
+        messages = [
+            {"role": "user", "parts": [context]},
+            {"role": "model", "parts": ["我已了解视频内容，请问有什么问题？"]},
+        ]
+        
+        for msg in request.history:
+            messages.append({
+                "role": "user" if msg.role == "user" else "model",
+                "parts": [msg.content]
+            })
+        
+        messages.append({"role": "user", "parts": [request.question]})
+        
+        async def event_stream():
+            try:
+                import google.generativeai as genai
+                model = genai.GenerativeModel("models/gemini-2.0-flash-exp")
+                
+                response = model.generate_content(
+                    messages,
+                    generation_config={
+                        "temperature": 0.7,
+                        "max_output_tokens": 2048,
+                    },
+                    stream=True
+                )
+                
+                for chunk in response:
+                    if chunk.text:
+                        yield f"data: {json.dumps({'content': chunk.text}, ensure_ascii=False)}\n\n"
+                
+                yield f"data: {json.dumps({'done': True})}\n\n"
+                
+            except Exception as e:
+                logger.error(f"Chat error: {e}")
+                yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+        
+        return StreamingResponse(
+            event_stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
+        )
+    
+    except Exception as e:
+        logger.error(f"Chat endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# --- History Sync API ---
+@app.get("/api/history")
+async def get_user_history(user: dict = Depends(get_current_user)):
+    """获取用户的云端历史记录"""
+    try:
+        from supabase import create_client
+        
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+        
+        if not supabase_url or not supabase_key:
+            logger.warning("Supabase not configured, returning empty history")
+            return []
+        
+        supabase = create_client(supabase_url, supabase_key)
+        
+        response = supabase.table("summaries")\
+            .select("*")\
+            .eq("user_id", user["user_id"])\
+            .order("created_at", desc=True)\
+            .limit(50)\
+            .execute()
+        
+        return response.data
+    
+    except Exception as e:
+        logger.error(f"Get history error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/history")
+async def sync_history(
+    items: List[HistoryItem],
+    user: dict = Depends(get_current_user)
+):
+    """批量上传本地历史到云端"""
+    try:
+        from supabase import create_client
+        
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+        
+        if not supabase_url or not supabase_key:
+            return {"uploaded": 0, "total": len(items), "error": "Supabase not configured"}
+        
+        supabase = create_client(supabase_url, supabase_key)
+        
+        uploaded = 0
+        errors = []
+        
+        for item in items:
+            try:
+                data = item.dict(exclude_none=True, exclude={"id"})
+                data["user_id"] = user["user_id"]
+                
+                supabase.table("summaries").upsert(data).execute()
+                uploaded += 1
+            except Exception as e:
+                logger.error(f"Sync error for {item.video_url}: {e}")
+                errors.append(str(e))
+        
+        return {
+            "uploaded": uploaded,
+            "total": len(items),
+            "errors": errors if errors else None
+        }
+    
+    except Exception as e:
+        logger.error(f"Batch sync error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/history/{history_id}")
+async def delete_history_item(
+    history_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """删除云端历史记录"""
+    try:
+        from supabase import create_client
+        
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+        
+        if not supabase_url or not supabase_key:
+            raise HTTPException(503, "Supabase not configured")
+        
+        supabase = create_client(supabase_url, supabase_key)
+        
+        response = supabase.table("summaries")\
+            .delete()\
+            .eq("id", history_id)\
+            .eq("user_id", user["user_id"])\
+            .execute()
+        
+        return {"message": "History item deleted"}
+    
+    except Exception as e:
+        logger.error(f"Delete history error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

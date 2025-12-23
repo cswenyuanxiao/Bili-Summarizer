@@ -191,7 +191,18 @@
         .hero .container,
         .input-section .container,
         .main-container {
-            padding: 0 1.5rem;
+            padding: 0 1rem;
+            /* Mobile: Smaller padding */
+        }
+
+        @media (min-width: 768px) {
+
+            .hero .container,
+            .input-section .container,
+            .main-container {
+                padding: 0 1.5rem;
+                /* Desktop: Default padding */
+            }
         }
 
         body {
@@ -203,6 +214,8 @@
             display: flex;
             flex-direction: column;
             transition: background-color 0.3s ease, color 0.3s ease;
+            overflow-x: hidden;
+            /* Prevent horizontal scroll */
         }
 
         /* --- 🔮 Glass Input Card --- */
@@ -220,7 +233,8 @@
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-input);
             padding: 2.5rem;
-            border: var(--glass-border);
+            border: 2px solid #ef4444;
+            /* 🔴 DEBUG: Red border */
         }
 
         body.dark-mode .input-card {
@@ -229,8 +243,21 @@
 
         .url-input-row {
             display: flex;
-            gap: 16px;
+            flex-direction: column;
+            /* Mobile: Stack vertically */
+            gap: 12px;
             margin-bottom: 1.5rem;
+            border: 2px solid #3b82f6;
+            /* 🔵 DEBUG: Blue border */
+            padding: 8px;
+        }
+
+        @media (min-width: 768px) {
+            .url-input-row {
+                flex-direction: row;
+                /* Desktop: Horizontal */
+                gap: 16px;
+            }
         }
 
         /* Modern Floating Input */
@@ -251,11 +278,15 @@
             border-color: var(--primary);
             background: var(--card-bg);
             box-shadow: 0 0 0 4px var(--primary-light), inset 0 1px 2px rgba(0, 0, 0, 0.05);
-            transform: translateY(-1px);
+            /* Removed transform to prevent dropdown jumping on mobile */
         }
 
         /* 3D Gradient Button */
         #submit-button {
+            width: 100%;
+            /* Mobile: Full width */
+            min-height: 44px;
+            /* Touch target */
             padding: 16px 36px;
             background: var(--hero-gradient);
             color: white;
@@ -267,11 +298,19 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 10px;
             white-space: nowrap;
             box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3), 0 2px 4px -1px rgba(79, 70, 229, 0.1);
             position: relative;
             overflow: hidden;
+        }
+
+        @media (min-width: 768px) {
+            #submit-button {
+                width: auto;
+                /* Desktop: Auto width */
+            }
         }
 
         /* Button Shine Effect */
@@ -310,20 +349,47 @@
         /* Options Row */
         .options-row {
             display: flex;
-            gap: 24px;
+            flex-direction: column;
+            /* Mobile: Stack vertically */
+            gap: 12px;
             padding-top: 0.5rem;
+            border: 2px solid #22c55e;
+            /* 🟢 DEBUG: Green border */
+            padding: 8px;
+        }
+
+        @media (min-width: 768px) {
+            .options-row {
+                flex-direction: row;
+                /* Desktop: Horizontal */
+                gap: 24px;
+            }
         }
 
         .option-group {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            /* Mobile: Stack label and select */
+            align-items: flex-start;
+            gap: 6px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .option-group {
+                flex-direction: row;
+                /* Desktop: Side-by-side */
+                align-items: center;
+                gap: 10px;
+                width: auto;
+            }
         }
 
         .option-group label {
             font-size: 0.875rem;
             color: var(--text-secondary);
             font-weight: 600;
+            white-space: nowrap;
         }
 
         .option-group select {
@@ -335,6 +401,15 @@
             cursor: pointer;
             color: var(--text-main);
             transition: border 0.2s;
+            width: 100%;
+            /* Full width on mobile */
+        }
+
+        @media (min-width: 768px) {
+            .option-group select {
+                width: auto;
+                /* Auto width on desktop */
+            }
         }
 
         .option-group select:hover {
@@ -411,17 +486,21 @@
         /* Result Container */
         #result-container {
             display: none;
-            /* Flex/Grid via JS */
-            grid-template-columns: 350px 1fr;
-            /* 左侧固定350px，右侧自适应 */
-            gap: 32px;
+            grid-template-columns: 1fr;
+            /* Mobile: Single column */
+            gap: 24px;
             margin-bottom: 3rem;
             align-items: start;
+            border: 2px solid #eab308;
+            /* 🟡 DEBUG: Yellow border */
+            padding: 8px;
         }
 
-        @media (max-width: 900px) {
+        @media (min-width: 900px) {
             #result-container {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(280px, 350px) 1fr;
+                /* Desktop: Left sidebar + content */
+                gap: 32px;
             }
         }
 
@@ -441,6 +520,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            overflow-x: auto;
+            /* Allow horizontal scroll for tabs on mobile */
+            -webkit-overflow-scrolling: touch;
         }
 
         body.dark-mode .card-header,
@@ -485,6 +567,12 @@
 
         .transcript-line:hover {
             background: var(--primary-light);
+        }
+
+        .transcript-line.active-line {
+            background: var(--primary-light);
+            border-left: 3px solid var(--primary);
+            font-weight: 600;
         }
 
         .transcript-time {
@@ -587,14 +675,26 @@
         /* Export Bar */
         .export-bar {
             display: flex;
+            flex-direction: column;
+            /* Mobile: Stack vertically */
             gap: 8px;
             padding: 1rem 1.5rem;
             border-top: 1px solid var(--border-light);
             background: #FAFBFC;
-            justify-content: flex-end;
+            border: 2px solid #a855f7;
+            /* 🟣 DEBUG: Purple border */
+        }
+
+        @media (min-width: 640px) {
+            .export-bar {
+                flex-direction: row;
+                justify-content: flex-end;
+            }
         }
 
         .export-btn {
+            width: 100%;
+            /* Mobile: Full width */
             padding: 8px 16px;
             font-size: 0.85rem;
             font-weight: 500;
@@ -602,7 +702,18 @@
             cursor: pointer;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
+            min-height: 44px;
+            /* Touch target */
+        }
+
+        @media (min-width: 640px) {
+            .export-btn {
+                width: auto;
+                /* Desktop: Auto width */
+                min-height: unset;
+            }
         }
 
         .export-btn.secondary {
@@ -665,6 +776,9 @@
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
             /* 统一卡片间距 */
+            border: 2px solid #f97316;
+            /* 🟠 DEBUG: Orange border */
+            padding: 8px;
         }
 
         .history-item {
@@ -1094,161 +1208,6 @@
             font-size: 0.75rem;
             font-weight: 600;
         }
-
-        /* --- Fluid Mobile Responsive Optimizations --- */
-        @media (max-width: 768px) {
-
-            /* 1. Fluid Container Spacing */
-            .container {
-                /* Min 1rem, Max 2rem, scales with width */
-                padding: 0 clamp(1rem, 3vw, 2rem);
-            }
-
-            /* 2. Fluid Typography & Spacing for Hero */
-            .hero {
-                padding: clamp(2rem, 8vw, 4rem) 0 clamp(3rem, 10vw, 5rem);
-                text-align: center;
-            }
-
-            .hero h1 {
-                /* Scale font smoothly between 1.8rem and 2.5rem based on screen width */
-                font-size: clamp(1.8rem, 8vw, 2.5rem);
-                margin-bottom: 0.5rem;
-                line-height: 1.2;
-            }
-
-            .hero p {
-                font-size: clamp(0.9rem, 4vw, 1.05rem);
-                max-width: 90%;
-                margin: 0 auto;
-                line-height: 1.6;
-            }
-
-            /* 3. Adaptive Input Card */
-            .input-card {
-                /* Tighter padding on small phones, more air on tablets */
-                padding: clamp(1rem, 5vw, 2rem);
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .url-input-wrapper {
-                width: 100%;
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .url-row,
-            .url-row input {
-                width: 100%;
-            }
-
-            /* Stacked Options Row */
-            .options-row {
-                width: 100%;
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                /* Equal width columns */
-                gap: 1rem;
-                margin-top: 1rem;
-                padding-left: 0;
-                border-left: none;
-            }
-
-            .select-group {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 6px;
-                width: 100%;
-                min-width: 0;
-                /* Prevent flex/grid overflow */
-            }
-
-            .select-group label {
-                font-size: 0.85rem;
-                color: var(--text-secondary);
-            }
-
-            .select-group select {
-                width: 100%;
-                padding: 12px;
-                background-position: right 12px center;
-                /* Adjust arrow position */
-            }
-
-            /* Touch-Friendly Submit Button */
-            .submit-btn {
-                width: 100%;
-                margin-top: 1.25rem;
-                padding: 14px;
-                font-size: 1rem;
-                justify-content: center;
-                /* Add active state feedback for touch */
-                transition: transform 0.1s;
-            }
-
-            .submit-btn:active {
-                transform: scale(0.98);
-            }
-
-            /* Card Layout Adaptation */
-            .video-preview.show {
-                flex-direction: column;
-                padding: 1rem;
-                gap: 0.75rem;
-            }
-
-            .video-preview img {
-                width: 100%;
-                height: auto;
-                aspect-ratio: 16/9;
-                border-radius: var(--radius-md);
-            }
-
-            .video-info,
-            .video-title {
-                width: 100%;
-                white-space: normal;
-                line-height: 1.4;
-            }
-
-            .history-grid,
-            .results-container {
-                grid-template-columns: 1fr;
-            }
-
-            /* Tabs Header Scroll */
-            .tabs-header {
-                overflow-x: auto;
-                padding-bottom: 2px;
-                -webkit-overflow-scrolling: touch;
-                /* Momentum scrolling */
-            }
-
-            .tabs-header::-webkit-scrollbar {
-                display: none;
-            }
-        }
-
-        /* --- Ultra Small Screen Safety (< 360px) --- */
-        @media (max-width: 359px) {
-            .hero h1 {
-                font-size: 1.6rem;
-            }
-
-            .input-card {
-                padding: 1rem;
-            }
-
-            .options-row {
-                grid-template-columns: 1fr;
-            }
-
-            /* Stack options on very small screens */
-            .select-group select {
-                font-size: 0.9rem;
-            }
-        }
     </style>
 </head>
 
@@ -1346,7 +1305,7 @@
                     <div class="result-card">
                         <div class="tabs-header">
                             <button class="tab-btn active" data-tab="summary">📝 智能总结</button>
-                            <button class="tab-btn" data-tab="mindmap">🧠 思维导图</button>
+                            <!-- Mind Map tab removed as it is now inline -->
                             <div class="tabs-actions">
                                 <button class="icon-btn" id="copy-summary-btn" title="复制总结">📋</button>
                                 <button class="icon-btn" id="refresh-btn" title="重新生成">🔄</button>
@@ -1355,12 +1314,6 @@
 
                         <div id="tab-summary" class="tab-content active">
                             <div id="summary-output"></div>
-                        </div>
-
-                        <div id="tab-mindmap" class="tab-content">
-                            <div id="mermaid-container">
-                                <p class="mindmap-empty">正在生成思维导图...</p>
-                            </div>
                         </div>
 
                         <!-- Export Bar -->

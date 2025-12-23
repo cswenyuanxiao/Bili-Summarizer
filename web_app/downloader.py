@@ -1,6 +1,7 @@
 
 import os
 import sys
+import re
 from pathlib import Path
 import yt_dlp
 import glob
@@ -43,29 +44,86 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
                 content = file_path.read_text(encoding='utf-8')
             except UnicodeDecodeError:
                 content = file_path.read_text(encoding='gbk')
-            
-            # Simple cleanup for VTT/SRT (remove headers, keep timestamps and text)
-            # This is a basic implementation. For production, use a library like webvtt-py.
+            if not content.strip():
+                return ""
+
+            suffix = file_path.suffix.lower()
             lines = content.splitlines()
             cleaned_lines = []
-            seen_lines = set()
-            
+            current_timestamp = ""
+
+            def format_timestamp(ts: str) -> str:
+                ts = ts.strip()
+                if not ts:
+                    return ""
+                ts = ts.replace(',', '.')
+                parts = ts.split(':')
+                try:
+                    if len(parts) == 3:
+                        hours = int(parts[0])
+                        minutes = int(parts[1])
+                        seconds = int(float(parts[2]))
+                    elif len(parts) == 2:
+                        hours = 0
+                        minutes = int(parts[0])
+                        seconds = int(float(parts[1]))
+                    else:
+                        return ""
+                except ValueError:
+                    return ""
+
+                total_seconds = max(0, hours * 3600 + minutes * 60 + seconds)
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                seconds = total_seconds % 60
+                if hours > 0:
+                    return f"[{hours:02d}:{minutes:02d}:{seconds:02d}]"
+                return f"[{minutes:02d}:{seconds:02d}]"
+
+            def push_line(ts: str, text: str) -> None:
+                text = text.strip()
+                if not text:
+                    return
+                if ts:
+                    cleaned_lines.append(f"{ts} {text}")
+                else:
+                    cleaned_lines.append(text)
+
+            if suffix in ['.ttml', '.xml']:
+                for match in re.finditer(r'<p[^>]*begin="([^"]+)"[^>]*>(.*?)</p>', content, re.DOTALL | re.IGNORECASE):
+                    ts = format_timestamp(match.group(1))
+                    text = re.sub(r'<[^>]+>', '', match.group(2))
+                    push_line(ts, text)
+                return "\n".join(cleaned_lines) or content.strip()
+
+            if suffix == '.ass':
+                for line in lines:
+                    if not line.startswith('Dialogue:'):
+                        continue
+                    parts = line.split(',', 9)
+                    if len(parts) < 10:
+                        continue
+                    ts = format_timestamp(parts[1])
+                    text = parts[9].replace('\\N', ' ')
+                    push_line(ts, text)
+                return "\n".join(cleaned_lines) or content.strip()
+
             for line in lines:
                 line = line.strip()
                 # Skip empty lines, numbered lines (SRT), and header info
-                if not line or line.isdigit() or '-->' in line or line.startswith('WEBVTT') or line.startswith('X-TIMESTAMP') or line.startswith('NOTE'):
+                if not line or line.isdigit() or line.startswith('WEBVTT') or line.startswith('X-TIMESTAMP') or line.startswith('NOTE'):
+                    continue
+
+                if '-->' in line:
+                    start = line.split('-->')[0].strip()
+                    current_timestamp = format_timestamp(start)
                     # We might want to keep timestamps in a specific format, but for now let's keep it simple text or just keep the raw content if it's too complex to parse manually without errors.
                     # actually, keeping timestamps is good for the "Transcript" tab.
-                    if '-->' in line:
-                         cleaned_lines.append(f"\n{line}")
                     continue
                 
-                # Deduplicate repeated lines (common in some subs)
-                if line not in seen_lines:
-                     cleaned_lines.append(line)
-                     seen_lines.add(line)
+                push_line(current_timestamp, line)
             
-            return "\n".join(cleaned_lines)
+            return "\n".join(cleaned_lines) or content.strip()
             
         except Exception as e:
             print(f"Error parsing transcript: {e}")

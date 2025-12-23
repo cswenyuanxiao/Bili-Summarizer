@@ -74,10 +74,10 @@
           </ul>
           <button 
             @click="handleSubscribe"
-            :disabled="loading"
+            :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
             class="w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 text-white font-medium hover:shadow-lg hover:scale-105 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {{ loading ? '处理中...' : '立即升级' }}
+            {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '立即升级') }}
           </button>
         </div>
       </div>
@@ -88,6 +88,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import { isSupabaseConfigured } from '../supabase'
 
 defineProps<{
   show: boolean
@@ -96,8 +97,13 @@ defineProps<{
 const emit = defineEmits(['close', 'success'])
 const { user } = useAuth()
 const loading = ref(false)
+const subscriptionUnavailable = ref(false)
 
 const handleSubscribe = async () => {
+    if (!isSupabaseConfigured) {
+        alert('当前环境未配置登录服务，无法订阅。')
+        return
+    }
     if (!user.value) {
         alert('请先登录')
         return
@@ -118,6 +124,10 @@ const handleSubscribe = async () => {
             body: JSON.stringify({ plan_id: 'pro_monthly' })
         })
 
+        if (res.status === 404 || res.status === 501) {
+            subscriptionUnavailable.value = true
+            throw new Error('订阅功能暂未开放')
+        }
         if (!res.ok) throw new Error('订阅失败')
         
         const data = await res.json()
