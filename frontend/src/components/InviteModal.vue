@@ -74,6 +74,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { isSupabaseConfigured, supabase } from '../supabase'
 
 const props = defineProps<{
   show: boolean
@@ -89,10 +90,16 @@ const totalRedeemed = ref(0)
 const redeemCode = ref('')
 const error = ref('')
 
+const getAuthToken = async () => {
+  if (!isSupabaseConfigured || !supabase) return null
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.access_token ?? null
+}
+
 const fetchInvite = async () => {
   error.value = ''
   try {
-    const token = (await import('../supabase').then(m => m.supabase!.auth.getSession())).data.session?.access_token
+    const token = await getAuthToken()
     if (!token) return
     const response = await fetch('/api/invites', {
       headers: { Authorization: `Bearer ${token}` }
@@ -109,7 +116,7 @@ const fetchInvite = async () => {
 const handleCreateCode = async () => {
   error.value = ''
   try {
-    const token = (await import('../supabase').then(m => m.supabase!.auth.getSession())).data.session?.access_token
+    const token = await getAuthToken()
     if (!token) return
     const response = await fetch('/api/invites', {
       method: 'POST',
@@ -127,7 +134,7 @@ const handleRedeem = async () => {
   if (!redeemCode.value) return
   error.value = ''
   try {
-    const token = (await import('../supabase').then(m => m.supabase!.auth.getSession())).data.session?.access_token
+    const token = await getAuthToken()
     if (!token) return
     const response = await fetch('/api/invites/redeem', {
       method: 'POST',

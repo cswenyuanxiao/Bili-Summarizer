@@ -398,6 +398,7 @@ import { useAuth } from './composables/useAuth'
 import { useHistorySync } from './composables/useHistorySync'
 import { useReveal } from './composables/useReveal'
 import type { SummarizeRequest } from './types/api'
+import { isSupabaseConfigured, supabase } from './supabase'
 
 // Theme management
 const { isDark, toggleTheme, initTheme } = useTheme()
@@ -460,6 +461,12 @@ const billingItems = ref<Array<{
   invoice_url?: string | null
   created_at?: string | null
 }>>([])
+
+const getSupabaseToken = async () => {
+  if (!isSupabaseConfigured || !supabase) return null
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
+}
 
 // Summarization logic
 const { isLoading, status, hint, detail, progress, phase, elapsedSeconds, errorCode, result, summarize } = useSummarize()
@@ -637,10 +644,15 @@ const fetchDashboard = async () => {
     dashboardData.value = null
     return
   }
+  if (!isSupabaseConfigured) {
+    dashboardError.value = '登录服务未配置'
+    dashboardData.value = null
+    return
+  }
   dashboardLoading.value = true
   dashboardError.value = ''
   try {
-    const token = (await import('./supabase').then(m => m.supabase.auth.getSession())).data.session?.access_token
+    const token = await getSupabaseToken()
     if (!token) throw new Error('未获取到登录凭证')
     const response = await fetch('/api/dashboard', {
       headers: { Authorization: `Bearer ${token}` }
@@ -671,8 +683,12 @@ const fetchSubscription = async () => {
     subscriptionData.value = null
     return
   }
+  if (!isSupabaseConfigured) {
+    subscriptionData.value = null
+    return
+  }
   try {
-    const token = (await import('./supabase').then(m => m.supabase.auth.getSession())).data.session?.access_token
+    const token = await getSupabaseToken()
     if (!token) throw new Error('未获取到登录凭证')
     const response = await fetch('/api/subscription', {
       headers: { Authorization: `Bearer ${token}` }
@@ -699,10 +715,15 @@ const fetchBilling = async () => {
     billingItems.value = []
     return
   }
+  if (!isSupabaseConfigured) {
+    billingError.value = '登录服务未配置'
+    billingItems.value = []
+    return
+  }
   billingLoading.value = true
   billingError.value = ''
   try {
-    const token = (await import('./supabase').then(m => m.supabase.auth.getSession())).data.session?.access_token
+    const token = await getSupabaseToken()
     if (!token) throw new Error('未获取到登录凭证')
     const response = await fetch('/api/billing', {
       headers: { Authorization: `Bearer ${token}` }
@@ -750,8 +771,12 @@ const shareHistoryItem = async (item: {
     showLoginModal.value = true
     return
   }
+  if (!isSupabaseConfigured) {
+    alert('当前环境未配置登录服务，无法分享。')
+    return
+  }
   try {
-    const token = (await import('./supabase').then(m => m.supabase!.auth.getSession())).data.session?.access_token
+    const token = await getSupabaseToken()
     if (!token) throw new Error('未获取到登录凭证')
     const response = await fetch('/api/share', {
       method: 'POST',

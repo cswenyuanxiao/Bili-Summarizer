@@ -181,7 +181,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuth } from '../composables/useAuth'
-import { isSupabaseConfigured } from '../supabase'
+import { isSupabaseConfigured, supabase } from '../supabase'
 
 defineProps<{
   show: boolean
@@ -205,7 +205,7 @@ const handlePayment = async (planId: string, provider: 'alipay' | 'wechat') => {
     loading.value = true
     try {
         // Get token
-        const { data: { session } } = await import('../supabase').then(m => m.supabase!.auth.getSession())
+        const { data: { session } } = await supabase!.auth.getSession()
         const token = session?.access_token
 
         const res = await fetch('/api/payments', {

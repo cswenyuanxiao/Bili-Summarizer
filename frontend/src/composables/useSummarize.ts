@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import type { SummarizeRequest, SSEEvent, SummaryResult } from '../types/api'
-import { isSupabaseConfigured } from '../supabase'
+import { isSupabaseConfigured, supabase } from '../supabase'
 
 export function useSummarize() {
     const isLoading = ref(false)
@@ -89,8 +89,8 @@ export function useSummarize() {
                 eventSource = null
             }
             // Get current session token
-            const token = isSupabaseConfigured
-                ? (await import('../supabase').then(m => m.supabase!.auth.getSession())).data.session?.access_token
+            const token = (isSupabaseConfigured && supabase)
+                ? (await supabase.auth.getSession()).data.session?.access_token
                 : undefined
 
             const url = `/api/summarize`

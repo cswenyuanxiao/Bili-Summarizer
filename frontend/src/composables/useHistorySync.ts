@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { isSupabaseConfigured } from '../supabase'
+import { isSupabaseConfigured, supabase } from '../supabase'
 
 interface HistoryItem {
     id?: string
@@ -21,8 +21,8 @@ const lastSyncTime = ref<Date | null>(null)
 
 export function useHistorySync() {
     const getAuthHeaders = async () => {
-        if (!isSupabaseConfigured) return {}
-        const { data: { session } } = await import('../supabase').then(m => m.supabase!.auth.getSession())
+        if (!isSupabaseConfigured || !supabase) return {}
+        const { data: { session } } = await supabase.auth.getSession()
         const token = session?.access_token
         const headers: Record<string, string> = {}
         if (token) {

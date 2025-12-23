@@ -95,7 +95,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { isSupabaseConfigured } from '../supabase'
+import { isSupabaseConfigured, supabase } from '../supabase'
 
 const props = defineProps<{
   show: boolean
@@ -130,9 +130,11 @@ watch(() => props.show, (newVal) => {
 })
 
 const getAuthHeaders = async () => {
-    const { data: { session } } = await import('../supabase').then(m => m.supabase!.auth.getSession())
+    if (!isSupabaseConfigured || !supabase) return {}
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) return {}
     return {
-        'Authorization': `Bearer ${session?.access_token}`
+        'Authorization': `Bearer ${session.access_token}`
     }
 }
 
