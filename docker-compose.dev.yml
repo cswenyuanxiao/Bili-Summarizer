@@ -21,9 +21,27 @@ services:
     command: uvicorn web_app.main:app --reload --host 0.0.0.0 --port 7860
     restart: unless-stopped
 
+  # 前端开发模式 (Vite 热更新)
+  frontend:
+    image: node:20-alpine
+    container_name: bili-summarizer-frontend-dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_PROXY_TARGET=http://backend:7860
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+
 # 开发模式说明:
-# 1. 前端使用 npm run dev 在主机运行 (localhost:5173)
-# 2. Vite 会自动代理 /api 请求到 localhost:7860
+# 1. 前端通过容器运行 Vite (localhost:5173)
+# 2. Vite 会自动代理 /api 到 backend:7860
 # 3. 后端使用此配置启动,支持代码热更新
 #
 # 启动命令:

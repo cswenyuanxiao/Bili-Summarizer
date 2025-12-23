@@ -1,22 +1,22 @@
 <template>
-  <div class="input-section -mt-16 mb-16 relative z-20">
+  <div class="input-section relative z-20 fade-up delay-2">
     <div class="container mx-auto max-w-4xl px-4">
-      <div class="input-card bg-white/80 dark:bg-slate-800/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/50">
+      <div class="input-card glass-card card-hover-elevate rounded-3xl p-6 sm:p-8 lg:p-10">
         <form @submit.prevent="handleSubmit">
           <!-- URL Input Row -->
-          <div class="url-input-row flex flex-col md:flex-row gap-3 md:gap-4 mb-6">
+          <div class="url-input-row flex flex-col md:flex-row gap-3 md:gap-4 mb-5 sm:mb-6">
             <input
               v-model="formData.url"
               type="text"
               id="video-url"
-              class="flex-1 px-6 py-4 border border-gray-300 dark:border-gray-600 rounded-xl text-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:border-primary focus:ring-4 focus:ring-primary-light outline-none transition-all w-full"
+              class="flex-1 px-4 sm:px-6 py-3.5 sm:py-4 input-base text-base sm:text-lg"
               placeholder="粘贴 Bilibili 视频链接，例如: https://www.bilibili.com/video/BV..."
               required
             />
             <button
               type="submit"
               :disabled="isLoading"
-              class="px-8 py-4 bg-gradient-to-r from-[#4f46e5] to-[#0ea5e9] text-white rounded-xl font-semibold hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full md:w-auto min-h-[44px]"
+              class="px-6 sm:px-8 py-3.5 sm:py-4 btn-primary transition-all flex items-center justify-center gap-2 w-full md:w-auto min-h-[44px]"
             >
               <span>✨</span> 生成总结
             </button>
@@ -31,7 +31,7 @@
               <select
                 v-model="formData.mode"
                 id="summarize-mode"
-                class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 cursor-pointer w-full md:w-auto"
+                class="px-4 py-2 border border-gray-300/80 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 cursor-pointer w-full md:w-auto"
               >
                 <option value="smart">智能 (优先字幕)</option>
                 <option value="video">视频 (画面分析)</option>
@@ -45,7 +45,7 @@
               <select
                 v-model="formData.focus"
                 id="analysis-focus"
-                class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 cursor-pointer w-full md:w-auto"
+                class="px-4 py-2 border border-gray-300/80 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 cursor-pointer w-full md:w-auto"
               >
                 <option value="default">综合总结</option>
                 <option value="study">深度学习</option>

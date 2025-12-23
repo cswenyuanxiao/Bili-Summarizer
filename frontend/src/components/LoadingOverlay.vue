@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="loading-overlay bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 mb-8 text-center border border-gray-200 dark:border-gray-700">
+  <div v-if="show" class="loading-overlay bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 text-center border border-gray-200 dark:border-gray-700">
     <div class="text-6xl mb-6">☕</div>
     <p class="text-xl font-medium text-gray-900 dark:text-gray-100 mb-2">
       {{ status || '正在连接服务器...' }}

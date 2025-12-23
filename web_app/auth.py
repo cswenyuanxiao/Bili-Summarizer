@@ -14,7 +14,10 @@ supabase = create_client(supabase_url, supabase_key) if supabase_url and supabas
 async def verify_session_token(token: str) -> dict:
     """验证 Supabase JWT Token"""
     if not supabase:
-        raise HTTPException(503, "Auth service unavailable")
+        raise HTTPException(
+            status_code=401, 
+            detail="Authentication service not configured"
+        )
     
     try:
         response = supabase.auth.get_user(token)

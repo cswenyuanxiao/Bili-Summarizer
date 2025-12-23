@@ -1,13 +1,13 @@
 <template>
-  <div class="summary-card bg-white dark:bg-slate-800 rounded-3xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-    <div class="card-header flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-900/50">
+  <div class="summary-card glass-card card-hover-elevate rounded-3xl overflow-hidden">
+    <div class="card-header flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 px-4 sm:px-6 py-4 border-b border-gray-200/70 dark:border-gray-700/70 bg-white/60 dark:bg-slate-900/50">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
         📝 智能总结
       </h3>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
         <button
           @click="$emit('copy')"
-          class="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+          class="px-3 py-1.5 text-xs sm:text-sm btn-ghost hover:bg-white/70 dark:hover:bg-slate-800/70 transition-colors"
           title="复制总结"
         >
           📋 复制
@@ -15,14 +15,14 @@
         <button
           @click="$emit('refresh')"
           :disabled="loading"
-          class="px-3 py-1.5 text-sm bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-3 py-1.5 text-xs sm:text-sm btn-ghost hover:bg-white/80 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="重新总结"
         >
           ♻️ 重新总结
         </button>
       </div>
     </div>
-    <div class="p-6">
+    <div class="p-4 sm:p-6">
       <div 
         v-if="content" 
         class="summary-content prose dark:prose-invert max-w-none"
@@ -54,10 +54,20 @@ const renderedContent = computed(() => {
 </script>
 
 <style scoped>
+.summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.summary-content :deep(> *) {
+  margin: 0;
+}
+
 .summary-content :deep(h1),
 .summary-content :deep(h2),
 .summary-content :deep(h3) {
-  @apply font-bold text-gray-900 dark:text-gray-100 mt-6 mb-3;
+  @apply font-bold text-gray-900 dark:text-gray-100;
 }
 
 .summary-content :deep(h1) {
@@ -73,16 +83,19 @@ const renderedContent = computed(() => {
 }
 
 .summary-content :deep(p) {
-  @apply mb-4 text-gray-700 dark:text-gray-300;
+  @apply text-gray-700 dark:text-gray-300;
 }
 
 .summary-content :deep(ul),
 .summary-content :deep(ol) {
-  @apply pl-6 mb-4;
+  @apply pl-6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .summary-content :deep(li) {
-  @apply mb-2 text-gray-700 dark:text-gray-300;
+  @apply text-gray-700 dark:text-gray-300;
 }
 
 .summary-content :deep(strong) {

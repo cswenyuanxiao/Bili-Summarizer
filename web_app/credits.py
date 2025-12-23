@@ -106,6 +106,28 @@ def charge_user_credits(user_id: str, cost: int) -> bool:
     return success
 
 
+def grant_credits(user_id: str, credits: int, event_type: str = "purchase") -> bool:
+    if credits <= 0:
+        return False
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE user_credits
+        SET credits = credits + ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+    """, (credits, user_id))
+    if cursor.rowcount > 0:
+        cursor.execute("""
+            INSERT INTO credit_events (user_id, event_type, cost)
+            VALUES (?, ?, ?)
+        """, (user_id, event_type, credits))
+    conn.commit()
+    success = cursor.rowcount > 0
+    conn.close()
+    return success
+
+
 def grant_first_summary_bonus(user_id: str, bonus: int = FIRST_SUMMARY_BONUS) -> bool:
     conn = _get_connection()
     cursor = conn.cursor()

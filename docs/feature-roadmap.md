@@ -65,7 +65,7 @@ flowchart LR
 - 作为系统，我需要在调用前校验额度与订阅状态。
 
 **技术方案**
-- Stripe 订阅 + Webhook 回调同步订阅状态。
+- 支付宝/微信支付 + Webhook 回调同步订阅状态。
 - 在总结入口处执行额度校验（免费每日 3 次，Pro 不限或更高）。
 - 记录每日次数：优先用 DB，若引入 Redis 需补部署与持久化策略。
 
@@ -102,11 +102,11 @@ sequenceDiagram
   participant U as User
   participant FE as Frontend
   participant BE as Backend
-  participant ST as Stripe
+  participant ST as Payment Gateway
   U->>FE: 点击升级
-  FE->>BE: POST /api/subscribe
-  BE->>ST: Create checkout
-  ST-->>U: 支付页面
+  FE->>BE: POST /api/payments
+  BE->>ST: Create payment
+  ST-->>U: 支付页面/二维码
   ST->>BE: Webhook 更新订阅
   BE->>BE: 写入 subscriptions
 ```
@@ -215,5 +215,5 @@ flowchart TD
 | 3 | 云端历史 | 2h | Supabase 已配置 |
 | 4 | PDF 导出 | 1h | 前端即可完成 |
 | 5 | 批量总结 | 3h | 后端框架已存在 |
-| 6 | 订阅系统 | 4h | 需 Stripe 集成 |
+| 6 | 订阅系统 | 4h | 需支付回调签名校验 |
 | 7 | 浏览器插件 | 5h | 独立项目 |

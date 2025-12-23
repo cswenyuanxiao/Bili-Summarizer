@@ -1,18 +1,18 @@
 <template>
-  <div class="transcript-panel bg-white dark:bg-slate-800 rounded-3xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-    <div class="card-header flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-900/50">
+  <div class="transcript-panel glass-card card-hover-elevate rounded-3xl overflow-hidden">
+    <div class="card-header flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 px-4 sm:px-6 py-4 border-b border-gray-200/70 dark:border-gray-700/70 bg-white/60 dark:bg-slate-900/50">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
         📜 视频转录
       </h3>
       <button
         @click="$emit('copy')"
-        class="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+        class="px-3 py-1.5 text-xs sm:text-sm btn-ghost hover:bg-white/70 dark:hover:bg-slate-800/70 transition-colors"
         title="复制转录"
       >
         📋 复制
       </button>
     </div>
-    <div v-if="videoUrl" class="px-6 pt-6">
+    <div v-if="videoUrl" class="px-4 sm:px-6 pt-5 sm:pt-6">
       <div
         class="relative rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-700 cursor-pointer group"
         @click="openVideoPlayer(0)"
@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <div ref="listRef" class="transcript-container max-h-[600px] overflow-y-auto p-6">
+    <div ref="listRef" class="transcript-container max-h-[600px] overflow-y-auto p-4 sm:p-6">
       <p v-if="!content" class="text-gray-500 dark:text-gray-400">暂无转录内容。</p>
       <div v-else class="space-y-2">
         <div

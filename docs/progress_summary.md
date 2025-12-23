@@ -46,7 +46,7 @@
 
 ### Phase 8.2: 订阅系统
 **优先级**: 高
-- [ ] `/api/subscribe` Stripe Checkout 集成
+- [ ] `/api/payments` 支付宝/微信支付回调签名校验
 - [ ] `/api/subscription` 订阅状态查询
 - [ ] 用量配额限制逻辑
 - [ ] 前端订阅状态显示

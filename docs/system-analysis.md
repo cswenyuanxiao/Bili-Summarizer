@@ -75,10 +75,11 @@ flowchart LR
 
 ## Dashboard
 - `GET /api/dashboard` provides credits and usage summary (including daily usage for 14 days) for the account panel.
-- `GET /api/subscription` returns current plan status; `POST /api/subscribe` updates plan (local stub).
+- `GET /api/subscription` returns current plan status; `POST /api/subscribe` updates subscription for paid plans.
 - `GET /api/billing` returns billing history for the billing modal.
 - `GET /api/keys/usage` returns API key usage counts for the API key panel.
-- `POST /api/payments` creates payment orders (WeChat/Alipay, needs env config).
+- `POST /api/payments` creates payment orders (WeChat/Alipay, needs env config) and supports one-time credit packs.
+- `POST /api/payments/notify/alipay|wechat` handles payment callbacks (shared secret in env).
 - `GET /api/billing/{id}/invoice` returns invoice PDF for paid orders.
 - `GET /api/invites`/`POST /api/invites` manage invite codes; `POST /api/invites/redeem` redeems.
 - `POST /api/share` creates share links; `GET /share/{id}` renders read-only page.

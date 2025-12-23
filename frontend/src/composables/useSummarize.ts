@@ -65,6 +65,7 @@ export function useSummarize() {
 
         const handleError = (code: string | undefined, message: string) => {
             const map: Record<string, { status: string; hint: string }> = {
+                AUTH_REQUIRED: { status: '需要登录', hint: '登录后即可生成总结' },
                 AUTH_INVALID: { status: '登录已过期', hint: '请重新登录后再试' },
                 CREDITS_EXCEEDED: { status: '积分不足', hint: '请升级或等待获取积分' },
                 DOWNLOAD_FAILED: { status: '下载失败', hint: '请检查链接或稍后再试' },

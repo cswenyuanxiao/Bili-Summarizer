@@ -42,7 +42,7 @@ from .downloader import download_content
 from .summarizer_gemini import summarize_content, extract_ai_transcript, upload_to_gemini, delete_gemini_file
 from .cache import get_cached_result, save_to_cache, get_cache_stats
 from .auth import get_current_user, verify_session_token
-from .credits import ensure_user_credits, get_user_credits, charge_user_credits, get_daily_usage, grant_first_summary_bonus
+from .credits import ensure_user_credits, get_user_credits, charge_user_credits, get_daily_usage, grant_first_summary_bonus, grant_credits
 from .telemetry import record_failure
 from typing import List
 import sqlite3
@@ -59,6 +59,47 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# --- 管理员配置 ---
+ADMIN_EMAILS = {
+    email.strip().lower()
+    for email in os.getenv("ADMIN_EMAILS", "admin@bili-summarizer.com").split(",")
+    if email.strip()
+}
+
+def is_unlimited_user(user: Optional[dict]) -> bool:
+    if not user:
+        return False
+    email = (user.get("email") or "").lower()
+    return email in ADMIN_EMAILS
+
+
+PRICING_PLANS = {
+    "starter_pack": {
+        "plan": "credits_pack",
+        "type": "one_time",
+        "amount_cents": 1900,
+        "credits": 30
+    },
+    "creator_pack": {
+        "plan": "credits_pack",
+        "type": "one_time",
+        "amount_cents": 4900,
+        "credits": 120
+    },
+    "pro_monthly": {
+        "plan": "pro",
+        "type": "subscription",
+        "amount_cents": 990,
+        "period_days": 30
+    },
+    "pro_yearly": {
+        "plan": "pro",
+        "type": "subscription",
+        "amount_cents": 9900,
+        "period_days": 365
+    }
+}
 
 # --- 初始化 ---
 app = FastAPI(title="Bili-Summarizer")
@@ -282,17 +323,23 @@ async def run_summarization(
         video_path = None
         remote_file = None
         user = None
+        unlimited_user = False
         credit_cost = 10
         
         try:
-            if token:
-                try:
-                    user = await verify_session_token(token)
-                    ensure_user_credits(user["user_id"])
-                except HTTPException as e:
-                    record_failure(None, "AUTH_INVALID", "auth", str(e.detail))
-                    yield f"data: {json.dumps({'type': 'error', 'code': 'AUTH_INVALID', 'error': e.detail})}\n\n"
-                    return
+            if not token:
+                record_failure(None, "AUTH_REQUIRED", "auth", "missing token")
+                yield f"data: {json.dumps({'type': 'error', 'code': 'AUTH_REQUIRED', 'error': '请先登录再使用该功能'})}\n\n"
+                return
+
+            try:
+                user = await verify_session_token(token)
+                ensure_user_credits(user["user_id"])
+                unlimited_user = is_unlimited_user(user) or is_subscription_active(user["user_id"])
+            except HTTPException as e:
+                record_failure(None, "AUTH_INVALID", "auth", str(e.detail))
+                yield f"data: {json.dumps({'type': 'error', 'code': 'AUTH_INVALID', 'error': e.detail})}\n\n"
+                return
 
             # 检查缓存
             if not skip_cache:
@@ -307,7 +354,7 @@ async def run_summarization(
                     yield f"data: {json.dumps({'type': 'status', 'status': 'complete'})}\n\n"
                     return
 
-            if user:
+            if user and not unlimited_user:
                 credits = get_user_credits(user["user_id"])
                 if not credits or credits["credits"] < credit_cost:
                     record_failure(user["user_id"], "CREDITS_EXCEEDED", "quota", "insufficient credits")
@@ -431,7 +478,7 @@ async def run_summarization(
                      yield f"data: {json.dumps({'type': 'status', 'status': 'AI analysis is taking longer than expected...'})}\n\n"
             
             if final_summary:
-                 if user:
+                 if user and not unlimited_user:
                      if charge_user_credits(user["user_id"], credit_cost):
                          grant_first_summary_bonus(user["user_id"])
                  save_to_cache(url, mode, focus, final_summary, final_transcript or '', final_usage)
@@ -520,6 +567,15 @@ def fetch_subscription(user_id: str) -> dict:
         conn.close()
 
 
+def is_subscription_active(user_id: str) -> bool:
+    subscription = fetch_subscription(user_id)
+    if subscription["plan"] != "pro":
+        return False
+    if subscription["status"] != "active":
+        return False
+    return True
+
+
 @app.get("/api/subscription")
 async def get_subscription(user: dict = Depends(get_current_user)):
     subscription = fetch_subscription(user["user_id"])
@@ -529,6 +585,23 @@ async def get_subscription(user: dict = Depends(get_current_user)):
         "status": subscription["status"],
         "current_period_end": subscription["current_period_end"],
         "updated_at": subscription["updated_at"]
+    }
+
+
+@app.get("/api/plans")
+async def get_plans():
+    return {
+        "plans": [
+            {
+                "plan_id": plan_id,
+                "plan": plan["plan"],
+                "type": plan["type"],
+                "amount_cents": plan["amount_cents"],
+                "period_days": plan.get("period_days"),
+                "credits": plan.get("credits")
+            }
+            for plan_id, plan in PRICING_PLANS.items()
+        ]
     }
 
 
@@ -554,17 +627,10 @@ class ShareRequest(BaseModel):
 
 @app.post("/api/subscribe")
 async def create_subscription(request: SubscribeRequest, user: dict = Depends(get_current_user)):
-    plan_map = {
-        "pro_monthly": {
-            "plan": "pro",
-            "amount_cents": 990,
-            "period_days": 30
-        }
-    }
-    if request.plan_id not in plan_map:
+    plan = PRICING_PLANS.get(request.plan_id)
+    if not plan or plan["type"] != "subscription":
         raise HTTPException(400, "Invalid plan")
 
-    plan = plan_map[request.plan_id]
     period_end = (datetime.utcnow() + timedelta(days=plan["period_days"])).isoformat()
     invoice_id = secrets.token_urlsafe(12)
     invoice_url = f"/api/billing/{invoice_id}/invoice"
@@ -630,13 +696,16 @@ def is_wechat_configured() -> bool:
     ])
 
 
-def create_payment_order(user_id: str, plan: dict, provider: str) -> dict:
+def create_payment_order(user_id: str, plan_id: str, plan: dict, provider: str) -> dict:
     order_id = secrets.token_urlsafe(16)
     billing_id = secrets.token_urlsafe(12)
     invoice_url = f"/api/billing/{billing_id}/invoice"
     conn = sqlite3.connect("cache.db")
     cursor = conn.cursor()
     try:
+        period_end = None
+        if plan.get("period_days"):
+            period_end = (datetime.utcnow() + timedelta(days=plan["period_days"])).isoformat()
         cursor.execute("""
             INSERT INTO billing_events (id, user_id, amount_cents, currency, status, period_start, period_end, invoice_url)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -647,7 +716,7 @@ def create_payment_order(user_id: str, plan: dict, provider: str) -> dict:
             "CNY",
             "pending",
             datetime.utcnow().isoformat(),
-            (datetime.utcnow() + timedelta(days=plan["period_days"])).isoformat(),
+            period_end,
             invoice_url
         ))
 
@@ -658,7 +727,7 @@ def create_payment_order(user_id: str, plan: dict, provider: str) -> dict:
             order_id,
             user_id,
             provider,
-            plan["plan"],
+            plan_id,
             plan["amount_cents"],
             "pending",
             billing_id
@@ -683,9 +752,10 @@ def mark_payment_paid(order_id: str) -> dict:
         row = cursor.fetchone()
         if not row:
             raise HTTPException(404, "Payment order not found")
-        user_id, plan, billing_id = row
-
-        period_end = (datetime.utcnow() + timedelta(days=30)).isoformat()
+        user_id, plan_id, billing_id = row
+        plan = PRICING_PLANS.get(plan_id)
+        if not plan:
+            raise HTTPException(400, "Invalid plan")
         cursor.execute("""
             UPDATE payment_orders
             SET status = 'paid', updated_at = CURRENT_TIMESTAMP
@@ -698,32 +768,34 @@ def mark_payment_paid(order_id: str) -> dict:
             WHERE id = ?
         """, (billing_id,))
 
-        cursor.execute("""
-            INSERT INTO subscriptions (user_id, plan, status, current_period_end, updated_at)
-            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(user_id)
-            DO UPDATE SET
-              plan = excluded.plan,
-              status = excluded.status,
-              current_period_end = excluded.current_period_end,
-              updated_at = CURRENT_TIMESTAMP
-        """, (user_id, plan, "active", period_end))
+        result = {"user_id": user_id, "plan_id": plan_id}
+        if plan["type"] == "subscription":
+            period_end = (datetime.utcnow() + timedelta(days=plan["period_days"])).isoformat()
+            cursor.execute("""
+                INSERT INTO subscriptions (user_id, plan, status, current_period_end, updated_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id)
+                DO UPDATE SET
+                  plan = excluded.plan,
+                  status = excluded.status,
+                  current_period_end = excluded.current_period_end,
+                  updated_at = CURRENT_TIMESTAMP
+            """, (user_id, plan["plan"], "active", period_end))
+            result["current_period_end"] = period_end
+            result["plan"] = plan["plan"]
+        else:
+            grant_credits(user_id, plan["credits"], event_type="purchase")
+            result["credits_granted"] = plan["credits"]
         conn.commit()
-        return {"user_id": user_id, "plan": plan, "current_period_end": period_end}
+        return result
     finally:
         conn.close()
 
 
 @app.post("/api/payments")
 async def create_payment(request: PaymentRequest, user: dict = Depends(get_current_user)):
-    plan_map = {
-        "pro_monthly": {
-            "plan": "pro",
-            "amount_cents": 990,
-            "period_days": 30
-        }
-    }
-    if request.plan_id not in plan_map:
+    plan = PRICING_PLANS.get(request.plan_id)
+    if not plan:
         raise HTTPException(400, "Invalid plan")
     provider = request.provider.lower()
     if provider not in ("alipay", "wechat"):
@@ -734,8 +806,7 @@ async def create_payment(request: PaymentRequest, user: dict = Depends(get_curre
     if provider == "wechat" and not is_wechat_configured():
         raise HTTPException(501, "WeChat Pay is not configured")
 
-    plan = plan_map[request.plan_id]
-    order = create_payment_order(user["user_id"], plan, provider)
+    order = create_payment_order(user["user_id"], request.plan_id, plan, provider)
     payment_url = None
     qr_url = None
 
@@ -746,7 +817,10 @@ async def create_payment(request: PaymentRequest, user: dict = Depends(get_curre
         "order_id": order["order_id"],
         "provider": provider,
         "plan": plan["plan"],
+        "plan_id": request.plan_id,
+        "plan_type": plan["type"],
         "amount_cents": plan["amount_cents"],
+        "credits": plan.get("credits"),
         "payment_url": payment_url,
         "qr_url": qr_url
     }
@@ -756,6 +830,30 @@ async def create_payment(request: PaymentRequest, user: dict = Depends(get_curre
 async def mock_payment_complete(order_id: str):
     if os.getenv("PAYMENT_MOCK") != "1":
         raise HTTPException(403, "Mock payment disabled")
+    return mark_payment_paid(order_id)
+
+
+@app.post("/api/payments/notify/alipay")
+async def alipay_notify(request: Request):
+    secret = os.getenv("PAYMENT_WEBHOOK_SECRET")
+    if not secret or request.headers.get("X-Payment-Secret") != secret:
+        raise HTTPException(403, "Invalid webhook secret")
+    data = await request.json()
+    order_id = data.get("order_id")
+    if not order_id:
+        raise HTTPException(400, "Missing order_id")
+    return mark_payment_paid(order_id)
+
+
+@app.post("/api/payments/notify/wechat")
+async def wechat_notify(request: Request):
+    secret = os.getenv("PAYMENT_WEBHOOK_SECRET")
+    if not secret or request.headers.get("X-Payment-Secret") != secret:
+        raise HTTPException(403, "Invalid webhook secret")
+    data = await request.json()
+    order_id = data.get("order_id")
+    if not order_id:
+        raise HTTPException(400, "Missing order_id")
     return mark_payment_paid(order_id)
 
 

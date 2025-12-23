@@ -1,18 +1,20 @@
 <template>
   <div id="app" class="relative">
-    <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute -top-24 left-1/2 h-80 w-[60rem] -translate-x-1/2 rounded-full bg-gradient-to-r from-[#ffd66b]/30 via-[#4f46e5]/25 to-[#06b6d4]/25 blur-3xl"></div>
-      <div class="absolute top-40 right-10 h-48 w-48 rounded-full bg-[#4f46e5]/20 blur-2xl"></div>
-      <div class="absolute top-72 left-16 h-60 w-60 rounded-full bg-[#06b6d4]/20 blur-2xl"></div>
+    <div class="aurora" aria-hidden="true">
+      <div class="aurora-blob top-[-120px] left-1/2 -translate-x-1/2 bg-[#f59e0b]/70"></div>
+      <div class="aurora-blob is-secondary top-24 right-[-120px] bg-[#60a5fa]/70"></div>
+      <div class="aurora-blob is-tertiary top-[360px] left-[-80px] bg-[#22d3ee]/70"></div>
     </div>
 
-    <header class="relative z-40">
+    <header class="relative z-40 overflow-hidden">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-fade" aria-hidden="true"></div>
       <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-gray-200/70 dark:border-slate-800/70">
-        <div class="container mx-auto max-w-6xl px-4">
-          <div class="flex items-center justify-between h-16">
+        <div class="container mx-auto max-w-6xl px-4 sm:px-6">
+          <div class="flex items-center justify-between h-14 sm:h-16">
             <div class="flex items-center gap-3">
               <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-cyan-400 text-white font-semibold">✨</div>
-              <div class="text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">Bili-Summarizer</div>
+              <div class="text-base sm:text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">Bili-Summarizer</div>
             </div>
 
             <nav class="hidden lg:flex items-center gap-6 text-sm text-gray-600 dark:text-gray-300">
@@ -60,7 +62,7 @@
                 
                 <div
                   v-show="showUserMenu"
-                  class="absolute top-full right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700 z-50"
+                  class="absolute top-full right-0 mt-2 w-56 glass-card rounded-xl overflow-hidden border border-white/40 z-50"
                   role="menu"
                 >
                   <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
@@ -133,7 +135,7 @@
             </div>
           </div>
           <div v-if="showMobileMenu" ref="mobileMenuRef" class="lg:hidden pb-4">
-            <div class="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2 text-sm text-gray-700 dark:text-gray-200">
+            <div class="rounded-2xl glass-card p-4 space-y-2 text-sm text-gray-700 dark:text-gray-200">
               <button class="w-full text-left" @click="showPricingModal = true; showMobileMenu = false">方案</button>
               <button class="w-full text-left" @click="showUsageGuide = true; showMobileMenu = false">使用文档</button>
               <button v-if="user" class="w-full text-left" @click="openDashboard">仪表盘</button>
@@ -145,23 +147,23 @@
         </div>
       </div>
 
-      <div class="container mx-auto max-w-6xl px-4 py-16">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div class="space-y-6">
-            <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+      <div class="container mx-auto max-w-6xl px-4 py-12 sm:py-14 lg:py-16 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-center">
+          <div class="space-y-5 sm:space-y-6">
+            <span class="fade-up inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               <span class="w-6 h-[2px] bg-primary"></span>
               视频理解新方式
             </span>
-            <h1 class="text-4xl md:text-5xl font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+            <h1 class="fade-up delay-1 text-3xl sm:text-4xl lg:text-5xl font-semibold text-gray-900 dark:text-gray-100 leading-tight">
               用 AI 把长视频拆成可执行的知识模块
             </h1>
-            <p class="text-base md:text-lg text-gray-600 dark:text-gray-300">
+            <p class="fade-up delay-2 text-base sm:text-lg text-gray-600 dark:text-gray-300">
               一键总结、结构化思维导图与时间戳转录，把 B 站内容变成可复盘的工作流。
             </p>
-            <div class="flex flex-wrap gap-3">
+            <div class="fade-up delay-3 flex flex-wrap gap-3">
               <button
                 @click="scrollToStart"
-                class="px-6 py-3 rounded-full bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition"
+                class="px-6 py-3 rounded-full bg-primary text-white text-sm font-medium primary-shadow hover:-translate-y-0.5 transition"
               >
                 立即开始
               </button>
@@ -172,15 +174,15 @@
                 了解使用方式
               </button>
             </div>
-            <div class="flex flex-wrap gap-6 text-xs text-gray-500 dark:text-gray-400">
-              <span>⚡ 平均 1 分钟出结果</span>
-              <span>🧠 思维导图自动生成</span>
-              <span>📄 支持 PDF/PNG 导出</span>
+            <div class="fade-up delay-3 flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
+              <span class="badge-pill">⚡ 平均 1 分钟出结果</span>
+              <span class="badge-pill">🧠 思维导图自动生成</span>
+              <span class="badge-pill">📄 支持 PDF/PNG 导出</span>
             </div>
           </div>
-          <div class="relative">
+          <div class="relative fade-up delay-2">
             <div class="absolute -top-8 -left-6 h-24 w-24 rounded-2xl bg-primary/10 blur-xl"></div>
-            <div class="rounded-3xl border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 p-6 shadow-2xl">
+            <div class="glass-card rounded-3xl p-5 sm:p-6">
               <div class="text-sm text-gray-500 mb-3">实时流程预览</div>
               <div class="space-y-3 text-sm">
                 <div class="flex items-center justify-between rounded-2xl bg-gray-50 dark:bg-slate-800 px-4 py-3">
@@ -205,91 +207,132 @@
 
     <main class="min-h-screen pb-20">
       <div class="container mx-auto max-w-6xl px-4">
-        <!-- URL Input Card -->
-        <div id="start">
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-5 py-3 text-sm text-gray-600 dark:text-gray-300">
-            <div class="flex items-center gap-2">
-              <span class="font-semibold text-gray-900 dark:text-gray-100">当前积分</span>
-              <span>{{ creditsLabel }}</span>
+        <div class="flex flex-col gap-[var(--section-gap)]">
+          <!-- URL Input Card -->
+          <div id="start" data-reveal class="flex flex-col gap-6 -mt-10 sm:-mt-14 lg:-mt-16">
+            <div class="fade-up delay-1 relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl glass-card px-4 py-3 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-gray-900 dark:text-gray-100">当前积分</span>
+                <span>{{ creditsLabel }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-gray-900 dark:text-gray-100">每次消耗</span>
+                <span>{{ costPerSummary }} 积分</span>
+              </div>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="font-semibold text-gray-900 dark:text-gray-100">每次消耗</span>
-              <span>{{ costPerSummary }} 积分</span>
+            <UrlInputCard 
+              :is-loading="isLoading" 
+              @submit="handleSummarize" 
+            />
+            <div
+              v-if="!user"
+              class="rounded-2xl border border-blue-100/80 bg-blue-50/80 px-4 py-3 text-sm text-blue-700 dark:border-blue-500/40 dark:bg-blue-950/40 dark:text-blue-200"
+            >
+              <div class="font-semibold">请先登录</div>
+              <div class="mt-1 text-xs opacity-80">登录后才可生成总结并使用云端同步与积分体系。</div>
+              <button
+                class="mt-2 inline-flex text-xs font-semibold text-primary hover:underline"
+                @click="showLoginModal = true"
+              >
+                去登录
+              </button>
             </div>
-          </div>
-          <UrlInputCard 
-            :is-loading="isLoading" 
-            @submit="handleSummarize" 
-          />
+            <div
+              v-if="phase === 'error'"
+              class="rounded-2xl border border-red-200/80 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/40 dark:text-red-200"
+            >
+              <div class="font-semibold">{{ status || '请求失败' }}</div>
+              <div class="mt-1 text-xs opacity-80">{{ hint || '请稍后再试' }}</div>
+              <div v-if="detail" class="mt-1 text-xs opacity-70">{{ detail }}</div>
+              <div v-if="errorCode === 'CREDITS_EXCEEDED'" class="mt-1 text-xs opacity-70">
+                若你使用管理员账号但仍受限，请确认服务端已配置 `ADMIN_EMAILS`。
+              </div>
+              <button
+                v-if="errorCode === 'CREDITS_EXCEEDED'"
+                class="mt-2 inline-flex text-xs font-semibold text-primary hover:underline"
+                @click="showPricingModal = true"
+              >
+                去升级以获取更多积分
+              </button>
+              <button
+                v-if="errorCode === 'AUTH_REQUIRED' || errorCode === 'AUTH_INVALID'"
+                class="mt-2 inline-flex text-xs font-semibold text-primary hover:underline"
+                @click="showLoginModal = true"
+              >
+                去登录
+              </button>
+            </div>
         </div>
 
-        <!-- Loading Overlay -->
-    <LoadingOverlay
-      :show="isLoading"
-      :status="status"
-      :hint="hint"
-      :detail="detail"
-      :progress="progress"
-      :steps="loadingSteps"
-      :active-step="activeStep"
-      :elapsed="elapsedSeconds"
-      :phase-note="phaseNote"
-    />
-
-        <!-- Results -->
-        <div v-if="result.summary || result.transcript" class="results-section">
-          <!-- Mermaid Mindmap -->
-          <MindmapViewer
-            v-if="extractedMindmap"
-            ref="mindmapRef"
-            :diagram="extractedMindmap"
-            @export-svg="exportMindmap('svg')"
-            @export-png="exportMindmap('png')"
+          <!-- Loading Overlay -->
+          <LoadingOverlay
+            :show="isLoading"
+            :status="status"
+            :hint="hint"
+            :detail="detail"
+            :progress="progress"
+            :steps="loadingSteps"
+            :active-step="activeStep"
+            :elapsed="elapsedSeconds"
+            :phase-note="phaseNote"
           />
 
-          <!-- Two Column Layout -->
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Left Column: Transcript -->
-            <div class="lg:col-span-1">
-              <TranscriptPanel
-                :content="result.transcript"
-                :video-url="currentVideoUrl"
-                :video-file="result.videoFile"
-                :video-info="videoInfo"
-                @copy="copyTranscript"
-              />
-            </div>
+          <!-- Results -->
+          <div v-if="result.summary || result.transcript" class="results-section flex flex-col gap-8" data-reveal>
+            <!-- Mermaid Mindmap -->
+            <MindmapViewer
+              v-if="extractedMindmap"
+              ref="mindmapRef"
+              :diagram="extractedMindmap"
+              @export-svg="exportMindmap('svg')"
+              @export-png="exportMindmap('png')"
+            />
 
-            <!-- Right Column: Summary -->
-            <div class="lg:col-span-2 space-y-6">
-              <SummaryCard
-                :content="result.summary"
-                :loading="isLoading"
-                @copy="copySummary"
-                @refresh="handleResummarize"
-              />
-              
-              <ExportBar @export="handleExport" />
+            <!-- Two Column Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <!-- Left Column: Transcript -->
+              <div class="lg:col-span-1">
+                <TranscriptPanel
+                  :content="result.transcript"
+                  :video-url="currentVideoUrl"
+                  :video-file="result.videoFile"
+                  :video-info="videoInfo"
+                  @copy="copyTranscript"
+                />
+              </div>
+
+              <!-- Right Column: Summary -->
+              <div class="lg:col-span-2 space-y-6">
+                <SummaryCard
+                  :content="result.summary"
+                  :loading="isLoading"
+                  @copy="copySummary"
+                  @refresh="handleResummarize"
+                />
+                
+                <ExportBar @export="handleExport" />
+              </div>
             </div>
+            
+            <!-- AI 追问面板 -->
+            <ChatPanel
+              v-if="result.summary"
+              :summary="result.summary"
+              :transcript="result.transcript || ''"
+            />
           </div>
-          
-          <!-- AI 追问面板 -->
-          <ChatPanel
-            v-if="result.summary"
-            :summary="result.summary"
-            :transcript="result.transcript || ''"
-            class="mt-8"
-          />
-        </div>
 
-        <!-- History -->
-        <HistoryList
-          :items="historyItems"
-          @select="loadFromHistory"
-          @clear="clearHistory"
-          @guide="showUsageGuide = true"
-          @share="shareHistoryItem"
-        />
+          <!-- History -->
+          <div data-reveal data-delay="200">
+            <HistoryList
+              :items="historyItems"
+              @select="loadFromHistory"
+              @clear="clearHistory"
+              @guide="showUsageGuide = true"
+              @share="shareHistoryItem"
+            />
+          </div>
+        </div>
       </div>
     </main>
 
@@ -331,7 +374,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 import html2pdf from 'html2pdf.js'
 import UrlInputCard from './components/UrlInputCard.vue'
@@ -353,11 +396,19 @@ import { useSummarize } from './composables/useSummarize'
 import { useTheme } from './composables/useTheme'
 import { useAuth } from './composables/useAuth'
 import { useHistorySync } from './composables/useHistorySync'
+import { useReveal } from './composables/useReveal'
 import type { SummarizeRequest } from './types/api'
 
 // Theme management
 const { isDark, toggleTheme, initTheme } = useTheme()
-onMounted(() => { initTheme() })
+const { refresh: refreshReveal } = useReveal()
+
+onMounted(async () => {
+  initTheme()
+  await nextTick()
+  refreshReveal()
+})
+
 
 // Auth management
 const { user, logout } = useAuth()
@@ -413,6 +464,15 @@ const billingItems = ref<Array<{
 // Summarization logic
 const { isLoading, status, hint, detail, progress, phase, elapsedSeconds, errorCode, result, summarize } = useSummarize()
 
+// Ensure animations trigger when results appear
+watch(() => result.value.summary, (newVal) => {
+  if (newVal) {
+    nextTick(() => {
+      refreshReveal()
+    })
+  }
+})
+
 // Cloud history sync
 const { syncToCloud, addHistoryItem, getLocalHistory, clearHistory: clearHistorySync } = useHistorySync()
 const lastRequest = ref<SummarizeRequest | null>(null)
@@ -435,6 +495,10 @@ const displayHistory = computed(() => {
 const historyItems = displayHistory // Alias for compatibility
 
 const handleSummarize = async (request: SummarizeRequest) => {
+  if (!user.value) {
+    showLoginModal.value = true
+    return
+  }
   lastRequest.value = request
   currentVideoUrl.value = request.url
   videoInfo.value = null
@@ -581,7 +645,19 @@ const fetchDashboard = async () => {
     const response = await fetch('/api/dashboard', {
       headers: { Authorization: `Bearer ${token}` }
     })
-    if (!response.ok) throw new Error('获取仪表盘失败')
+    
+    // 改进：先检查响应状态，再尝试解析
+    if (!response.ok) {
+      const text = await response.text()
+      try {
+        const error = JSON.parse(text)
+        throw new Error(error.detail || '获取仪表盘失败')
+      } catch (parseError) {
+        // JSON 解析失败，使用状态码
+        throw new Error(`请求失败 (${response.status})`)
+      }
+    }
+    
     dashboardData.value = await response.json()
   } catch (error: any) {
     dashboardError.value = error?.message || '获取仪表盘失败'
@@ -601,7 +677,17 @@ const fetchSubscription = async () => {
     const response = await fetch('/api/subscription', {
       headers: { Authorization: `Bearer ${token}` }
     })
-    if (!response.ok) throw new Error('获取订阅信息失败')
+    
+    if (!response.ok) {
+      const text = await response.text()
+      try {
+        const error = JSON.parse(text)
+        throw new Error(error.detail || '获取订阅信息失败')
+      } catch (parseError) {
+        throw new Error(`请求失败 (${response.status})`)
+      }
+    }
+    
     subscriptionData.value = await response.json()
   } catch (error) {
     subscriptionData.value = null
@@ -621,7 +707,17 @@ const fetchBilling = async () => {
     const response = await fetch('/api/billing', {
       headers: { Authorization: `Bearer ${token}` }
     })
-    if (!response.ok) throw new Error('获取账单失败')
+    
+    if (!response.ok) {
+      const text = await response.text()
+      try {
+        const error = JSON.parse(text)
+        throw new Error(error.detail || '获取账单失败')
+      } catch (parseError) {
+        throw new Error(`请求失败 (${response.status})`)
+      }
+    }
+    
     billingItems.value = await response.json()
   } catch (error: any) {
     billingError.value = error?.message || '获取账单失败'
@@ -727,7 +823,15 @@ watch(user, async (nextUser, prevUser) => {
 
 watch(errorCode, (code) => {
   if (code === 'CREDITS_EXCEEDED') {
-    showPricingModal.value = true
+    // 使用 nextTick 确保在下一个渲染周期显示弹窗，避免被其他逻辑关闭
+    nextTick(() => {
+      showPricingModal.value = true
+    })
+  }
+  if (code === 'AUTH_REQUIRED' || code === 'AUTH_INVALID') {
+    nextTick(() => {
+      showLoginModal.value = true
+    })
   }
 })
 

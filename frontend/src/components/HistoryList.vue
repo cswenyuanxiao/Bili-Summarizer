@@ -1,5 +1,5 @@
 <template>
-  <section class="history-section mt-8">
+  <section class="history-section fade-up delay-2">
     <div class="section-header flex justify-between items-center mb-6 px-2">
       <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
         📚 历史记录
@@ -13,7 +13,7 @@
       </button>
     </div>
 
-    <div v-if="items.length === 0" class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 p-8 text-center">
+    <div v-if="items.length === 0" class="rounded-2xl glass-card card-hover-elevate p-6 sm:p-8 text-center">
       <div class="text-4xl mb-3">🧭</div>
       <p class="text-sm text-gray-500 dark:text-gray-400">完成一次总结后，历史记录会出现在这里。</p>
       <button
@@ -29,7 +29,7 @@
         v-for="item in items"
         :key="item.id"
         @click="$emit('select', item)"
-        class="history-item bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:shadow-md hover:border-primary hover:-translate-y-1 transition-all"
+        class="history-item glass-card card-hover-elevate rounded-2xl p-5 cursor-pointer"
       >
         <div class="history-item-title font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2">
           {{ item.title || '未命名视频' }}

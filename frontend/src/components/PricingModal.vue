@@ -10,14 +10,18 @@
         <p class="mt-3 text-gray-500 dark:text-gray-400">
           解锁无限能，释放 AI 全部潜力
         </p>
+        <p class="mt-2 text-xs text-gray-400">
+          登录后会启用积分校验，积分不足将引导升级。
+        </p>
       </div>
 
       <!-- Pricing Plans -->
       <div class="grid md:grid-cols-2 gap-0">
         <!-- Free Plan -->
-        <div class="p-8 border-r border-gray-100 dark:border-gray-700">
+        <div class="p-8 border-r border-gray-100 dark:border-gray-700 card-hover-elevate">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold dark:text-gray-200">免费版</h3>
+            <span class="badge-pill badge-soft">基础</span>
           </div>
           <div class="mb-6">
              <span class="text-4xl font-bold dark:text-white">¥0</span>
@@ -43,16 +47,20 @@
         </div>
 
         <!-- Pro Plan -->
-        <div class="p-8 bg-gray-50/50 dark:bg-gray-700/20 relative">
-          <div class="absolute top-0 right-0 bg-gradient-to-l from-purple-500 to-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-            推荐
+        <div class="p-8 bg-gray-50/50 dark:bg-gray-700/20 relative card-hover-elevate">
+          <div class="absolute top-4 right-4">
+            <span class="badge-pill badge-accent">推荐</span>
           </div>
-           <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-primary">Pro 专业版</h3>
+            <span class="badge-pill">高价值</span>
           </div>
-          <div class="mb-6">
-             <span class="text-4xl font-bold dark:text-white">¥9.9</span>
-             <span class="text-gray-400">/月</span>
+          <div class="mb-6 space-y-1">
+            <div class="flex items-baseline gap-2">
+              <span class="text-4xl font-bold dark:text-white">¥9.9</span>
+              <span class="text-gray-400">/月</span>
+            </div>
+            <div class="text-xs text-gray-400">年付 ¥99 / 年（约省 2 个月）</div>
           </div>
           <ul class="space-y-3 mb-8">
             <li class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 font-medium">
@@ -72,22 +80,98 @@
               7x24 专属客服
             </li>
           </ul>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <button 
-              @click="handleSubscribe('alipay')"
-              :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
-              class="w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 text-white font-medium hover:shadow-lg hover:scale-105 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '支付宝升级') }}
-            </button>
-            <button 
-              @click="handleSubscribe('wechat')"
-              :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
-              class="w-full py-2.5 rounded-xl border border-primary/50 text-primary font-medium hover:bg-primary/10 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '微信升级') }}
-            </button>
+          <div class="space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button 
+                @click="handlePayment('pro_monthly', 'alipay')"
+                :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
+                class="w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 text-white font-medium hover:shadow-lg hover:scale-105 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '支付宝月付') }}
+              </button>
+              <button 
+                @click="handlePayment('pro_monthly', 'wechat')"
+                :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
+                class="w-full py-2.5 rounded-xl border border-primary/50 text-primary font-medium hover:bg-primary/10 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '微信月付') }}
+              </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button 
+                @click="handlePayment('pro_yearly', 'alipay')"
+                :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
+                class="w-full py-2.5 rounded-xl bg-gray-900 text-white font-medium hover:shadow-lg hover:scale-105 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '支付宝年付') }}
+              </button>
+              <button 
+                @click="handlePayment('pro_yearly', 'wechat')"
+                :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
+                class="w-full py-2.5 rounded-xl border border-gray-800 text-gray-800 dark:text-gray-100 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '微信年付') }}
+              </button>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <div class="border-t border-gray-100 dark:border-gray-700 px-8 py-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold dark:text-gray-200">一次性额度包</h3>
+          <span class="badge-pill badge-soft">按需补充</span>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="rounded-2xl border border-gray-100 dark:border-gray-700 p-5 card-hover-elevate">
+            <div class="flex items-center justify-between">
+              <div class="text-base font-semibold">Starter Pack</div>
+              <span class="badge-pill">30 积分</span>
+            </div>
+            <div class="mt-2 text-3xl font-bold">¥19</div>
+            <div class="mt-4 grid grid-cols-2 gap-2">
+              <button
+                @click="handlePayment('starter_pack', 'alipay')"
+                :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
+                class="py-2 rounded-lg bg-primary text-white text-sm font-medium hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                支付宝购买
+              </button>
+              <button
+                @click="handlePayment('starter_pack', 'wechat')"
+                :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
+                class="py-2 rounded-lg border border-primary/40 text-primary text-sm font-medium hover:bg-primary/10 transition disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                微信购买
+              </button>
+            </div>
+          </div>
+          <div class="rounded-2xl border border-gray-100 dark:border-gray-700 p-5 card-hover-elevate">
+            <div class="flex items-center justify-between">
+              <div class="text-base font-semibold">Creator Pack</div>
+              <span class="badge-pill badge-accent">120 积分</span>
+            </div>
+            <div class="mt-2 text-3xl font-bold">¥49</div>
+            <div class="mt-4 grid grid-cols-2 gap-2">
+              <button
+                @click="handlePayment('creator_pack', 'alipay')"
+                :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
+                class="py-2 rounded-lg bg-primary text-white text-sm font-medium hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                支付宝购买
+              </button>
+              <button
+                @click="handlePayment('creator_pack', 'wechat')"
+                :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
+                class="py-2 rounded-lg border border-primary/40 text-primary text-sm font-medium hover:bg-primary/10 transition disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                微信购买
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="text-xs text-gray-400">
+          额度包用于补充积分，不影响订阅状态。
         </div>
       </div>
     </div>
@@ -108,7 +192,7 @@ const { user } = useAuth()
 const loading = ref(false)
 const subscriptionUnavailable = ref(false)
 
-const handleSubscribe = async (provider: 'alipay' | 'wechat') => {
+const handlePayment = async (planId: string, provider: 'alipay' | 'wechat') => {
     if (!isSupabaseConfigured) {
         alert('当前环境未配置登录服务，无法订阅。')
         return
@@ -130,7 +214,7 @@ const handleSubscribe = async (provider: 'alipay' | 'wechat') => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ plan_id: 'pro_monthly', provider })
+            body: JSON.stringify({ plan_id: planId, provider })
         })
 
         if (res.status === 404 || res.status === 501) {

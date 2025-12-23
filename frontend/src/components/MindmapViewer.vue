@@ -1,25 +1,25 @@
 <template>
-  <div class="mindmap-viewer bg-white dark:bg-slate-800 rounded-3xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 mb-8">
-    <div class="card-header flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-900/50">
+  <div class="mindmap-viewer glass-card card-hover-elevate rounded-3xl overflow-hidden">
+    <div class="card-header flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 px-4 sm:px-6 py-4 border-b border-gray-200/70 dark:border-gray-700/70 bg-white/60 dark:bg-slate-900/50">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
         🧠 思维导图
       </h3>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
         <button
           @click="$emit('export-svg')"
-          class="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+          class="px-3 py-1.5 text-xs sm:text-sm bg-white/70 dark:bg-slate-800/70 hover:bg-white rounded-lg transition-colors"
         >
           导出 SVG
         </button>
         <button
           @click="$emit('export-png')"
-          class="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+          class="px-3 py-1.5 text-xs sm:text-sm bg-white/70 dark:bg-slate-800/70 hover:bg-white rounded-lg transition-colors"
         >
           导出 PNG
         </button>
       </div>
     </div>
-    <div class="mindmap-container flex items-center justify-center min-h-[300px] p-6">
+    <div class="mindmap-container flex items-center justify-center min-h-[260px] sm:min-h-[300px] p-4 sm:p-6">
       <p v-if="!diagram && !isRendering" class="text-gray-500 dark:text-gray-400">
         暂无思维导图。
       </p>

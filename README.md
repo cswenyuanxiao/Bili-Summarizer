@@ -72,7 +72,12 @@ docker-compose up -d
 
 # 4. 访问应用
 open http://localhost
+
+
+# 5.更新docker
+docker-compose up -d --build
 ```
+
 
 > 💡 Docker Compose 会自动启动前端 (Nginx) 和后端 (FastAPI) 两个容器
 

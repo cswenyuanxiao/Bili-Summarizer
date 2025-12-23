@@ -17,6 +17,9 @@
         <div v-if="!isSupabaseConfigured" class="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
           当前环境未配置登录服务，暂时无法使用账号功能。
         </div>
+        <div v-else class="rounded-xl border border-blue-100/80 bg-blue-50/80 px-4 py-3 text-xs text-blue-700 dark:border-blue-500/40 dark:bg-blue-950/40 dark:text-blue-200">
+          登录后会启用积分校验与云端同步；积分不足时会提示升级。
+        </div>
         
         <!-- Email Form -->
         <div class="space-y-3">

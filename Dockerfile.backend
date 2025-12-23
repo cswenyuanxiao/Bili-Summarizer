@@ -2,7 +2,8 @@
 FROM python:3.10-slim
 
 # 安装系统依赖，特别是 ffmpeg (yt-dlp 下载和处理媒体必需)
-RUN apt-get update && apt-get install -y \
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
@@ -13,7 +14,8 @@ WORKDIR /app
 COPY requirements.txt .
 
 # 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
 
 # 复制项目所有文件
 COPY . .

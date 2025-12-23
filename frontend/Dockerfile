@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # 安装依赖 (使用 ci 更快更可靠)
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # 复制源代码
 COPY . .
