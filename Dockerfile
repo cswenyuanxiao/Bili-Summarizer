@@ -4,6 +4,13 @@ WORKDIR /frontend
 COPY frontend/package*.json ./
 RUN npm ci --silent
 COPY frontend/ ./
+
+# 接收构建参数（Render 会自动传入环境变量）
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
 RUN npm run build
 
 # === 阶段2：构建后端 ===
