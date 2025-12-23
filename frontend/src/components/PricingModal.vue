@@ -193,7 +193,7 @@ const loading = ref(false)
 const subscriptionUnavailable = ref(false)
 
 const handlePayment = async (planId: string, provider: 'alipay' | 'wechat') => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || !supabase) {
         alert('当前环境未配置登录服务，无法订阅。')
         return
     }
@@ -205,7 +205,7 @@ const handlePayment = async (planId: string, provider: 'alipay' | 'wechat') => {
     loading.value = true
     try {
         // Get token
-        const { data: { session } } = await supabase!.auth.getSession()
+        const { data: { session } } = await supabase.auth.getSession()
         const token = session?.access_token
 
         const res = await fetch('/api/payments', {

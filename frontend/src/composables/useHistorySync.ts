@@ -20,7 +20,7 @@ const syncing = ref(false)
 const lastSyncTime = ref<Date | null>(null)
 
 export function useHistorySync() {
-    const getAuthHeaders = async () => {
+    const getAuthHeaders = async (): Promise<Record<string, string>> => {
         if (!isSupabaseConfigured || !supabase) return {}
         const { data: { session } } = await supabase.auth.getSession()
         const token = session?.access_token
