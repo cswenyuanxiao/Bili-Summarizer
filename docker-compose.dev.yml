@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  # 后端开发模式 (热更新)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: bili-summarizer-backend-dev
+    ports:
+      - "7860:7860" # 开发模式直接暴露端口
+    volumes:
+      # 持久化数据
+      - ./summarizer.db:/app/summarizer.db
+      - ./app.log:/app/app.log
+      - ./videos:/app/videos
+      # 挂载源代码以支持热更新
+      - ./web_app:/app/web_app
+    env_file:
+      - .env
+    command: uvicorn web_app.main:app --reload --host 0.0.0.0 --port 7860
+    restart: unless-stopped
+
+# 开发模式说明:
+# 1. 前端使用 npm run dev 在主机运行 (localhost:5173)
+# 2. Vite 会自动代理 /api 请求到 localhost:7860
+# 3. 后端使用此配置启动,支持代码热更新
+#
+# 启动命令:
+#   docker-compose -f docker-compose.dev.yml up

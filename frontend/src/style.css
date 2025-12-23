@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS variables matching original design system */
+:root {
+  /* Primary Brand Colors */
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-light: ##e0e7ff;
+
+  /* Neutral System (Slate) */
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+
+  /* Semantic Colors */
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+
+  /* Design Tokens */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/*  Dark Mode Tokens */
+.dark body {
+  --bg: #0f172a;
+  --card-bg: #1e293b;
+  --text-main: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --border: #334155;
+  --border-light: #1e293b;
+  --primary-light: rgba(79, 70, 229, 0.2);
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-main);
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
+}

@@ -4,15 +4,16 @@ import json
 import asyncio
 import logging
 from datetime import datetime
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Security, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 
 # --- web_app 内部模块导入 ---
 from .downloader import download_content
-from .summarizer_gemini import summarize_content, extract_ai_transcript
+from .summarizer_gemini import summarize_content, extract_ai_transcript, upload_to_gemini, delete_gemini_file
 from .cache import get_cached_result, save_to_cache, get_cache_stats
 from typing import List
 
@@ -30,14 +31,28 @@ logger = logging.getLogger(__name__)
 # --- 初始化 ---
 app = FastAPI(title="Bili-Summarizer")
 
-# --- 静态文件与模板 ---
-app.mount("/static", StaticFiles(directory="web_app/static"), name="static")
-templates = Jinja2Templates(directory="web_app/templates")
+# --- CORS 配置（允许 Vue 前端访问）---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",  # Vite 开发服务器
+        "http://localhost:3000",  # 备用端口
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- 静态文件（仅保留 videos 用于视频播放）---
+# 允许前端访问 videos 目录下的文件用于播放
+app.mount("/videos", StaticFiles(directory="videos"), name="videos")
+
+# --- 健康检查路由 ---
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "service": "Bili-Summarizer API"}
 
 # --- 核心业务路由 ---
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
 
 class SummarizeRequest(BaseModel):
     url: str
@@ -50,86 +65,159 @@ class BatchSummarizeRequest(BaseModel):
     mode: str = "smart"
     focus: str = "default"
 
-@app.post("/summarize")
-async def run_summarization(request: SummarizeRequest):
-    logger.info(f"收到总结请求: URL={request.url}, Mode={request.mode}, Focus={request.focus}")
+@app.get("/summarize")
+async def run_summarization(
+    url: str,
+    mode: str = "smart",
+    focus: str = "default",
+    skip_cache: bool = False
+):
+    logger.info(f"收到总结请求: URL={url}, Mode={mode}, Focus={focus}")
 
     async def event_generator():
         video_path = None
+        remote_file = None
+        
         try:
             # 检查缓存
-            if not request.skip_cache:
-                cached = get_cached_result(request.url, request.mode, request.focus)
+            if not skip_cache:
+                cached = get_cached_result(url, mode, focus)
                 if cached:
-                    logger.info(f"命中缓存: {request.url}")
+                    logger.info(f"命中缓存: {url}")
                     yield f"data: {json.dumps({'status': 'Found in cache! Loading...'})}\n\n"
-                    yield f"data: {json.dumps({'status': 'complete', 'summary': cached['summary'], 'transcript': cached['transcript'], 'credits': 999, 'usage': cached['usage'], 'cached': True})}\n\n"
+                    # Emit all events for cached content
+                    yield f"data: {json.dumps({'type': 'transcript_complete', 'data': cached['transcript']})}\n\n"
+                    yield f"data: {json.dumps({'type': 'summary_complete', 'data': cached['summary'], 'usage': cached['usage'], 'cached': True})}\n\n"
+                     # Finally emit completion
+                    yield f"data: {json.dumps({'status': 'complete'})}\n\n"
                     return
             
             loop = asyncio.get_event_loop()
             queue = asyncio.Queue()
 
             def progress_callback(status):
-                loop.call_soon_threadsafe(queue.put_nowait, status)
+                loop.call_soon_threadsafe(queue.put_nowait, {'type': 'status', 'data': status})
 
-            async def run_tasks():
-                nonlocal video_path
+            # Task wrapper to send results to queue
+            async def task_wrapper(name, coro):
                 try:
-                    video_path, media_type, transcript = await loop.run_in_executor(None, download_content, request.url, request.mode, progress_callback)
-                    if media_type == 'subtitle':
-                         progress_callback("Processing subtitles...")
-                    
-                    # 调用AI总结
-                    summary, usage = await loop.run_in_executor(None, summarize_content, video_path, media_type, progress_callback, request.focus)
-                    
-                    # 如果没有内置字幕且是视频/音频模式，使用AI提取转录
-                    if not transcript and media_type in ['video', 'audio']:
-                        progress_callback("Extracting transcript with AI...")
-                        transcript = await loop.run_in_executor(None, extract_ai_transcript, video_path, progress_callback)
-                    
-                    # 保存到缓存
-                    save_to_cache(request.url, request.mode, request.focus, summary, transcript, usage)
-                    
-                    return summary, usage, transcript
+                    # coro is a Future (from run_in_executor) or a coroutine
+                    result = await coro
+                    await queue.put({'type': f'{name}_complete', 'data': result})
                 except Exception as e:
-                    logger.error(f"处理任务时发生错误: {str(e)}")
-                    raise e
+                    logger.error(f"Task {name} failed: {e}")
+                    await queue.put({'type': 'error', 'data': str(e)})
 
-            task = asyncio.create_task(run_tasks())
+            # 1. Download Content
+            # ... (download logic) ...
+            try:
+                video_path, media_type, transcript = await loop.run_in_executor(None, download_content, url, mode, progress_callback)
+                
+                # Immediately notify frontend about video
+                video_filename = os.path.basename(video_path) if video_path else None
+                await queue.put({'type': 'video_downloaded', 'data': {'filename': video_filename}})
+                
+                # If transcript exists from download (e.g. subtitles), emit it now
+                if transcript:
+                     await queue.put({'type': 'transcript_complete', 'data': transcript})
 
-            while not task.done():
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                return
+
+            # 2. Upload to Gemini (if needed)
+            if media_type in ['video', 'audio']:
+                 remote_file = await loop.run_in_executor(None, upload_to_gemini, video_path, progress_callback)
+
+            # 3. Start Parallel Tasks
+            active_tasks = 0
+
+            # Task A: Summary
+            summary_coro = loop.run_in_executor(
+                None,
+                summarize_content,
+                video_path,
+                media_type,
+                progress_callback,
+                focus,
+                remote_file
+            )
+            asyncio.create_task(task_wrapper('summary', summary_coro))
+            active_tasks += 1
+
+            # Task B: Transcript (if needed)
+            need_transcript = (not transcript and remote_file is not None)
+            if need_transcript:
+                 transcript_coro = loop.run_in_executor(
+                    None,
+                    extract_ai_transcript,
+                    video_path,
+                    progress_callback,
+                    remote_file
+                )
+                 asyncio.create_task(task_wrapper('transcript', transcript_coro))
+                 active_tasks += 1
+
+            if active_tasks > 0:
+                 logger.info(f"🚀 Started {active_tasks} parallel AI tasks...")
+
+            # 4. Event Loop: Consume queue until all tasks done
+            final_summary = None
+            final_transcript = transcript
+            final_usage = None
+
+            completed_tasks = 0
+            while completed_tasks < active_tasks:
                 try:
-                    status = await asyncio.wait_for(queue.get(), timeout=5.0)
-                    yield f"data: {json.dumps({'status': status})}\n\n"
-                except asyncio.TimeoutError:
-                    yield f"data: {json.dumps({'status': 'AI is still thinking... please wait'})}\n\n"
-                    continue
+                    event = await asyncio.wait_for(queue.get(), timeout=300.0)
+                    msg_type = event.get('type')
+                    data = event.get('data')
 
-            summary, usage, transcript = await task
-            logger.info(f"总结成功: {request.url}")
-            yield f"data: {json.dumps({'status': 'complete', 'summary': summary, 'transcript': transcript, 'credits': 999, 'usage': usage})}\n\n"
+                    if msg_type == 'status':
+                         yield f"data: {json.dumps({'status': data})}\n\n"
+                    elif msg_type == 'video_downloaded':
+                         yield f"data: {json.dumps({'type': 'video_downloaded', 'video_file': data['filename']})}\n\n"
+                    elif msg_type == 'transcript_complete':
+                         final_transcript = data
+                         yield f"data: {json.dumps({'type': 'transcript_complete', 'transcript': final_transcript})}\n\n"
+                         completed_tasks += 1
+                    elif msg_type == 'summary_complete':
+                         final_summary, final_usage = data
+                         yield f"data: {json.dumps({'type': 'summary_complete', 'summary': final_summary, 'usage': final_usage})}\n\n"
+                         completed_tasks += 1
+                    elif msg_type == 'error':
+                         yield f"data: {json.dumps({'error': data})}\n\n"
+                         completed_tasks += 1
+                except asyncio.TimeoutError:
+                     yield f"data: {json.dumps({'status': 'AI analysis is taking longer than expected...'})}\n\n"
+            
+            if final_summary:
+                 save_to_cache(url, mode, focus, final_summary, final_transcript, final_usage)
+                 yield f"data: {json.dumps({'status': 'complete'})}\n\n"
 
         except Exception as e:
             logger.error(f"流式响应异常: {str(e)}")
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
         finally:
-            import shutil
-            # 强力清理 videos 目录
+            if remote_file:
+                 # Start cleanup in executor, but don't wrap in create_task since it returns a future
+                 loop.run_in_executor(None, delete_gemini_file, remote_file)
+            
+            # Clean up local video after 1 hour (same logic as before)
             videos_dir = "videos"
             if os.path.exists(videos_dir):
+                import time
+                current_time = time.time()
                 for filename in os.listdir(videos_dir):
                     if filename == '.gitkeep': continue
                     file_path = os.path.join(videos_dir, filename)
                     try:
-                        if os.path.isfile(file_path) or os.path.islink(file_path):
-                            os.unlink(file_path)
-                            logger.info(f"已删除文件: {file_path}")
-                        elif os.path.isdir(file_path):
-                            shutil.rmtree(file_path)
-                            logger.info(f"已删除目录: {file_path}")
-                    except Exception as e:
-                        logger.error(f"删除失败 {file_path}: {e}")
-
+                        if os.path.isfile(file_path):
+                            file_age = current_time - os.path.getmtime(file_path)
+                            if file_age > 3600:
+                                os.remove(file_path)
+                    except Exception:
+                        pass
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
@@ -170,6 +258,28 @@ async def cache_stats():
     """获取缓存统计信息"""
     stats = get_cache_stats()
     return stats
+
+
+# --- API Key Management (TEMPORARILY DISABLED DUE TO IMPORT ISSUES) ---
+# class CreateKeyRequest(BaseModel):
+#     name: str
+# 
+# @app.post("/api/keys")
+# async def create_api_key(request: CreateKeyRequest, user=Depends(get_current_user)):
+#     ...
+# 
+# @app.get("/api/keys")
+# async def list_api_keys(user=Depends(get_current_user)):
+#     ...
+# 
+# @app.delete("/api/keys/{key_id}")
+# async def delete_api_key(key_id: str, user=Depends(get_current_user)):
+#     ...
+# 
+# @app.get("/api/v1/user")
+# async def get_user_info_api(api_user=Depends(get_user_by_api_key)):
+#     ...
+
 
 # --- Video Info Endpoint ---
 class VideoInfoRequest(BaseModel):

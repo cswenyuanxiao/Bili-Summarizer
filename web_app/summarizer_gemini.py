@@ -8,16 +8,76 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 
 
-def extract_ai_transcript(file_path: Path, progress_callback=None) -> str:
+def upload_to_gemini(file_path: Path, progress_callback=None):
+    """
+    独立上传文件到 Gemini，供后续步骤复用。
+    """
+    load_dotenv()
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GOOGLE_API_KEY not found.")
+    
+    genai.configure(api_key=api_key)
+    
+    # MIME 类型映射
+    mime_mapping = {
+        '.mp4': 'video/mp4',
+        '.mkv': 'video/x-matroska',
+        '.webm': 'video/webm',
+        '.mov': 'video/quicktime',
+        '.avi': 'video/x-msvideo',
+        '.mp3': 'audio/mpeg',
+        '.m4a': 'audio/mp4',
+        '.wav': 'audio/wav',
+        '.aac': 'audio/aac',
+        '.flac': 'audio/flac'
+    }
+    
+    ext = file_path.suffix.lower()
+    mime_type = mime_mapping.get(ext, 'application/octet-stream')
+    
+    print(f"正在上传媒体文件: {file_path.name} (类型: {mime_type})")
+    if progress_callback:
+        progress_callback(f"Uploading file to Google AI (Mime: {mime_type})...")
+    
+    try:
+        media_file = genai.upload_file(path=str(file_path), mime_type=mime_type)
+    except Exception as e:
+        # 如果还是报错，尝试不带 mime_type 让它自适应（虽然通常这就是报错原因）
+        print(f"带MIME上传失败，尝试自动探测: {e}")
+        media_file = genai.upload_file(path=str(file_path))
+    
+    # 等待文件处理完成
+    while media_file.state.name == "PROCESSING":
+        time.sleep(2)
+        media_file = genai.get_file(media_file.name)
+        if progress_callback:
+             progress_callback(f"Cloud processing: {media_file.state.name}")
+    
+    if media_file.state.name == "FAILED":
+        raise Exception("Google AI File Processing Failed")
+        
+    print(f"上传完成: {media_file.name}")
+    return media_file
+
+def delete_gemini_file(file_obj):
+    """安全删除云端文件"""
+    try:
+        if hasattr(file_obj, 'name'):
+            genai.delete_file(file_obj.name)
+            print(f"已清理云端文件: {file_obj.name}")
+    except Exception as e:
+        print(f"清理云端文件失败 (并不影响结果): {e}")
+
+# 配置一个模块级 Logger
+import logging
+logger = logging.getLogger("summarizer_gemini")
+
+
+def extract_ai_transcript(file_path: Path, progress_callback=None, uploaded_file=None) -> str:
     """
     使用 Gemini AI 从视频/音频中提取语音转录。
-    
-    Args:
-        file_path: 视频或音频文件路径
-        progress_callback: 进度回调函数
-        
-    Returns:
-        str: 带时间戳的转录文本
+    支持传入已上传的 file 对象 (uploaded_file) 以避免重复上传。
     """
     load_dotenv()
     api_key = os.getenv("GOOGLE_API_KEY")
@@ -26,23 +86,22 @@ def extract_ai_transcript(file_path: Path, progress_callback=None) -> str:
     
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
+        model = genai.GenerativeModel(model_name="models/gemini-3-flash-preview")
         
-        if progress_callback:
+        # 如果 uploaded_file 存在，说明是并行模式，main.py 已经发送了统一的进度消息
+        if progress_callback and not uploaded_file:
             progress_callback("Extracting transcript with AI...")
         
-        # 上传文件
-        media_file = genai.upload_file(path=str(file_path))
+        # 1. 确定使用的媒体文件对象
+        media_file = uploaded_file
+        file_owned = False # 标记是否是在本函数内上传的（如果是，则负责删除）
+
+        if not media_file:
+            # 使用统一的上传逻辑以处理 MIME 类型
+            media_file = upload_to_gemini(file_path, progress_callback)
+            file_owned = True
         
-        # 等待处理完成
-        while media_file.state.name == "PROCESSING":
-            time.sleep(2)
-            media_file = genai.get_file(media_file.name)
-        
-        if media_file.state.name == "FAILED":
-            return ""
-        
-        # 使用专门的转录提示词
+        # 2. 使用专门的转录提示词
         transcript_prompt = """请仔细听取这个视频/音频中的所有语音内容，并生成完整的转录文本。
 
 要求：
@@ -63,30 +122,28 @@ def extract_ai_transcript(file_path: Path, progress_callback=None) -> str:
             request_options={"timeout": 600}
         )
         
-        # 清理云端文件
-        try:
-            genai.delete_file(media_file.name)
-        except:
-            pass
+        # 3. 清理（仅清理自己上传的文件，传入的文件由调用者负责清理）
+        if file_owned:
+            try:
+                genai.delete_file(media_file.name)
+            except:
+                pass
         
         if response.parts:
+            logger.info("AI Transcript generated successfully.")
             return response.text
+        logger.warning("AI Transcript returned empty parts.")
         return ""
         
     except Exception as e:
-        print(f"AI转录提取失败: {e}", file=sys.stderr)
+        logger.error(f"AI转录提取失败: {e}")
         return ""
 
 
-def summarize_content(file_path: Path, media_type: str, progress_callback=None, focus: str = "default") -> str:
+def summarize_content(file_path: Path, media_type: str, progress_callback=None, focus: str = "default", uploaded_file=None) -> str:
     """
     使用 Google Gemini API 总结内容。
-    
-    Args:
-        file_path: 文件路径 (音频或字幕).
-        media_type: 'subtitle', 'audio', 或 'video'.
-        progress_callback: 状态回调函数.
-        focus: 分析视角 ('default', 'study', 'gossip', 'business').
+    支持传入 uploaded_file 以避免重复上传。
     """
     # 1. 加载和配置 API 密钥
     load_dotenv()
@@ -96,7 +153,7 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
     
     try:
         genai.configure(api_key=api_key)
-        # 使用完整的模型名称，并确保是 Gemini 3 Flash Preview
+        # 使用完整的模型名称
         model = genai.GenerativeModel(model_name="models/gemini-3-flash-preview")
     except Exception as e:
         raise Exception(f"Google AI SDK 配置失败: {e}")
@@ -104,9 +161,9 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
     # 根据不同的视角调整 Prompt
     focus_prompts = {
         "default": "深度分析并总结视频的核心内容、关键点和结论。",
-        "study": "以学习者的视角，详细总结视频中的核心知识点、逻辑框架、学术概念、公式或参考文献。",
-        "gossip": "以观众互动的视角，提取视频中的槽点、金句、梗、弹幕热评以及最具娱乐性的瞬间。",
-        "business": "以商业分析师视角，拆解视频背后的商业模式、市场机会、运营逻辑或营销手段。"
+        "study": "以学习者的视角，详细总结视频中的核心知识点、学术概念或技术细节。",
+        "gossip": "以观众互动的视角，提取视频中的槽点、金句、梗以及最具娱乐性的瞬间。",
+        "business": "以商业分析师视角，拆解视频背后的商业模式、市场机会或营销逻辑。"
     }
     
     selected_focus_desc = focus_prompts.get(focus, focus_prompts["default"])
@@ -123,21 +180,20 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
         "    B --> C(细分节点1)\n"
         "    A --> D(关键分支2)\n"
         "```\n"
-        "4. 直接使用标准 Markdown 格式。严禁使用 LaTeX 格式（禁止使用 $ 符号），表示方向请直接使用 '→' 或 '->'。"
+        "4. 直接使用标准 Markdown 格式。严禁使用 LaTeX 格式，表示方向请直接使用 '→' 或 '->'。"
     )
 
-    file_to_delete = None
+    content_parts = [prompt_text]
+    file_to_delete = None # 本地上传的文件需要删除
     
     try:
-        content_parts = [prompt_text]
-
+        # --- 字幕模式 (文本分析) ---
         if media_type == 'subtitle':
             print(f"正在处理字幕文件: {file_path.name}")
             if progress_callback:
                 progress_callback("Reading subtitle file...")
             
             try:
-                # Try reading with different encodings
                 try:
                     text_content = file_path.read_text(encoding='utf-8')
                 except UnicodeDecodeError:
@@ -147,51 +203,42 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
             except Exception as e:
                 raise Exception(f"无法读取字幕文件: {e}")
         
+        # --- 视频/音频模式 (多模态分析) ---
         elif media_type in ['audio', 'video']:
-            print(f"正在上传媒体文件: {file_path.name}")
-            if progress_callback:
-                progress_callback(f"Uploading {media_type} to Google AI Studio...")
             
-            video_file = genai.upload_file(path=str(file_path))
-            file_to_delete = video_file
-            
-            print("上传成功! 正在等待云端处理...")
-            if progress_callback:
-                progress_callback(f"{media_type.capitalize()} uploaded! Waiting for processing...")
-
-            # 等待文件进入 ACTIVE 状态
-            while video_file.state.name == "PROCESSING":
-                time.sleep(2) 
-                video_file = genai.get_file(video_file.name)
+            # 优先使用传入的 uploaded_file
+            if uploaded_file:
                 if progress_callback:
-                    progress_callback(f"Cloud processing: {video_file.state.name}")
-
-            if video_file.state.name == "FAILED":
-                raise Exception("错误: Google AI 服务器处理文件失败。")
-            
-            content_parts.append(video_file)
+                    progress_callback(f"Using pre-uploaded file for analysis...")
+                content_parts.append(uploaded_file)
+                # 注意：这里我们不设置 file_to_delete，因为这是共享文件，由外部调用者负责删除
+            else:
+                # 使用统一的上传逻辑以处理 MIME 类型
+                video_file = upload_to_gemini(file_path, progress_callback)
+                file_to_delete = video_file # 标记需要删除
+                content_parts.append(video_file)
 
         # 3. 调用模型进行总结
-        if progress_callback:
+        # 如果 uploaded_file 存在，说明是并行模式，main.py 已经发送了统一的进度消息，这里不再重复发送
+        if progress_callback and not uploaded_file:
             progress_callback("AI is analyzing content...")
             
         print(f"AI 正在使用 {model.model_name} 分析内容...")
-        # 增加超时时间到 1200 秒 (20分钟)，针对视频分析
+        # 增加超时时间到 1200 秒
         response = model.generate_content(content_parts, request_options={"timeout": 1200})
         
-        if progress_callback:
+        # 同理，完成消息也只在非并行模式下发送
+        if progress_callback and not uploaded_file:
             progress_callback("Analysis complete! Formatting result...")
         
-        # 4. 清理
-        if file_to_delete:
-            print("正在清理云端文件...")
-            if progress_callback:
-                progress_callback("Clearing cloud files...")
-            genai.delete_file(file_to_delete.name)
+        # 4. 清理 (不再自动清理，留给 main.py 统一管理或依赖 GC)
+        # if file_to_delete:
+        #    delete_gemini_file(file_to_delete)
         
         if not response.parts:
              raise Exception(f"AI未能生成有效回复")
 
+        logger.info("AI Content Summary generated successfully.")
         # Extract usage metadata
         usage = {
             "prompt_tokens": response.usage_metadata.prompt_token_count,
@@ -202,6 +249,8 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
         return response.text, usage
 
     except Exception as e:
+        logger.error(f"AI 总结最终失败: {e}")
+        # Error Cleanup
         if file_to_delete:
             try:
                 genai.delete_file(file_to_delete.name)
@@ -223,7 +272,7 @@ def generate_ppt_structure(summary_text: str) -> dict:
     
     genai.configure(api_key=api_key)
     # 使用较快的模型处理简单的格式转换任务
-    model = genai.GenerativeModel("models/gemini-2.0-flash")
+    model = genai.GenerativeModel("models/gemini-3-flash-preview")
     
     prompt = """User wants to turn the following textual summary into a PowerPoint presentation.
     Please act as a Presentation Expert and structure the content into a JSON format suitable for generating slides.

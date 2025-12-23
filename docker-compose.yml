@@ -1,17 +1,46 @@
 version: '3.8'
 
 services:
-  web:
-    build: .
-    container_name: bili-summarizer
-    ports:
-      - "7860:7860"
+  # 后端 API 服务
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: bili-summarizer-backend
+    expose:
+      - "7860"
     volumes:
-      # Persist database and logs
+      # 持久化数据库和日志
       - ./summarizer.db:/app/summarizer.db
       - ./app.log:/app/app.log
-      # Ensure temp video directory is accessible/cleanable
       - ./videos:/app/videos
     env_file:
       - .env
     restart: unless-stopped
+    networks:
+      - bili-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:7860/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 前端静态文件 + Nginx 反向代理
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bili-summarizer-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - bili-network
+
+networks:
+  bili-network:
+    driver: bridge

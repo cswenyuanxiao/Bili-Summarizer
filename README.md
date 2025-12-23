@@ -54,7 +54,7 @@
 
 ## 🚀 快速开始
 
-### 方案 1: Docker（推荐）
+### 方案 1: Docker Compose（推荐）
 
 ```bash
 # 1. 克隆仓库
@@ -65,27 +65,29 @@ cd Bili-Summarizer
 cp .env.example .env
 # 编辑 .env 并填入您的 GOOGLE_API_KEY
 
-# 3. 启动服务
+# 3. 启动前后端服务
 docker-compose up -d
 
 # 4. 访问应用
-open http://localhost:7860
+open http://localhost
 ```
+
+> 💡 Docker Compose 会自动启动前端 (Nginx) 和后端 (FastAPI) 两个容器
 
 ### 方案 2: 本地开发
 
 ```bash
-# 1. 安装 Python 依赖
+# 终端 1: 启动后端
 pip install -r requirements.txt
-
-# 2. 安装 FFmpeg（macOS）
-brew install ffmpeg
-
-# 3. 配置环境变量
+brew install ffmpeg  # macOS
 export GOOGLE_API_KEY="你的密钥"
-
-# 4. 启动开发服务器
 uvicorn web_app.main:app --reload --port 7860
+
+# 终端 2: 启动前端
+cd frontend
+npm install
+npm run dev
+# 访问 http://localhost:5173
 ```
 
 ### 方案 3: 临时分享（Localtunnel）
@@ -167,16 +169,20 @@ https://b23.tv/xxxxxx
 - **Google Gemini 2.0 Flash** - 最新 AI 模型
 - **yt-dlp** - 视频信息提取
 - **httpx** - 现代 HTTP 客户端
+- **Python 3.10** - 运行环境
 
 ### 前端
-- **Vanilla JavaScript** - 无框架依赖，极致性能
+- **Vue 3** - 渐进式前端框架 (Composition API)
+- **Vite** - 极速构建工具
+- **TypeScript** - 类型安全
+- **Tailwind CSS** - 工具类 CSS (Build 版)
+- **Pinia** - 轻量级状态管理
 - **Mermaid.js** - 思维导图渲染
 - **Marked.js** - Markdown 解析
-- **Tailwind CSS** - 工具类 CSS
-- **Inter + Noto Sans SC** - 中西文排版字体
 
 ### 基础设施
-- **Docker** - 容器化部署
+- **Docker Compose** - 容器编排
+- **Nginx** - 反向代理 + 静态文件服务
 - **SSE (Server-Sent Events)** - 实时进度推送
 
 ---
@@ -185,24 +191,24 @@ https://b23.tv/xxxxxx
 
 ```
 bili-summarizer/
-├── web_app/
-│   ├── main.py              # FastAPI 主应用 & 路由
-│   ├── downloader.py        # 视频下载 & 字幕提取
-│   ├── summarizer_gemini.py # Gemini AI 总结模块
-│   ├── templates/
-│   │   └── index.html       # 主页面（含完整 CSS）
-│   └── static/
-│       └── script.js        # 前端交互逻辑
-├── Dockerfile               # Docker 构建配置
-├── docker-compose.yml       # Docker Compose 编排
+├── frontend/                # Vue 3 前端应用
+│   ├── src/
+│   │   ├── App.vue          # 根组件
+│   │   ├── components/      # UI 组件
+│   │   ├── composables/     # 组合式函数
+│   │   └── types/           # TypeScript 类型
+│   ├── Dockerfile           # 前端镜像（Node + Nginx）
+│   ├── nginx.conf           # Nginx 配置
+│   └── vite.config.ts       # Vite 配置
+├── web_app/                 # FastAPI 后端
+│   ├── main.py              # API 路由
+│   ├── downloader.py        # 视频下载
+│   └── summarizer_gemini.py # AI 总结
+├── Dockerfile.backend       # 后端镜像
+├── docker-compose.yml       # 生产环境编排
+├── docker-compose.dev.yml   # 开发环境配置
 ├── requirements.txt         # Python 依赖
-├── railway.json             # Railway 部署配置
-├── render.yaml              # Render 部署配置
-├── fly.toml                 # Fly.io 部署配置
-├── deploy.sh                # 快速部署脚本
-├── DEPLOYMENT.md            # 部署完整指南
-├── CHANGELOG.md             # 版本更新日志
-└── README.md                # 本文件
+└── DEPLOYMENT.md            # 部署完整指南
 ```
 
 ---
