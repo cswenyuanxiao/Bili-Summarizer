@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException, Security, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
@@ -42,10 +42,18 @@ from .downloader import download_content
 from .summarizer_gemini import summarize_content, extract_ai_transcript, upload_to_gemini, delete_gemini_file
 from .cache import get_cached_result, save_to_cache, get_cache_stats
 from .auth import get_current_user, verify_session_token
-from .credits import ensure_user_credits, get_user_credits, charge_user_credits, get_daily_usage, grant_first_summary_bonus, grant_credits
+from .credits import ensure_user_credits, get_user_credits, charge_user_credits, get_daily_usage, grant_credits
+from .payments import (
+    create_alipay_payment,
+    create_wechat_payment,
+    verify_alipay_notify,
+    verify_wechat_signature,
+    parse_wechat_notification
+)
 from .telemetry import record_failure
 from typing import List
 import sqlite3
+from io import BytesIO
 import secrets
 import hashlib
 
@@ -295,6 +303,16 @@ LEGACY_INDEX = Path(__file__).resolve().parent / "legacy_ui" / "index.html"
 async def health_check():
     return {"status": "ok", "service": "Bili-Summarizer API"}
 
+# --- Runtime config for frontend (Render) ---
+@app.get("/config.js", include_in_schema=False)
+async def frontend_config():
+    config = {
+        "VITE_SUPABASE_URL": os.getenv("VITE_SUPABASE_URL", ""),
+        "VITE_SUPABASE_ANON_KEY": os.getenv("VITE_SUPABASE_ANON_KEY", "")
+    }
+    payload = f"window.__APP_CONFIG__ = {json.dumps(config)};"
+    return Response(content=payload, media_type="application/javascript")
+
 # --- 核心业务路由 ---
 
 class SummarizeRequest(BaseModel):
@@ -479,8 +497,7 @@ async def run_summarization(
             
             if final_summary:
                  if user and not unlimited_user:
-                     if charge_user_credits(user["user_id"], credit_cost):
-                         grant_first_summary_bonus(user["user_id"])
+                     charge_user_credits(user["user_id"], credit_cost)
                  save_to_cache(url, mode, focus, final_summary, final_transcript or '', final_usage)
                  yield f"data: {json.dumps({'type': 'status', 'status': 'complete'})}\n\n"
 
@@ -812,6 +829,26 @@ async def create_payment(request: PaymentRequest, user: dict = Depends(get_curre
 
     if os.getenv("PAYMENT_MOCK") == "1":
         payment_url = f"/api/payments/mock-complete?order_id={order['order_id']}"
+    elif provider == "alipay":
+        result = create_alipay_payment(
+            order_id=order["order_id"],
+            amount_cents=plan["amount_cents"],
+            subject=f"Bili-Summarizer {request.plan_id}"
+        )
+        if not result:
+            raise HTTPException(501, "Alipay is not configured")
+        payment_url = result.payment_url
+    else:
+        try:
+            result = await create_wechat_payment(
+                order_id=order["order_id"],
+                amount_cents=plan["amount_cents"],
+                description=f"Bili-Summarizer {request.plan_id}"
+            )
+        except Exception as exc:
+            logger.error(f"WeChat Pay init failed: {exc}")
+            raise HTTPException(502, "WeChat Pay initialization failed")
+        qr_url = result.qr_url
 
     return {
         "order_id": order["order_id"],
@@ -833,28 +870,69 @@ async def mock_payment_complete(order_id: str):
     return mark_payment_paid(order_id)
 
 
+@app.get("/api/payments/qr")
+async def generate_payment_qr(data: str):
+    try:
+        import qrcode
+    except Exception as exc:
+        raise HTTPException(500, f"QR generator unavailable: {exc}")
+    if not data:
+        raise HTTPException(400, "Missing data")
+    img = qrcode.make(data)
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+    return Response(content=buffer.getvalue(), media_type="image/png")
+
+
 @app.post("/api/payments/notify/alipay")
 async def alipay_notify(request: Request):
     secret = os.getenv("PAYMENT_WEBHOOK_SECRET")
-    if not secret or request.headers.get("X-Payment-Secret") != secret:
-        raise HTTPException(403, "Invalid webhook secret")
-    data = await request.json()
-    order_id = data.get("order_id")
+    if secret and request.headers.get("X-Payment-Secret") == secret:
+        data = await request.json()
+        order_id = data.get("order_id")
+        if not order_id:
+            raise HTTPException(400, "Missing order_id")
+        return mark_payment_paid(order_id)
+
+    form = await request.form()
+    payload = dict(form)
+    verified = verify_alipay_notify(payload)
+    if not verified:
+        raise HTTPException(403, "Invalid Alipay signature")
+    trade_status = verified.get("trade_status")
+    order_id = verified.get("out_trade_no")
+    if trade_status not in ("TRADE_SUCCESS", "TRADE_FINISHED"):
+        return {"status": "ignored"}
     if not order_id:
         raise HTTPException(400, "Missing order_id")
-    return mark_payment_paid(order_id)
+    mark_payment_paid(order_id)
+    return Response(content="success")
 
 
 @app.post("/api/payments/notify/wechat")
 async def wechat_notify(request: Request):
     secret = os.getenv("PAYMENT_WEBHOOK_SECRET")
-    if not secret or request.headers.get("X-Payment-Secret") != secret:
-        raise HTTPException(403, "Invalid webhook secret")
-    data = await request.json()
-    order_id = data.get("order_id")
+    if secret and request.headers.get("X-Payment-Secret") == secret:
+        data = await request.json()
+        order_id = data.get("order_id")
+        if not order_id:
+            raise HTTPException(400, "Missing order_id")
+        return mark_payment_paid(order_id)
+
+    body = (await request.body()).decode("utf-8")
+    valid = await verify_wechat_signature(dict(request.headers), body)
+    if not valid:
+        raise HTTPException(403, "Invalid WeChat Pay signature")
+    payload = json.loads(body)
+    resource = parse_wechat_notification(payload)
+    if resource.get("trade_state") != "SUCCESS":
+        return {"code": "SUCCESS", "message": "OK"}
+    order_id = resource.get("out_trade_no")
     if not order_id:
         raise HTTPException(400, "Missing order_id")
-    return mark_payment_paid(order_id)
+    mark_payment_paid(order_id)
+    return {"code": "SUCCESS", "message": "OK"}
 
 
 @app.get("/api/billing/{billing_id}/invoice")

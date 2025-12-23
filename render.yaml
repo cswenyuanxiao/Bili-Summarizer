@@ -6,5 +6,44 @@ services:
     envVars:
       - key: GOOGLE_API_KEY
         sync: false
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      # 可选：服务端使用 Service Role Key（权限更高）
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ALIPAY_APP_ID
+        sync: false
+      - key: ALIPAY_PRIVATE_KEY
+        sync: false
+      - key: ALIPAY_PUBLIC_KEY
+        sync: false
+      - key: ALIPAY_NOTIFY_URL
+        sync: false
+      - key: ALIPAY_RETURN_URL
+        sync: false
+      - key: ALIPAY_ENV
+        sync: false
+      - key: WECHAT_APP_ID
+        sync: false
+      - key: WECHAT_MCH_ID
+        sync: false
+      - key: WECHAT_SERIAL_NO
+        sync: false
+      - key: WECHAT_PRIVATE_KEY
+        sync: false
+      - key: WECHAT_API_V3_KEY
+        sync: false
+      - key: WECHAT_NOTIFY_URL
+        sync: false
+      - key: PAYMENT_WEBHOOK_SECRET
+        sync: false
+      - key: PAYMENT_MOCK
+        sync: false
     healthCheckPath: /
     autoDeploy: true

@@ -176,6 +176,20 @@
       </div>
     </div>
   </div>
+
+  <div v-if="showQrModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @mousedown.self="closeQrModal">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+      <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+        <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">微信支付</div>
+        <button @click="closeQrModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">✕</button>
+      </div>
+      <div class="p-6 flex flex-col items-center gap-4">
+        <img v-if="qrImageUrl" :src="qrImageUrl" alt="WeChat Pay QR" class="w-56 h-56 rounded-lg border border-gray-200" />
+        <div class="text-sm text-gray-500">请使用微信扫一扫完成支付</div>
+        <button @click="copyQrLink" class="text-xs text-primary hover:underline">复制支付链接</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -191,6 +205,21 @@ const emit = defineEmits(['close', 'success'])
 const { user } = useAuth()
 const loading = ref(false)
 const subscriptionUnavailable = ref(false)
+const showQrModal = ref(false)
+const qrImageUrl = ref('')
+const qrLink = ref('')
+
+const closeQrModal = () => {
+    showQrModal.value = false
+    qrImageUrl.value = ''
+    qrLink.value = ''
+}
+
+const copyQrLink = async () => {
+    if (!qrLink.value) return
+    await navigator.clipboard.writeText(qrLink.value)
+    alert('支付链接已复制')
+}
 
 const handlePayment = async (planId: string, provider: 'alipay' | 'wechat') => {
     if (!isSupabaseConfigured || !supabase) {
@@ -224,7 +253,11 @@ const handlePayment = async (planId: string, provider: 'alipay' | 'wechat') => {
         if (!res.ok) throw new Error('订阅失败')
         
         const data = await res.json()
-        if (data.payment_url) {
+        if (data.qr_url) {
+          qrLink.value = data.qr_url
+          qrImageUrl.value = `/api/payments/qr?data=${encodeURIComponent(data.qr_url)}`
+          showQrModal.value = true
+        } else if (data.payment_url) {
           window.open(data.payment_url, '_blank', 'noopener')
           alert('已打开支付页面，请完成支付。')
           emit('success')

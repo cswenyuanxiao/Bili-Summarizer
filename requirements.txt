@@ -10,3 +10,7 @@ httpx
 python-pptx
 supabase
 reportlab
+python-alipay-sdk
+cryptography
+qrcode
+pillow

@@ -15,7 +15,6 @@
 - 新注册用户赠送 30 积分（约 3 次总结）。
 - 每次总结默认消耗 10 积分。
 - 访问“仪表盘”可查看剩余积分与已使用次数。
-- 首次完成总结会额外奖励 10 积分。
 - 邀请好友成功双方各得 10 积分。
 
 ---
@@ -31,6 +30,8 @@
 - `ALIPAY_PRIVATE_KEY`
 - `ALIPAY_PUBLIC_KEY`
 - `ALIPAY_NOTIFY_URL`
+- `ALIPAY_RETURN_URL`（可选）
+- `ALIPAY_ENV`（可选：`sandbox`）
 
 微信支付：
 - `WECHAT_APP_ID`
@@ -39,6 +40,9 @@
 - `WECHAT_PRIVATE_KEY`
 - `WECHAT_API_V3_KEY`
 - `WECHAT_NOTIFY_URL`
+
+回调安全（可选）：
+- `PAYMENT_WEBHOOK_SECRET`（自建网关/联调用）
 
 本地测试可设置 `PAYMENT_MOCK=1` 走模拟支付回调。
 

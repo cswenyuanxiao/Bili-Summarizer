@@ -45,6 +45,8 @@
   - `ALIPAY_PRIVATE_KEY`
   - `ALIPAY_PUBLIC_KEY`
   - `ALIPAY_NOTIFY_URL`
+  - `ALIPAY_RETURN_URL`（可选）
+  - `ALIPAY_ENV`（可选：`sandbox`）
 - 微信支付：
   - `WECHAT_APP_ID`
   - `WECHAT_MCH_ID`
@@ -55,7 +57,20 @@
 - 回调安全：
   - `PAYMENT_WEBHOOK_SECRET`（要求回调请求带 `X-Payment-Secret`）
 
-## 计划落地备注
-- 当前回调校验为共享密钥方式，便于对接自建网关或中转层。
-- 若直接对接支付宝/微信官方 SDK，可在 `/api/payments/notify/*` 中替换签名校验逻辑。
+## 开放计划（建议执行顺序）
+1) 申请并完成商户入驻
+- 支付宝：申请当面付/网页支付（生产与沙箱各一套）
+- 微信支付：申请 Native 支付、完成 API v3 证书配置
+2) 配置 Render 环境变量并上线
+- 支付宝：`ALIPAY_APP_ID`、`ALIPAY_PRIVATE_KEY`、`ALIPAY_PUBLIC_KEY`、`ALIPAY_NOTIFY_URL`、`ALIPAY_RETURN_URL`
+- 微信：`WECHAT_APP_ID`、`WECHAT_MCH_ID`、`WECHAT_SERIAL_NO`、`WECHAT_PRIVATE_KEY`、`WECHAT_API_V3_KEY`、`WECHAT_NOTIFY_URL`
+3) 沙箱联调
+- 支付宝：`ALIPAY_ENV=sandbox`，下单后回调应能自动激活订阅/发放积分
+- 微信：使用 Native 扫码支付，确认回调验签与解密成功
+4) 生产切换
+- 关闭沙箱标志，更新为生产 App ID / Mch ID / 证书
+- 观察 `payment_orders` 与 `billing_events` 的状态变化
 
+## 计划落地备注
+- 当前回调支持官方签名校验，并保留 `PAYMENT_WEBHOOK_SECRET` 作为自建网关/联调兜底。
+- 微信支付回调验签依赖平台证书（服务端会自动拉取并缓存）。
