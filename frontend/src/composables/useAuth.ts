@@ -72,7 +72,10 @@ export function useAuth() {
     }
 
     const logout = async () => {
-        if (!isSupabaseConfigured || !supabase) throw new Error('Auth is not configured')
+        if (!isSupabaseConfigured || !supabase) {
+            user.value = null
+            return
+        }
         const { error } = await supabase.auth.signOut()
         if (error) throw error
         user.value = null
