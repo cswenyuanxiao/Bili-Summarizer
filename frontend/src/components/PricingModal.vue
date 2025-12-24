@@ -199,7 +199,7 @@ import { ref, watch } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { isSupabaseConfigured, supabase } from '../supabase'
 
-defineProps<{
+const props = defineProps<{
   show: boolean
 }>()
 
@@ -278,7 +278,7 @@ const copyQrLink = async () => {
     alert('支付链接已复制')
 }
 
-watch(() => show, (value) => {
+watch(() => props.show, (value) => {
     if (value) {
         loadPaymentConfig()
     } else {
