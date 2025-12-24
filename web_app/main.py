@@ -2880,7 +2880,14 @@ if FRONTEND_DIST.exists():
             return FileResponse(target_file)
             
         # Fallback to index.html for known frontend routes
-        return FileResponse(FRONTEND_DIST / "index.html")
+        index_file = FRONTEND_DIST / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        # Fallback if index.html is missing (should not happen in production)
+        return JSONResponse(
+            {"status": "ok", "message": "API is running, frontend not available"},
+            status_code=200
+        )
 
 elif LEGACY_INDEX.exists():
     @app.get("/", include_in_schema=False)

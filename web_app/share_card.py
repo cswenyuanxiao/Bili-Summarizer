@@ -54,27 +54,45 @@ THEMES = {
 # 优先使用圆润字体，如果不存在则使用 Noto Sans SC
 FONT_DIR = Path(__file__).parent / "fonts"
 
-# 字体优先级列表（圆润 -> 标准）
+# 字体优先级列表（优先使用完整的 NotoSansSC）
 FONT_CANDIDATES_REGULAR = [
-    "SourceHanRoundedSC-Medium.otf",  # 思源圆体
-    "HarmonyOS_Sans_SC_Regular.ttf",  # 鸿蒙字体
-    "NotoSansSC-Regular.otf",         # 思源黑体（备用）
+    "NotoSansSC-Regular.otf",         # 思源黑体（完整版 ~16MB）
 ]
 
 FONT_CANDIDATES_BOLD = [
-    "SourceHanRoundedSC-Bold.otf",
-    "HarmonyOS_Sans_SC_Bold.ttf",
     "NotoSansSC-Bold.otf",
 ]
 
+# 系统字体备用路径
+SYSTEM_FONTS = [
+    "/System/Library/Fonts/PingFang.ttc",              # macOS 苹方
+    "/System/Library/Fonts/STHeiti Medium.ttc",        # macOS 华文黑体
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",  # Linux
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",  # Linux Alt
+]
+
+MIN_FONT_SIZE = 1_000_000  # 1MB - 完整 CJK 字体最小尺寸
+
 def get_font_path(candidates: list) -> str:
-    """从候选字体列表中选择第一个存在的字体"""
+    """从候选字体列表中选择第一个存在且完整的字体"""
+    # 1. 首先检查项目字体目录
     for font_name in candidates:
         font_path = FONT_DIR / font_name
         if font_path.exists():
-            return str(font_path)
-    # 如果都不存在，返回最后一个作为默认值
-    return str(FONT_DIR / candidates[-1])
+            # 验证字体文件大小（完整的中文字体应该 > 1MB）
+            if font_path.stat().st_size > MIN_FONT_SIZE:
+                return str(font_path)
+            else:
+                logger.warning(f"Font {font_name} is too small ({font_path.stat().st_size} bytes), skipping")
+    
+    # 2. 检查系统字体
+    for sys_font in SYSTEM_FONTS:
+        if Path(sys_font).exists():
+            logger.info(f"Using system font: {sys_font}")
+            return sys_font
+    
+    # 3. 返回第一个候选（即使不存在，让后续代码处理错误）
+    return str(FONT_DIR / candidates[0])
 
 FONT_REGULAR = get_font_path(FONT_CANDIDATES_REGULAR)
 FONT_BOLD = get_font_path(FONT_CANDIDATES_BOLD)
