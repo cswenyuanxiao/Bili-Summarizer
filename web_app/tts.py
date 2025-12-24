@@ -1,5 +1,4 @@
 import asyncio
-import edge_tts
 import os
 import uuid
 import logging
@@ -31,7 +30,7 @@ async def generate_tts(text: str, voice: str = DEFAULT_VOICE) -> str:
     if not text:
         raise ValueError("Text cannot be empty")
         
-    # 为长文本做简单的截断或分段（edge-tts 限制通常在几万字符，单次总结一般不超）
+    # 为长文本做简单的截断或分段
     if len(text) > 5000:
         text = text[:5000] # 截断前 5000 字
         
@@ -41,6 +40,8 @@ async def generate_tts(text: str, voice: str = DEFAULT_VOICE) -> str:
     filepath = TTS_CACHE_DIR / filename
     
     try:
+        # Lazy import to prevent module-level failure if package is missing
+        import edge_tts
         communicate = edge_tts.Communicate(text, voice)
         await communicate.save(str(filepath))
         
