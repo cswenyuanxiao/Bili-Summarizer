@@ -1,12 +1,12 @@
 """
 Templates Router - 总结模板 CRUD 端点
 """
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 import logging
 
-from ..auth import verify_session_token
+from ..dependencies import get_current_user, get_optional_user
 from ..templates import (
     get_user_templates,
     create_template,

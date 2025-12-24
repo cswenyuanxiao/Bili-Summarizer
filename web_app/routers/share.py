@@ -1,14 +1,14 @@
 """
 Share Router - 分享卡片生成相关端点
 """
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
 import asyncio
 import logging
 
-from ..auth import verify_session_token
+from ..dependencies import get_optional_user
 from ..share_card import generate_share_card, get_card_image
 
 logger = logging.getLogger(__name__)

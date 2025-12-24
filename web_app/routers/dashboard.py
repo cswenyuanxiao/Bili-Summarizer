@@ -5,7 +5,7 @@ from fastapi import APIRouter, Request, HTTPException, Depends
 from typing import Optional
 import logging
 
-from ..auth import verify_session_token, get_current_user
+from ..dependencies import get_current_user, get_optional_user, get_db
 from ..credits import ensure_user_credits, get_user_credits, get_credit_history, get_daily_usage
 from ..db import get_connection
 

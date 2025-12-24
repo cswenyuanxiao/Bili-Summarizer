@@ -7,7 +7,7 @@ from pydantic import BaseModel
 import json
 import logging
 
-from ..auth import verify_session_token, get_current_user
+from ..dependencies import get_current_user, get_db
 from ..db import get_connection
 from ..payments import (
     create_payment_order,
