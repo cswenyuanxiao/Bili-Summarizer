@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from .health import router as health_router
 from .dashboard import router as dashboard_router
 from .share import router as share_router
+from .templates import router as templates_router
+from .payments import router as payments_router
 
 
 def register_routers(app: FastAPI):
@@ -19,5 +21,8 @@ def register_routers(app: FastAPI):
     # Share router - 分享卡片
     app.include_router(share_router)
     
-    # 后续可以添加更多路由:
-    # app.include_router(templates_router)
+    # Templates router - 总结模板
+    app.include_router(templates_router)
+    
+    # Payments router - 支付相关
+    app.include_router(payments_router)
