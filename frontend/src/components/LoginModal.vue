@@ -83,7 +83,10 @@
 
       <!-- Footer -->
       <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 text-center text-xs text-gray-400">
-        登录即代表您同意我们的 <a href="#" class="underline hover:text-primary">服务条款</a>
+        登录即代表您同意
+        <RouterLink to="/terms" class="underline hover:text-primary transition-colors">服务条款</RouterLink>
+        与
+        <RouterLink to="/privacy" class="underline hover:text-primary transition-colors">隐私政策</RouterLink>
       </div>
     </div>
   </div>

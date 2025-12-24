@@ -174,7 +174,7 @@
             <div class="page-card hover:border-primary/30 transition-colors cursor-pointer group page-card--accent" @click="openPricing">
               <div class="flex justify-between items-start">
                 <div>
-                  <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Value Pack</div>
+                  <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Pro Pack</div>
                   <div class="mt-1 text-xs text-gray-500">高频总结</div>
                 </div>
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">¥3</span>

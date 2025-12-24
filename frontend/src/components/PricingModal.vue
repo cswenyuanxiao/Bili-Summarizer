@@ -38,7 +38,7 @@
           <ul class="space-y-3 mb-8">
             <li class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              每日 3 次总结
+              注册送 50 积分
             </li>
             <li class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -46,7 +46,7 @@
             </li>
             <li class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              基础思维导图
+              完整思维导图与转录
             </li>
           </ul>
           <button class="w-full py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-500 cursor-default" disabled>

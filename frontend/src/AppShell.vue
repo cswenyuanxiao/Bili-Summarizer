@@ -86,6 +86,10 @@
                       <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">开发者 API</span>
                     </RouterLink>
                     
+                    <RouterLink to="/api-docs" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">API 文档</span>
+                    </RouterLink>
+                    
                     <RouterLink to="/docs" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
                       <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">使用文档</span>
                     </RouterLink>
@@ -162,14 +166,10 @@
       @close="showBillingModal = false"
     />
     <UsageGuideModal :show="showUsageGuide" @close="showUsageGuide = false" />
+    <FeedbackModal :show="showFeedbackModal" @close="showFeedbackModal = false" />
 
-    <footer class="bg-gray-100 dark:bg-gray-800 py-6 text-center text-sm text-gray-600 dark:text-gray-400">
-      <div class="container mx-auto">
-        <p>
-          Powered by <a href="https://ai.google.dev/" target="_blank" class="text-primary hover:underline">Google Gemini</a> · Built with ❤️
-        </p>
-      </div>
-    </footer>
+    <PageFooter @open-feedback="openFeedback" />
+    <FeedbackButton @click="openFeedback" />
   </div>
 </template>
 
@@ -183,6 +183,9 @@ import DashboardModal from './components/DashboardModal.vue'
 import BillingModal from './components/BillingModal.vue'
 import InviteModal from './components/InviteModal.vue'
 import UsageGuideModal from './components/UsageGuideModal.vue'
+import FeedbackModal from './components/FeedbackModal.vue'
+import FeedbackButton from './components/FeedbackButton.vue'
+import PageFooter from './components/PageFooter.vue'
 import { useTheme } from './composables/useTheme'
 import { useAuth } from './composables/useAuth'
 import { isSupabaseConfigured, supabase } from './supabase'
@@ -200,6 +203,7 @@ const showDashboard = ref(false)
 const showBillingModal = ref(false)
 const showInviteModal = ref(false)
 const showUsageGuide = ref(false)
+const showFeedbackModal = ref(false)
 const showUserMenu = ref(false)
 const showMobileMenu = ref(false)
 const userMenuRef = ref<HTMLElement | null>(null)
@@ -275,6 +279,10 @@ const openApiKey = () => {
 
 const openUsageGuide = () => {
   showUsageGuide.value = true
+}
+
+const openFeedback = () => {
+  showFeedbackModal.value = true
 }
 
 const handleLogout = async () => {
@@ -454,6 +462,7 @@ provide('appActions', {
   openBilling,
   openInvite,
   openApiKey,
-  openUsageGuide
+  openUsageGuide,
+  openFeedback
 })
 </script>

@@ -79,7 +79,7 @@
       </div>
 
       <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between text-xs text-gray-500">
-        <span>新用户注册即送 30 积分</span>
+        <span>新用户注册即送 50 积分</span>
         <div class="flex gap-2">
           <button
             @click="$emit('refresh')"

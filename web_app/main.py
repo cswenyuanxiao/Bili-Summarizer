@@ -290,6 +290,29 @@ async def init_database():
         CREATE INDEX IF NOT EXISTS idx_share_user 
         ON share_links(user_id)
     """)
+
+    # 反馈表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS feedbacks (
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            feedback_type TEXT NOT NULL,
+            content TEXT NOT NULL,
+            contact TEXT,
+            status TEXT DEFAULT 'pending',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_feedback_user
+        ON feedbacks(user_id)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_feedback_status
+        ON feedbacks(status)
+    """)
     
     conn.commit()
     conn.close()
@@ -1437,6 +1460,77 @@ async def get_share_link(share_id: str):
             "transcript": row[2],
             "mindmap": row[3],
             "created_at": row[4]
+        }
+    finally:
+        conn.close()
+
+
+class FeedbackRequest(BaseModel):
+    feedback_type: str
+    content: str
+    contact: Optional[str] = None
+
+
+@app.post("/api/feedback")
+async def submit_feedback(
+    request: FeedbackRequest,
+    req: Request
+):
+    """提交用户反馈，支持匿名或登录用户"""
+    # 尝试获取用户信息（可选）
+    user = None
+    auth_header = req.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        try:
+            user = await verify_session_token(auth_header[7:])
+        except:
+            pass  # 忽略认证失败，允许匿名反馈
+    # 验证类型
+    if request.feedback_type not in ["bug", "feature", "other"]:
+        raise HTTPException(400, "Invalid feedback type")
+    
+    # 验证内容长度
+    if not request.content or len(request.content.strip()) == 0:
+        raise HTTPException(400, "Content cannot be empty")
+    
+    if len(request.content) > 500:
+        raise HTTPException(400, "Content too long (max 500 characters)")
+    
+    # 如果提供联系方式，简单验证格式
+    if request.contact and "@" not in request.contact:
+        raise HTTPException(400, "Invalid contact email format")
+    
+    feedback_id = secrets.token_urlsafe(12)
+    user_id = user.get("user_id") if user else None
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO feedbacks (id, user_id, feedback_type, content, contact, status)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            feedback_id,
+            user_id,
+            request.feedback_type,
+            request.content.strip(),
+            request.contact.strip() if request.contact else None,
+            "pending"
+        ))
+        conn.commit()
+        
+        # 可选：记录日志用于管理员查看
+        logger.info(
+            f"New feedback: id={feedback_id}, "
+            f"type={request.feedback_type}, "
+            f"user_id={user_id or 'anonymous'}, "
+            f"contact={request.contact or 'N/A'}"
+        )
+        
+        return {
+            "success": True,
+            "feedback_id": feedback_id,
+            "message": "感谢您的反馈！"
         }
     finally:
         conn.close()

@@ -1,4 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+@import './styles/shadows.css';
+@import './styles/animations.css';
+@import './styles/polish.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -309,33 +312,40 @@ body {
 }
 
 @keyframes float-soft {
+
   0%,
   100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-6px);
   }
 }
 
 @keyframes wiggle-soft {
+
   0%,
   100% {
     transform: rotate(0deg);
   }
+
   45% {
     transform: rotate(0.6deg);
   }
+
   55% {
     transform: rotate(-0.6deg);
   }
 }
 
 @keyframes cloud-drift {
+
   0%,
   100% {
     transform: translate(0, 0) scale(1);
   }
+
   50% {
     transform: translate(20px, -12px) scale(1.05);
   }

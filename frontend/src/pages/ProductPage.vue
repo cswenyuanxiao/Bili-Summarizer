@@ -1,6 +1,7 @@
 <template>
   <main class="min-h-screen pb-20 page-shell">
     <div class="container mx-auto max-w-6xl px-4">
+      <!-- Hero Section -->
       <section class="page-hero space-y-4" data-reveal>
         <div class="page-hero__cloud" aria-hidden="true"></div>
         <p class="page-hero__kicker">Product</p>
@@ -12,7 +13,33 @@
         </div>
       </section>
 
-      <section class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm text-gray-600 dark:text-gray-300 mt-8" data-reveal>
+      <!-- 产品演示区 -->
+      <section class="mt-12" data-reveal>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">产品演示</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="page-card">
+            <img 
+              src="/assets/demo/summary.png" 
+              alt="AI 总结过程演示" 
+              class="w-full h-48 object-cover rounded-lg mb-3"
+            />
+            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">实时总结</div>
+            <div class="mt-2 text-xs text-gray-500">SSE 推送，在线观看 AI 思考过程</div>
+          </div>
+          <div class="page-card">
+            <img 
+              src="/assets/demo/mindmap.png" 
+              alt="思维导图生成演示" 
+              class="w-full h-48 object-cover rounded-lg mb-3"
+            />
+            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">智能导图</div>
+            <div class="mt-2 text-xs text-gray-500">自动生成知识结构，支持 SVG/PNG 导出</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 三大核心能力 -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm text-gray-600 dark:text-gray-300 mt-12" data-reveal>
         <button class="page-card card-hover-elevate card-action" type="button" @click="goHome">
           <div class="text-base font-semibold text-gray-900 dark:text-gray-100">结构化总结</div>
           <div class="mt-2 text-xs text-gray-500">一键生成关键观点、结论与行动项。</div>
@@ -27,6 +54,60 @@
           <div class="text-base font-semibold text-gray-900 dark:text-gray-100">思维导图</div>
           <div class="mt-2 text-xs text-gray-500">自动生成知识脉络，支持导出。</div>
           <div class="mt-4 text-xs text-primary font-semibold">立即体验 →</div>
+        </button>
+      </section>
+
+      <!-- 使用场景区 -->
+      <section class="mt-12" data-reveal>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">适用场景</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="page-card text-center">
+            <div class="text-3xl mb-3">🎓</div>
+            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">学生学习</div>
+            <div class="mt-2 text-xs text-gray-500">快速提取课程重点，生成复习笔记</div>
+          </div>
+          <div class="page-card text-center page-card--accent">
+            <div class="text-3xl mb-3">✍️</div>
+            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">创作者研究</div>
+            <div class="mt-2 text-xs text-gray-500">分析爆款视频，挖掘内容灵感</div>
+          </div>
+          <div class="page-card text-center">
+            <div class="text-3xl mb-3">💻</div>
+            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">开发者学习</div>
+            <div class="mt-2 text-xs text-gray-500">快速学习技术教程，整理知识点</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 技术优势区 -->
+      <section class="mt-12 mb-8" data-reveal>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">技术优势</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="page-card">
+            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">⚡ SSE 实时推送</div>
+            <div class="mt-2 text-xs text-gray-500 leading-relaxed">
+              Server-Sent Events 技术，实时展示 AI 思考过程，告别漫长等待
+            </div>
+          </div>
+          <div class="page-card">
+            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">🧠 智能思维导图</div>
+            <div class="mt-2 text-xs text-gray-500 leading-relaxed">
+              基于 Mermaid.js 自动生成知识结构，支持 SVG/PNG 多格式导出
+            </div>
+          </div>
+          <div class="page-card">
+            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">💬 AI 追问功能</div>
+            <div class="mt-2 text-xs text-gray-500 leading-relaxed">
+              基于视频内容深度对话，挖掘细节与延伸知识
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="mt-12 text-center" data-reveal>
+        <button class="btn-primary px-8 py-3 text-base wiggle-soft" @click="goHome">
+          开始使用 Bili-Summarizer
         </button>
       </section>
     </div>

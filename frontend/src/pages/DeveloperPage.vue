@@ -9,19 +9,19 @@
           <p class="page-hero__subtitle">使用 API Key 调用总结、转录与结构化导出能力，支持任务队列与批量处理。</p>
           <div class="flex flex-wrap gap-3">
             <button class="btn-primary px-5 py-2 text-sm wiggle-soft" @click="openApiKey">管理 API Key</button>
-            <button class="px-5 py-2 text-sm rounded-full border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition" @click="openLogin">
+            <button v-if="!user" class="px-5 py-2 text-sm rounded-full border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition" @click="openLogin">
               登录查看配额
             </button>
           </div>
         </section>
 
         <section class="grid grid-cols-1 md:grid-cols-3 gap-6" data-reveal>
-          <button class="page-card space-y-3 card-action" type="button" @click="openApiKey">
+          <RouterLink to="/api-docs" class="page-card space-y-3 card-action">
             <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">核心接口</div>
             <p class="text-sm text-gray-500">/api/summarize、/api/transcript、/api/export 三大能力覆盖主流程。</p>
             <span class="badge-pill badge-soft">稳定 SLA</span>
-            <div class="text-xs text-primary font-semibold">生成 Key →</div>
-          </button>
+            <div class="text-xs text-primary font-semibold">查看文档 →</div>
+          </RouterLink>
           <button class="page-card space-y-3 card-action" type="button" @click="openApiKey">
             <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">安全策略</div>
             <p class="text-sm text-gray-500">支持 API Key 绑定、额度控制与访问日志审计。</p>
@@ -42,8 +42,8 @@
             <span class="badge-pill badge-soft">5 分钟完成</span>
           </div>
           <ol class="list-decimal pl-5 text-sm text-gray-600 dark:text-gray-300 space-y-2">
-            <li>登录后生成专属 API Key。</li>
-            <li>在请求 Header 中加入 Authorization: Bearer &lt;key&gt;。</li>
+            <li>登录后生成专属 API Key（格式：sk-bili-xxx）。</li>
+            <li>在请求 Header 中加入 <code class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-xs font-mono">x-api-key: sk-bili-xxx</code>。</li>
             <li>在控制台查看请求记录与扣费统计。</li>
           </ol>
           <div class="text-xs text-primary font-semibold">立即生成 Key →</div>
