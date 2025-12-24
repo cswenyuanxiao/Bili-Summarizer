@@ -42,6 +42,7 @@ from .downloader import download_content
 from .summarizer_gemini import summarize_content, extract_ai_transcript, upload_to_gemini, delete_gemini_file
 from .cache import get_cached_result, save_to_cache, get_cache_stats
 from .queue_manager import task_queue
+from .rate_limiter import rate_limiter
 from .auth import get_current_user, verify_session_token
 from .credits import ensure_user_credits, get_user_credits, charge_user_credits, get_daily_usage, grant_credits
 from .payments import (
@@ -431,9 +432,17 @@ async def run_summarization(
                 record_failure(None, "AUTH_REQUIRED", "auth", "missing token")
                 yield f"data: {json.dumps({'type': 'error', 'code': 'AUTH_REQUIRED', 'error': '请先登录再使用该功能'})}\n\n"
                 return
-
             try:
                 user = await verify_session_token(token)
+                
+                # 频率限制
+                if user:
+                    if not await rate_limiter.acquire(user["user_id"]):
+                        wait_time = rate_limiter.get_wait_time(user["user_id"])
+                        record_failure(user["user_id"], "RATE_LIMITED", "quota", f"wait {wait_time:.1f}s")
+                        yield f"data: {json.dumps({'type': 'error', 'code': 'RATE_LIMITED', 'error': f'请求过于频繁，请等待 {wait_time:.0f} 秒后重试'})}\n\n"
+                        return
+
                 ensure_user_credits(user["user_id"])
                 unlimited_user = is_unlimited_user(user) or is_subscription_active(user["user_id"])
             except HTTPException as e:
