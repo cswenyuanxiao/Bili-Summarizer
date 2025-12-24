@@ -21,16 +21,26 @@ def init_credits_db():
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    id_type = "SERIAL PRIMARY KEY" if using_postgres() else "INTEGER PRIMARY KEY AUTOINCREMENT"
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS credit_events (
-            id %s,
-            user_id TEXT NOT NULL,
-            event_type TEXT NOT NULL,
-            cost INTEGER NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """ % id_type)
+    if using_postgres():
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS credit_events (
+                id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                cost INTEGER NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+    else:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS credit_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                cost INTEGER NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
     conn.commit()
     conn.close()
 
