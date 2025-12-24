@@ -177,6 +177,10 @@ PRICING_PLANS = {
 # --- 初始化 ---
 app = FastAPI(title="Bili-Summarizer")
 
+# --- 注册模块化路由 (health router 必须首先注册，不依赖 DB) ---
+from .routers import register_routers
+register_routers(app)
+
 # --- 数据库初始化 ---
 @app.on_event("startup")
 async def on_startup():

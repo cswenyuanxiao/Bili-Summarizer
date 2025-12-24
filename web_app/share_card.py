@@ -1,6 +1,6 @@
 """
 分享卡片生成服务
-使用 Pillow 渲染精美的总结卡片
+仿微信读书风格的精美总结卡片
 """
 import io
 import os
@@ -8,94 +8,65 @@ import uuid
 import time
 from pathlib import Path
 from typing import Optional, Dict, Any
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
+import qrcode
 import logging
 
 logger = logging.getLogger(__name__)
 
-# 卡片尺寸定义
-CARD_SIZES = {
-    "default": (1080, 1350),    # 微信朋友圈 4:5
-    "dark": (1080, 1350),
-    "gradient": (1080, 1350),
-    "minimal": (1200, 630)      # 横版 Twitter/微博
-}
+# 卡片尺寸定义（微信读书风格 3:4 比例）
+CARD_WIDTH = 1080
+CARD_HEIGHT = 1440
 
-# 颜色主题
-THEMES = {
-    "default": {
-        "bg": "#FFFFFF",
-        "text": "#0f172a",
-        "accent": "#4f46e5",
-        "secondary": "#64748b"
-    },
-    "dark": {
-        "bg": "#0f172a",
-        "text": "#f8fafc",
-        "accent": "#818cf8",
-        "secondary": "#94a3b8"
-    },
-    "gradient": {
-        "bg_start": "#4f46e5",
-        "bg_end": "#06b6d4",
-        "text": "#ffffff",
-        "accent": "#fbbf24",
-        "secondary": "#e2e8f0"
-    },
-    "minimal": {
-        "bg": "#fafafa",
-        "text": "#171717",
-        "accent": "#2563eb",
-        "secondary": "#737373"
-    }
+# 颜色主题 - 仿微信读书
+COLORS = {
+    "bg": "#f5f0e8",           # 温暖米黄背景
+    "text": "#2c2c2c",         # 深灰正文
+    "quote": "#3d3d3d",        # 主引文
+    "secondary": "#8b8b8b",    # 次要信息（日期、来源）
+    "accent": "#c9a66b",       # 金色点缀
+    "heart": "#e74c3c",        # 爱心红色
 }
 
 # 字体路径
-# 优先使用圆润字体，如果不存在则使用 Noto Sans SC
 FONT_DIR = Path(__file__).parent / "fonts"
-
-# 字体优先级列表（优先使用完整的 NotoSansSC）
-FONT_CANDIDATES_REGULAR = [
-    "NotoSansSC-Regular.otf",         # 思源黑体（完整版 ~16MB）
-]
-
-FONT_CANDIDATES_BOLD = [
-    "NotoSansSC-Bold.otf",
-]
 
 # 系统字体备用路径
 SYSTEM_FONTS = [
-    "/System/Library/Fonts/PingFang.ttc",              # macOS 苹方
-    "/System/Library/Fonts/STHeiti Medium.ttc",        # macOS 华文黑体
-    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",  # Linux
-    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",  # Linux Alt
+    "/System/Library/Fonts/PingFang.ttc",
+    "/System/Library/Fonts/STHeiti Medium.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
 ]
 
-MIN_FONT_SIZE = 1_000_000  # 1MB - 完整 CJK 字体最小尺寸
+MIN_FONT_SIZE = 1_000_000
 
-def get_font_path(candidates: list) -> str:
-    """从候选字体列表中选择第一个存在且完整的字体"""
-    # 1. 首先检查项目字体目录
-    for font_name in candidates:
-        font_path = FONT_DIR / font_name
-        if font_path.exists():
-            # 验证字体文件大小（完整的中文字体应该 > 1MB）
-            if font_path.stat().st_size > MIN_FONT_SIZE:
-                return str(font_path)
-            else:
-                logger.warning(f"Font {font_name} is too small ({font_path.stat().st_size} bytes), skipping")
+
+def get_font_path(font_name: str = "NotoSansSC-Regular.otf") -> str:
+    """获取可用的字体路径"""
+    # 1. 检查项目字体目录
+    font_path = FONT_DIR / font_name
+    if font_path.exists() and font_path.stat().st_size > MIN_FONT_SIZE:
+        return str(font_path)
     
     # 2. 检查系统字体
     for sys_font in SYSTEM_FONTS:
         if Path(sys_font).exists():
-            logger.info(f"Using system font: {sys_font}")
             return sys_font
     
-    # 3. 返回第一个候选（即使不存在，让后续代码处理错误）
-    return str(FONT_DIR / candidates[0])
+    return str(font_path)
 
-FONT_REGULAR = get_font_path(FONT_CANDIDATES_REGULAR)
-FONT_BOLD = get_font_path(FONT_CANDIDATES_BOLD)
+
+def get_bold_font_path() -> str:
+    """获取粗体字体路径"""
+    bold_path = FONT_DIR / "NotoSansSC-Bold.otf"
+    if bold_path.exists() and bold_path.stat().st_size > MIN_FONT_SIZE:
+        return str(bold_path)
+    return get_font_path()
+
+
+FONT_REGULAR = get_font_path()
+FONT_BOLD = get_bold_font_path()
 
 # 卡片存储目录
 CARDS_DIR = Path(__file__).parent.parent / "cards"
@@ -108,10 +79,51 @@ def hex_to_rgb(hex_color: str) -> tuple:
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
 
-def wrap_text(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list:
-    """将文本按宽度自动换行"""
+def create_circular_avatar(image: Image.Image, size: int = 120) -> Image.Image:
+    """创建圆形头像"""
+    # 缩放到目标尺寸
+    image = image.resize((size, size), Image.Resampling.LANCZOS)
+    
+    # 转换为灰度（微信读书风格）
+    image = image.convert('L').convert('RGBA')
+    
+    # 创建圆形遮罩
+    mask = Image.new('L', (size, size), 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0, 0, size, size), fill=255)
+    
+    # 应用遮罩
+    output = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    output.paste(image, (0, 0))
+    output.putalpha(mask)
+    
+    return output
+
+
+def generate_qr_code(url: str, size: int = 120) -> Image.Image:
+    """生成二维码"""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=2,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    
+    qr_img = qr.make_image(fill_color="#3d3d3d", back_color="#f5f0e8")
+    qr_img = qr_img.resize((size, size), Image.Resampling.LANCZOS)
+    
+    return qr_img
+
+
+def wrap_text_smart(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list:
+    """智能换行，优先在标点符号处断行"""
     lines = []
     current_line = ""
+    
+    # 优先断行的标点
+    break_chars = "，。！？；：、）」』】"
     
     for char in text:
         test_line = current_line + char
@@ -129,132 +141,127 @@ def wrap_text(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list:
     return lines
 
 
-def create_gradient_background(size: tuple, start_color: str, end_color: str) -> Image.Image:
-    """创建渐变背景"""
-    img = Image.new('RGB', size)
-    draw = ImageDraw.Draw(img)
-    
-    start_rgb = hex_to_rgb(start_color)
-    end_rgb = hex_to_rgb(end_color)
-    
-    for y in range(size[1]):
-        ratio = y / size[1]
-        r = int(start_rgb[0] + (end_rgb[0] - start_rgb[0]) * ratio)
-        g = int(start_rgb[1] + (end_rgb[1] - start_rgb[1]) * ratio)
-        b = int(start_rgb[2] + (end_rgb[2] - start_rgb[2]) * ratio)
-        draw.line([(0, y), (size[0], y)], fill=(r, g, b))
-    
-    return img
-
-
 def generate_share_card(
     title: str,
     summary: str,
     thumbnail_url: Optional[str] = None,
-    template: str = "default"
+    template: str = "default",
+    share_url: str = "https://bili-summarizer.onrender.com"
 ) -> Dict[str, Any]:
     """
-    生成分享卡片
+    生成仿微信读书风格的分享卡片
     """
-    # 获取模板配置
-    size = CARD_SIZES.get(template, CARD_SIZES["default"])
-    theme = THEMES.get(template, THEMES["default"])
-    
-    # 创建背景
-    if template == "gradient":
-        img = create_gradient_background(size, theme["bg_start"], theme["bg_end"])
-    else:
-        img = Image.new('RGB', size, hex_to_rgb(theme["bg"]))
-    
+    # 创建米黄色背景
+    img = Image.new('RGB', (CARD_WIDTH, CARD_HEIGHT), hex_to_rgb(COLORS["bg"]))
     draw = ImageDraw.Draw(img)
     
-    # 加载字体（调整字号以适应更好的行距）
+    # 加载字体
     try:
-        font_title = ImageFont.truetype(FONT_BOLD, 52)
-        font_body = ImageFont.truetype(FONT_REGULAR, 28)
-        font_footer = ImageFont.truetype(FONT_REGULAR, 22)
+        font_quote = ImageFont.truetype(FONT_BOLD, 48)      # 主引文
+        font_title = ImageFont.truetype(FONT_REGULAR, 32)   # 标题/来源
+        font_small = ImageFont.truetype(FONT_REGULAR, 26)   # 日期/作者
+        font_brand = ImageFont.truetype(FONT_BOLD, 28)      # 品牌
     except Exception as e:
-        logger.warning(f"Failed to load custom fonts from {FONT_BOLD} or {FONT_REGULAR}: {e}, using default")
-        font_title = ImageFont.load_default()
-        font_body = ImageFont.load_default()
-        font_footer = ImageFont.load_default()
+        logger.warning(f"Failed to load fonts: {e}")
+        font_quote = ImageFont.load_default()
+        font_title = font_quote
+        font_small = font_quote
+        font_brand = font_quote
     
     # 布局参数
-    padding = 60
-    content_width = size[0] - padding * 2
+    padding = 80
+    content_width = CARD_WIDTH - padding * 2
     y_offset = padding
     
-    # 绘制封面缩略图（如果有）
+    # === 顶部区域：头像 + 爱心 + 日期 ===
+    
+    # 绘制头像（如果有）
+    avatar_size = 80
     if thumbnail_url:
         try:
             import httpx
             response = httpx.get(thumbnail_url, timeout=5)
             thumb = Image.open(io.BytesIO(response.content))
-            
-            # 缩放封面
-            thumb_height = 400 if template != "minimal" else 300
-            thumb_ratio = content_width / thumb.width
-            thumb = thumb.resize((content_width, int(thumb.height * thumb_ratio)))
-            
-            # 裁剪到指定高度
-            if thumb.height > thumb_height:
-                thumb = thumb.crop((0, 0, thumb.width, thumb_height))
-            
-            # 圆角处理 (简化版)
-            img.paste(thumb, (padding, y_offset))
-            y_offset += thumb.height + 30
+            circular_avatar = create_circular_avatar(thumb, avatar_size)
+            img.paste(circular_avatar, (padding, y_offset), circular_avatar)
         except Exception as e:
-            logger.warning(f"Failed to load thumbnail: {e}")
+            logger.warning(f"Failed to load avatar: {e}")
+            # 绘制占位圆形
+            draw.ellipse(
+                (padding, y_offset, padding + avatar_size, y_offset + avatar_size),
+                fill=hex_to_rgb("#ddd")
+            )
+    else:
+        # 绘制占位圆形
+        draw.ellipse(
+            (padding, y_offset, padding + avatar_size, y_offset + avatar_size),
+            fill=hex_to_rgb("#e0d8cc")
+        )
     
-    # 绘制标题（增加行高）
-    title_lines = wrap_text(title[:50], font_title, content_width)
-    for line in title_lines[:2]:
-        draw.text((padding, y_offset), line, font=font_title, fill=hex_to_rgb(theme["text"]))
-        y_offset += 70  # 增加行高
+    y_offset += avatar_size + 15
     
-    y_offset += 30  # 标题和分隔线间距
+    # 绘制爱心图标
+    heart = "♥"
+    draw.text((padding + 25, y_offset), heart, font=font_small, fill=hex_to_rgb(COLORS["heart"]))
+    y_offset += 40
     
-    # 绘制分隔线
-    draw.line(
-        [(padding, y_offset), (size[0] - padding, y_offset)],
-        fill=hex_to_rgb(theme["accent"]),
-        width=3
-    )
-    y_offset += 30
+    # 绘制日期
+    from datetime import datetime
+    date_text = f"摘录于 {datetime.now().strftime('%Y/%m/%d')}"
+    draw.text((padding, y_offset), date_text, font=font_small, fill=hex_to_rgb(COLORS["secondary"]))
+    y_offset += 80
     
-    # 绘制总结内容（优化行间距和段落间距）
-    summary_text = summary[:300]
+    # === 中部区域：主引文 ===
     
-    # 按段落处理：检测换行符
-    paragraphs = summary_text.split('\n')
-    max_summary_lines = 12 if template != "minimal" else 6
-    line_count = 0
+    # 提取摘要的前 100 个字符作为引文
+    quote_text = summary[:100].strip()
+    if len(summary) > 100:
+        quote_text = quote_text.rstrip("，。！？；：、") + "……"
     
-    for para in paragraphs:
-        if line_count >= max_summary_lines:
-            break
-        para = para.strip()
-        if not para:
-            y_offset += 20  # 空段落间距
-            continue
-        
-        para_lines = wrap_text(para, font_body, content_width)
-        for line in para_lines:
-            if line_count >= max_summary_lines:
-                break
-            draw.text((padding, y_offset), line, font=font_body, fill=hex_to_rgb(theme["secondary"]))
-            y_offset += 50  # 增加行间距到50px（原为45px）
-            line_count += 1
-        
-        # 段落间增加额外间距
-        y_offset += 15
+    # 换行处理
+    quote_lines = wrap_text_smart(quote_text, font_quote, content_width)
+    line_height = 72
     
-    # 绘制底部水印
-    footer_text = "由 Bili-Summarizer 生成 | bili-summarizer.com"
-    footer_bbox = font_footer.getbbox(footer_text)
-    footer_x = (size[0] - (footer_bbox[2] - footer_bbox[0])) // 2
-    footer_y = size[1] - padding - 30
-    draw.text((footer_x, footer_y), footer_text, font=font_footer, fill=hex_to_rgb(theme["secondary"]))
+    for line in quote_lines[:5]:  # 最多 5 行
+        draw.text((padding, y_offset), line, font=font_quote, fill=hex_to_rgb(COLORS["quote"]))
+        y_offset += line_height
+    
+    y_offset += 50
+    
+    # === 来源信息 ===
+    
+    # 标题（作为来源）
+    source_prefix = "/ "
+    title_display = title[:30] + ("..." if len(title) > 30 else "")
+    source_text = f"{source_prefix}{title_display}"
+    
+    # 换行处理来源
+    source_lines = wrap_text_smart(source_text, font_title, content_width)
+    for line in source_lines[:2]:
+        draw.text((padding, y_offset), line, font=font_title, fill=hex_to_rgb(COLORS["secondary"]))
+        y_offset += 50
+    
+    # 作者/UP主
+    author_text = "Bili-Summarizer AI 总结"
+    draw.text((padding + 20, y_offset), author_text, font=font_small, fill=hex_to_rgb(COLORS["secondary"]))
+    
+    # === 底部区域：品牌 Logo + 二维码 ===
+    
+    footer_y = CARD_HEIGHT - padding - 30
+    
+    # 品牌 Logo（左下角）
+    brand_text = "Bili-Summarizer"
+    draw.text((padding, footer_y), brand_text, font=font_brand, fill=hex_to_rgb(COLORS["quote"]))
+    
+    # 二维码（右下角）
+    qr_size = 100
+    try:
+        qr_img = generate_qr_code(share_url, qr_size)
+        qr_x = CARD_WIDTH - padding - qr_size
+        qr_y = CARD_HEIGHT - padding - qr_size - 20
+        img.paste(qr_img, (qr_x, qr_y))
+    except Exception as e:
+        logger.warning(f"Failed to generate QR code: {e}")
     
     # 保存图片
     card_id = f"card_{int(time.time())}_{uuid.uuid4().hex[:8]}"
