@@ -19,7 +19,7 @@
 
             <nav class="hidden lg:flex items-center gap-6 text-sm text-gray-600 dark:text-gray-300">
               <div class="relative group">
-                <button class="hover:text-gray-900 dark:hover:text-white transition-colors">产品</button>
+                <button @click="scrollToSection('product')" class="hover:text-gray-900 dark:hover:text-white transition-colors">产品</button>
                 <div class="absolute left-0 top-full mt-4 w-72 rounded-2xl border border-gray-200/70 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                   <div class="p-4 space-y-2">
                     <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">核心能力</div>
@@ -28,12 +28,12 @@
                   </div>
                 </div>
               </div>
-              <button @click="showPricingModal = true" class="hover:text-gray-900 dark:hover:text-white transition-colors">方案</button>
-              <button @click="showUsageGuide = true" class="hover:text-gray-900 dark:hover:text-white transition-colors">使用文档</button>
-              <button v-if="user" @click="openDashboard" class="hover:text-gray-900 dark:hover:text-white transition-colors">仪表盘</button>
-              <button v-if="user" @click="openBilling" class="hover:text-gray-900 dark:hover:text-white transition-colors">账单</button>
-              <button v-if="user" @click="showInviteModal = true" class="hover:text-gray-900 dark:hover:text-white transition-colors">邀请好友</button>
-              <button v-if="user" @click="showApiKeyModal = true" class="hover:text-gray-900 dark:hover:text-white transition-colors">开发者 API</button>
+              <button @click="scrollToSection('pricing')" class="hover:text-gray-900 dark:hover:text-white transition-colors">方案</button>
+              <button @click="scrollToSection('docs')" class="hover:text-gray-900 dark:hover:text-white transition-colors">使用文档</button>
+              <button v-if="user" @click="scrollToSection('dashboard')" class="hover:text-gray-900 dark:hover:text-white transition-colors">仪表盘</button>
+              <button v-if="user" @click="scrollToSection('billing')" class="hover:text-gray-900 dark:hover:text-white transition-colors">账单</button>
+              <button v-if="user" @click="scrollToSection('invite')" class="hover:text-gray-900 dark:hover:text-white transition-colors">邀请好友</button>
+              <button v-if="user" @click="scrollToSection('developer')" class="hover:text-gray-900 dark:hover:text-white transition-colors">开发者 API</button>
             </nav>
 
             <div class="flex items-center gap-3">
@@ -137,12 +137,13 @@
           </div>
           <div v-if="showMobileMenu" ref="mobileMenuRef" class="lg:hidden pb-4">
             <div class="rounded-2xl glass-card p-4 space-y-2 text-sm text-gray-700 dark:text-gray-200">
-              <button class="w-full text-left" @click="showPricingModal = true; showMobileMenu = false">方案</button>
-              <button class="w-full text-left" @click="showUsageGuide = true; showMobileMenu = false">使用文档</button>
-              <button v-if="user" class="w-full text-left" @click="openDashboard">仪表盘</button>
-              <button v-if="user" class="w-full text-left" @click="openBilling">账单与发票</button>
-              <button v-if="user" class="w-full text-left" @click="showInviteModal = true; showMobileMenu = false">邀请好友</button>
-              <button v-if="user" class="w-full text-left" @click="showApiKeyModal = true; showMobileMenu = false">开发者 API</button>
+              <button class="w-full text-left" @click="scrollToSection('product'); showMobileMenu = false">产品</button>
+              <button class="w-full text-left" @click="scrollToSection('pricing'); showMobileMenu = false">方案</button>
+              <button class="w-full text-left" @click="scrollToSection('docs'); showMobileMenu = false">使用文档</button>
+              <button v-if="user" class="w-full text-left" @click="scrollToSection('dashboard'); showMobileMenu = false">仪表盘</button>
+              <button v-if="user" class="w-full text-left" @click="scrollToSection('billing'); showMobileMenu = false">账单与发票</button>
+              <button v-if="user" class="w-full text-left" @click="scrollToSection('invite'); showMobileMenu = false">邀请好友</button>
+              <button v-if="user" class="w-full text-left" @click="scrollToSection('developer'); showMobileMenu = false">开发者 API</button>
             </div>
           </div>
         </div>
@@ -333,6 +334,119 @@
               @share="shareHistoryItem"
             />
           </div>
+
+          <!-- Product -->
+          <section id="product" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-6">
+            <div class="flex items-center justify-between">
+              <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">产品</h2>
+              <button class="text-sm text-primary hover:underline" @click="scrollToStart">立即体验</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-gray-300">
+              <div class="rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+                <div class="text-base font-semibold text-gray-900 dark:text-gray-100">快速总结</div>
+                <div class="mt-2 text-xs text-gray-500">一键生成结构化摘要与关键要点。</div>
+              </div>
+              <div class="rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+                <div class="text-base font-semibold text-gray-900 dark:text-gray-100">转录与时间戳</div>
+                <div class="mt-2 text-xs text-gray-500">自动生成字幕与时间索引。</div>
+              </div>
+              <div class="rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+                <div class="text-base font-semibold text-gray-900 dark:text-gray-100">思维导图</div>
+                <div class="mt-2 text-xs text-gray-500">将总结整理为清晰的知识图谱。</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Pricing -->
+          <section id="pricing" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-6">
+            <div class="flex items-center justify-between">
+              <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">方案</h2>
+              <button class="text-sm text-primary hover:underline" @click="showPricingModal = true">查看购买</button>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 text-sm text-gray-600 dark:text-gray-300">
+              <div class="rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+                <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Starter Pack</div>
+                <div class="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">¥1</div>
+                <div class="mt-1 text-xs text-gray-500">30 积分 / 适合轻度使用</div>
+              </div>
+              <div class="rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+                <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Pro Pack</div>
+                <div class="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">¥3</div>
+                <div class="mt-1 text-xs text-gray-500">120 积分 / 高频总结</div>
+              </div>
+              <div class="rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+                <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Pro 专业版</div>
+                <div class="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">¥29.9</div>
+                <div class="mt-1 text-xs text-gray-500">月付 / 无限次总结</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Docs -->
+          <section id="docs" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-6">
+            <div class="flex items-center justify-between">
+              <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">使用文档</h2>
+              <button class="text-sm text-primary hover:underline" @click="showUsageGuide = true">查看完整指南</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300">
+              <div class="rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+                <div class="text-base font-semibold text-gray-900 dark:text-gray-100">快速上手</div>
+                <ol class="mt-2 space-y-1 text-xs text-gray-500 list-decimal list-inside">
+                  <li>登录后获取积分</li>
+                  <li>粘贴 B 站链接生成总结</li>
+                  <li>保存、导出或分享结果</li>
+                </ol>
+              </div>
+              <div class="rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+                <div class="text-base font-semibold text-gray-900 dark:text-gray-100">常见问题</div>
+                <div class="mt-2 text-xs text-gray-500">如果提示积分不足，可通过套餐购买或订阅升级。</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Dashboard -->
+          <section id="dashboard" v-if="user" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">仪表盘</h2>
+              <button class="text-sm text-primary hover:underline" @click="openDashboard">打开仪表盘</button>
+            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-300">
+              查看剩余积分、使用趋势与订阅状态。
+            </div>
+          </section>
+
+          <!-- Billing -->
+          <section id="billing" v-if="user" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">账单</h2>
+              <button class="text-sm text-primary hover:underline" @click="openBilling">查看账单</button>
+            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-300">
+              查看订阅与一次性额度包的支付记录，支持发票下载。
+            </div>
+          </section>
+
+          <!-- Invite -->
+          <section id="invite" v-if="user" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">邀请好友</h2>
+              <button class="text-sm text-primary hover:underline" @click="showInviteModal = true">生成邀请码</button>
+            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-300">
+              分享邀请码，双方各获得 10 积分奖励。
+            </div>
+          </section>
+
+          <!-- Developer API -->
+          <section id="developer" v-if="user" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">开发者 API</h2>
+              <button class="text-sm text-primary hover:underline" @click="showApiKeyModal = true">管理 API Key</button>
+            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-300">
+              通过 API Key 将总结能力集成到你的应用或工作流。
+            </div>
+          </section>
         </div>
       </div>
     </main>
@@ -809,6 +923,10 @@ const shareHistoryItem = async (item: {
 
 const scrollToStart = () => {
   document.getElementById('start')?.scrollIntoView({ behavior: 'smooth' })
+}
+
+const scrollToSection = (id: string) => {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 }
 
 onMounted(() => {
