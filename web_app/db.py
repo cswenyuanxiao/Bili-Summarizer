@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from urllib.parse import urlparse
 from typing import Any, Optional
 
 
@@ -50,3 +51,19 @@ def get_connection() -> ConnectionProxy:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return ConnectionProxy(conn, False)
+
+
+def get_backend_info() -> dict:
+    if using_postgres():
+        url = urlparse(os.getenv("DATABASE_URL") or "")
+        return {
+            "backend": "postgres",
+            "host": url.hostname,
+            "port": url.port,
+            "database": url.path.lstrip("/"),
+            "sslmode": (url.query or "").split("sslmode=")[-1] if "sslmode=" in (url.query or "") else None
+        }
+    return {
+        "backend": "sqlite",
+        "path": os.getenv("DB_PATH", "cache.db")
+    }

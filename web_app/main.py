@@ -52,7 +52,7 @@ from .payments import (
 )
 from .telemetry import record_failure
 from typing import List
-from .db import get_connection
+from .db import get_connection, get_backend_info, using_postgres
 from io import BytesIO
 import secrets
 import hashlib
@@ -906,6 +906,56 @@ async def mock_payment_complete(order_id: str):
     if os.getenv("PAYMENT_MOCK", "1") != "1":
         raise HTTPException(403, "Mock payment disabled")
     return mark_payment_paid(order_id)
+
+
+@app.get("/api/debug/db")
+async def debug_db(user: dict = Depends(get_current_user)):
+    info = get_backend_info()
+    result = {"db": info, "reachable": False, "version": None}
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        if using_postgres():
+            cursor.execute("SELECT version()")
+            row = cursor.fetchone()
+            result["version"] = row[0] if row else None
+        else:
+            cursor.execute("SELECT sqlite_version()")
+            row = cursor.fetchone()
+            result["version"] = row[0] if row else None
+        result["reachable"] = True
+        conn.close()
+    except Exception as exc:
+        result["error"] = str(exc)
+    return result
+
+
+@app.get("/api/debug/credits")
+async def debug_credits(user: dict = Depends(get_current_user)):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT credits, total_used, created_at, updated_at
+            FROM user_credits
+            WHERE user_id = ?
+        """, (user["user_id"],))
+        credits_row = cursor.fetchone()
+        cursor.execute("""
+            SELECT event_type, cost, created_at
+            FROM credit_events
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 5
+        """, (user["user_id"],))
+        events = cursor.fetchall()
+        return {
+            "user_id": user["user_id"],
+            "credits": dict(credits_row) if credits_row else None,
+            "events": [dict(row) for row in events]
+        }
+    finally:
+        conn.close()
 
 
 @app.get("/api/payments/qr")
