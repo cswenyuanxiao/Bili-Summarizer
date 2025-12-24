@@ -231,7 +231,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, inject } from 'vue'
-import html2pdf from 'html2pdf.js'
+import { exportToPdf } from '../utils/pdfExporter'
 import UrlInputCard from '../components/UrlInputCard.vue'
 import LoadingOverlay from '../components/LoadingOverlay.vue'
 import SummaryCard from '../components/SummaryCard.vue'
@@ -564,14 +564,12 @@ const handleExport = async (format: 'md' | 'txt' | 'pdf') => {
   } else {
     const element = document.getElementById('summary-card')
     if (!element) return
-    const options = {
-      margin: 0.5,
-      filename: 'summary.pdf',
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
-    }
-    await html2pdf().set(options).from(element).save()
+    
+    // 使用新的稳定导出工具
+    await exportToPdf(element, {
+      filename: `${videoInfo.value?.title || 'summary'}.pdf`,
+      imageQuality: 2
+    })
   }
 }
 </script>
