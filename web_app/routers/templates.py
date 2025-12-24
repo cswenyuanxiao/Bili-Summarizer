@@ -7,6 +7,7 @@ from typing import Optional, List
 import logging
 
 from ..dependencies import get_current_user, get_optional_user
+from ..auth import verify_session_token
 from ..templates import (
     get_user_templates,
     create_template,
