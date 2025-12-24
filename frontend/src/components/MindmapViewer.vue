@@ -33,8 +33,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-import mermaid from 'mermaid'
+import { ref, watch } from 'vue'
+import { renderMermaid } from '../utils/mermaidRenderer'
 
 const props = defineProps<{
   diagram: string
@@ -60,23 +60,6 @@ defineExpose({
   isRendering
 })
 
-onMounted(() => {
-  mermaid.initialize({
-    startOnLoad: false,
-    securityLevel: 'loose',
-    theme: 'base',
-    themeVariables: {
-      fontFamily: '"Inter", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif',
-      primaryColor: '#4f46e5',
-      primaryTextColor: '#fff',
-      primaryBorderColor: '#4338ca',
-      lineColor: '#94a3b8',
-      secondaryColor: '#e0e7ff',
-      tertiaryColor: '#f8fafc'
-    }
-  })
-})
-
 const renderDiagram = async () => {
   if (!props.diagram) {
     svgMarkup.value = ''
@@ -85,17 +68,17 @@ const renderDiagram = async () => {
   
   isRendering.value = true
   error.value = ''
-  svgMarkup.value = ''
   
-  try {
-    const { svg } = await mermaid.render(`mermaid-${Date.now()}`, props.diagram)
-    svgMarkup.value = svg
-  } catch (err) {
-    console.error('Mermaid rendering error:', err)
-    error.value = '思维导图渲染失败'
-  } finally {
-    isRendering.value = false
+  const result = await renderMermaid(props.diagram, 'mindmap')
+  
+  if (result.success && result.svg) {
+    svgMarkup.value = result.svg
+  } else {
+    error.value = result.error || '思维导图渲染失败'
+    console.error('Mindmap error:', result.error)
   }
+  
+  isRendering.value = false
 }
 
 watch(() => props.diagram, () => {
