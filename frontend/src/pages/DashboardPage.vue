@@ -34,7 +34,7 @@
         <div class="page-card">
           <div class="text-sm text-gray-500">订阅状态</div>
           <div class="mt-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-            免费版
+            {{ loading ? '...' : getSubscriptionLabel(subscriptionData?.plan) }}
           </div>
           <button class="mt-2 text-xs text-primary hover:underline" @click="openPricing">
             升级 Pro →
@@ -72,26 +72,48 @@ const dashboardData = ref<{
   cost_per_summary: number
 } | null>(null)
 
+const subscriptionData = ref<{
+  plan: string
+  status: string
+} | null>(null)
+
 const getSupabaseToken = async () => {
   if (!isSupabaseConfigured || !supabase) return null
   const { data } = await supabase.auth.getSession()
   return data.session?.access_token ?? null
 }
 
+const getSubscriptionLabel = (plan?: string) => {
+  if (!plan || plan === 'free') return '免费版'
+  if (plan === 'pro') return 'Pro 专业版'
+  return plan
+}
+
 const fetchDashboard = async () => {
   if (!user.value) {
     dashboardData.value = null
+    subscriptionData.value = null
     return
   }
   loading.value = true
   try {
     const token = await getSupabaseToken()
     if (!token) return
-    const response = await fetch('/api/dashboard', {
+    
+    // Fetch dashboard data
+    const dashboardResponse = await fetch('/api/dashboard', {
       headers: { Authorization: `Bearer ${token}` }
     })
-    if (response.ok) {
-      dashboardData.value = await response.json()
+    if (dashboardResponse.ok) {
+      dashboardData.value = await dashboardResponse.json()
+    }
+    
+    // Fetch subscription data
+    const subscriptionResponse = await fetch('/api/subscription', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (subscriptionResponse.ok) {
+      subscriptionData.value = await subscriptionResponse.json()
     }
   } catch (error) {
     console.error('Failed to fetch dashboard:', error)
