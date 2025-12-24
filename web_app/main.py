@@ -17,6 +17,9 @@ from typing import List, Optional, Dict, Any
 # Ensure local env vars (.env) are available before auth/client setup.
 load_dotenv()
 
+# Import startup initialization
+from .startup import init_core_tables as startup_init_core_tables
+
 # --- 数据模型 ---
 class ChatMessage(BaseModel):
     role: str  # "user" | "assistant"
@@ -424,7 +427,13 @@ async def on_startup():
             conn.close()
 
     # 表初始化（允许失败并重试，避免启动崩溃）
-    asyncio.create_task(init_db_with_retry("Core DB", init_core_tables))
+    # 使用 startup 模块的 init_core_tables，包含所有最新的表
+    def sync_init_core_tables():
+        """Sync wrapper for async startup_init_core_tables"""
+        import asyncio
+        asyncio.run(startup_init_core_tables())
+    
+    asyncio.create_task(init_db_with_retry("Core DB", sync_init_core_tables))
     asyncio.create_task(init_db_with_retry("Cache DB", init_cache_db))
     asyncio.create_task(init_db_with_retry("Credits DB", init_credits_db))
     asyncio.create_task(init_db_with_retry("Telemetry DB", init_telemetry_db))
