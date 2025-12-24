@@ -3,7 +3,7 @@
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden transform transition-all">
       
       <!-- Header -->
-      <div class="p-8 text-center border-b border-gray-100 dark:border-gray-700 bg-gradient-to-b from-primary/5 to-transparent">
+      <div class="p-8 text-center border-b border-gray-100 dark:border-gray-700 bg-gradient-to-b from-primary/5 to-transparent relative">
         <h2 class="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
           升级到 Pro 专业版
         </h2>
@@ -13,6 +13,7 @@
         <p class="mt-2 text-xs text-gray-400">
           登录后会启用积分校验，积分不足将引导升级。
         </p>
+        <span v-if="mockEnabled" class="absolute top-4 right-4 text-xs px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">测试模式</span>
       </div>
 
       <!-- Pricing Plans -->
@@ -170,8 +171,9 @@
             </div>
           </div>
         </div>
-        <div class="text-xs text-gray-400">
-          额度包用于补充积分，不影响订阅状态。
+        <div class="text-xs text-gray-400 flex items-center justify-between">
+          <span>额度包用于补充积分，不影响订阅状态。</span>
+          <span v-if="paymentStatus" class="text-amber-600">{{ paymentStatus }}</span>
         </div>
       </div>
     </div>
@@ -193,7 +195,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { isSupabaseConfigured, supabase } from '../supabase'
 
@@ -208,11 +210,66 @@ const subscriptionUnavailable = ref(false)
 const showQrModal = ref(false)
 const qrImageUrl = ref('')
 const qrLink = ref('')
+const mockEnabled = ref(false)
+const paymentStatus = ref('')
+let paymentPoller: number | null = null
+
+const loadPaymentConfig = async () => {
+    try {
+        const res = await fetch('/api/payments/config')
+        if (!res.ok) return
+        const data = await res.json()
+        mockEnabled.value = Boolean(data.mock_enabled)
+    } catch {
+        // Ignore config load failures
+    }
+}
+
+const stopPaymentPolling = () => {
+    if (paymentPoller !== null) {
+        window.clearInterval(paymentPoller)
+        paymentPoller = null
+    }
+}
+
+const startPaymentPolling = (orderId: string) => {
+    stopPaymentPolling()
+    let attempts = 0
+    paymentStatus.value = '等待支付确认...'
+    paymentPoller = window.setInterval(async () => {
+        attempts += 1
+        try {
+            const { data: { session } } = await supabase!.auth.getSession()
+            const token = session?.access_token
+            const res = await fetch(`/api/payments/status?order_id=${orderId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            })
+            if (!res.ok) return
+            const data = await res.json()
+            if (data.status === 'paid') {
+                paymentStatus.value = '支付成功，正在刷新权益...'
+                stopPaymentPolling()
+                emit('success')
+                alert('支付成功！')
+            }
+        } catch {
+            // ignore polling errors
+        }
+        if (attempts >= 20) {
+            paymentStatus.value = '尚未收到支付确认，可稍后在账单中查看'
+            stopPaymentPolling()
+        }
+    }, 3000)
+}
 
 const closeQrModal = () => {
     showQrModal.value = false
     qrImageUrl.value = ''
     qrLink.value = ''
+    paymentStatus.value = ''
+    stopPaymentPolling()
 }
 
 const copyQrLink = async () => {
@@ -220,6 +277,14 @@ const copyQrLink = async () => {
     await navigator.clipboard.writeText(qrLink.value)
     alert('支付链接已复制')
 }
+
+watch(() => show, (value) => {
+    if (value) {
+        loadPaymentConfig()
+    } else {
+        stopPaymentPolling()
+    }
+})
 
 const handlePayment = async (planId: string, provider: 'alipay' | 'wechat') => {
     if (!isSupabaseConfigured || !supabase) {
@@ -257,10 +322,15 @@ const handlePayment = async (planId: string, provider: 'alipay' | 'wechat') => {
           qrLink.value = data.qr_url
           qrImageUrl.value = `/api/payments/qr?data=${encodeURIComponent(data.qr_url)}`
           showQrModal.value = true
+          startPaymentPolling(data.order_id)
         } else if (data.payment_url) {
-          window.open(data.payment_url, '_blank', 'noopener')
-          alert('已打开支付页面，请完成支付。')
-          emit('success')
+          if (mockEnabled.value && data.payment_url.includes('/api/payments/mock-complete')) {
+            await fetch(data.payment_url, { method: 'POST' })
+            startPaymentPolling(data.order_id)
+          } else {
+            window.open(data.payment_url, '_blank', 'noopener')
+            startPaymentPolling(data.order_id)
+          }
         } else {
           alert('支付已创建，请等待支付回调完成升级。')
         }

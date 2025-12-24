@@ -827,7 +827,7 @@ async def create_payment(request: PaymentRequest, user: dict = Depends(get_curre
     payment_url = None
     qr_url = None
 
-    if os.getenv("PAYMENT_MOCK") == "1":
+    if os.getenv("PAYMENT_MOCK", "1") == "1":
         payment_url = f"/api/payments/mock-complete?order_id={order['order_id']}"
     elif provider == "alipay":
         result = create_alipay_payment(
@@ -863,9 +863,40 @@ async def create_payment(request: PaymentRequest, user: dict = Depends(get_curre
     }
 
 
+@app.get("/api/payments/config")
+async def payment_config():
+    return {
+        "mock_enabled": os.getenv("PAYMENT_MOCK", "1") == "1"
+    }
+
+
+@app.get("/api/payments/status")
+async def payment_status(order_id: str, user: dict = Depends(get_current_user)):
+    conn = sqlite3.connect("cache.db")
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT id, status, plan, amount_cents, provider
+            FROM payment_orders
+            WHERE id = ? AND user_id = ?
+        """, (order_id, user["user_id"]))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(404, "Payment order not found")
+        return {
+            "order_id": row[0],
+            "status": row[1],
+            "plan_id": row[2],
+            "amount_cents": row[3],
+            "provider": row[4]
+        }
+    finally:
+        conn.close()
+
+
 @app.post("/api/payments/mock-complete")
 async def mock_payment_complete(order_id: str):
-    if os.getenv("PAYMENT_MOCK") != "1":
+    if os.getenv("PAYMENT_MOCK", "1") != "1":
         raise HTTPException(403, "Mock payment disabled")
     return mark_payment_paid(order_id)
 

@@ -127,6 +127,7 @@
               </button>
 
               <button
+                ref="mobileMenuButtonRef"
                 class="lg:hidden w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800"
                 @click="showMobileMenu = !showMobileMenu"
               >
@@ -424,6 +425,7 @@ const showUserMenu = ref(false)
 const showMobileMenu = ref(false)
 const userMenuRef = ref<HTMLElement | null>(null)
 const mobileMenuRef = ref<HTMLElement | null>(null)
+const mobileMenuButtonRef = ref<HTMLElement | null>(null)
 const currentVideoUrl = ref('')
 type VideoInfo = {
   title: string
@@ -477,6 +479,9 @@ watch(() => result.value.summary, (newVal) => {
     nextTick(() => {
       refreshReveal()
     })
+    if (user.value) {
+      fetchDashboard().catch(() => undefined)
+    }
   }
 })
 
@@ -610,6 +615,7 @@ const handleDocumentClick = (event: MouseEvent) => {
 const handleMobileMenuClick = (event: MouseEvent) => {
   if (!showMobileMenu.value || !mobileMenuRef.value) return
   const target = event.target as Node | null
+  if (target && mobileMenuButtonRef.value?.contains(target)) return
   if (target && mobileMenuRef.value.contains(target)) return
   showMobileMenu.value = false
 }
