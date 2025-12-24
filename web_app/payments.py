@@ -37,11 +37,24 @@ def _get_alipay_client():
     from alipay import AliPay
 
     app_id = os.getenv("ALIPAY_APP_ID")
-    app_private_key = _normalize_pem(os.getenv("ALIPAY_PRIVATE_KEY"))
-    alipay_public_key = _normalize_pem(os.getenv("ALIPAY_PUBLIC_KEY"))
+    app_private_key_raw = _normalize_pem(os.getenv("ALIPAY_PRIVATE_KEY"))
+    alipay_public_key_raw = _normalize_pem(os.getenv("ALIPAY_PUBLIC_KEY"))
     notify_url = os.getenv("ALIPAY_NOTIFY_URL")
-    if not (app_id and app_private_key and alipay_public_key and notify_url):
+    if not (app_id and app_private_key_raw and alipay_public_key_raw and notify_url):
         return None
+
+    # 支付宝沙箱只提供纯 Base64 密钥字符串，需要添加 PEM 头尾
+    # 自动检测并添加 PEM 格式包装
+    if not app_private_key_raw.startswith("-----BEGIN"):
+        # PKCS8 格式（支付宝沙箱默认）
+        app_private_key = f"-----BEGIN PRIVATE KEY-----\n{app_private_key_raw}\n-----END PRIVATE KEY-----"
+    else:
+        app_private_key = app_private_key_raw
+    
+    if not alipay_public_key_raw.startswith("-----BEGIN"):
+        alipay_public_key = f"-----BEGIN PUBLIC KEY-----\n{alipay_public_key_raw}\n-----END PUBLIC KEY-----"
+    else:
+        alipay_public_key = alipay_public_key_raw
 
     _ALIPAY_CLIENT = AliPay(
         appid=app_id,
