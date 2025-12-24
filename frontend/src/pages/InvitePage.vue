@@ -9,7 +9,7 @@
           <p class="page-hero__subtitle">分享你的专属邀请码，好友成功注册并使用后，双方各得 10 积分。</p>
           <div class="flex flex-wrap gap-3">
             <button class="btn-primary px-5 py-2 text-sm wiggle-soft" @click="openInvite">生成邀请码</button>
-            <button class="px-5 py-2 text-sm rounded-full border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition" @click="openLogin">
+            <button v-if="!user" class="px-5 py-2 text-sm rounded-full border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition" @click="openLogin">
               登录查看记录
             </button>
           </div>
@@ -22,7 +22,11 @@
               <span class="badge-pill badge-soft">实时更新</span>
             </div>
             <p class="text-sm text-gray-500">登录后生成你的邀请码链接，一键复制发送到群聊或社交平台。</p>
-            <div class="rounded-2xl border border-dashed border-gray-200 dark:border-slate-700 px-4 py-3 text-xs text-gray-400">
+            <div v-if="user" class="rounded-2xl border border-gray-200 dark:border-slate-700 px-4 py-3 bg-gray-50 dark:bg-slate-900">
+              <div class="text-xs text-gray-500 mb-2">你的邀请码</div>
+              <div class="font-mono text-lg font-bold text-primary">点击"生成邀请码"按钮查看</div>
+            </div>
+            <div v-else class="rounded-2xl border border-dashed border-gray-200 dark:border-slate-700 px-4 py-3 text-xs text-gray-400">
               登录后展示邀请码与链接
             </div>
             <button class="text-sm text-primary hover:underline" @click.stop="openInvite">打开邀请面板</button>

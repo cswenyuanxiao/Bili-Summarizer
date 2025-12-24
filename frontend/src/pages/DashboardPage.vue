@@ -12,22 +12,34 @@
         </div>
       </section>
 
-      <section class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm text-gray-600 dark:text-gray-300 mt-8" data-reveal>
-        <button class="page-card card-hover-elevate card-action" type="button" @click="openDashboard">
-          <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">积分概览</div>
-          <div class="mt-2 text-xs text-gray-500">查看剩余积分与本月使用次数。</div>
-          <div class="mt-4 text-xs text-primary font-semibold">查看详情 →</div>
-        </button>
-        <button class="page-card card-hover-elevate page-card--accent card-action" type="button" @click="openDashboard">
-          <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">消费趋势</div>
-          <div class="mt-2 text-xs text-gray-500">每日使用曲线与高峰提醒。</div>
-          <div class="mt-4 text-xs text-primary font-semibold">打开面板 →</div>
-        </button>
-        <button class="page-card card-hover-elevate card-action" type="button" @click="openDashboard">
-          <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">订阅状态</div>
-          <div class="mt-2 text-xs text-gray-500">套餐剩余天数与自动续费提示。</div>
-          <div class="mt-4 text-xs text-primary font-semibold">查看订阅 →</div>
-        </button>
+      <section v-if="user" class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm text-gray-600 dark:text-gray-300 mt-8" data-reveal>
+        <div class="page-card">
+          <div class="text-sm text-gray-500">当前积分</div>
+          <div class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
+            {{ loading ? '...' : (dashboardData?.credits ?? '--') }}
+          </div>
+          <div class="mt-2 text-xs text-gray-400">
+            已使用 {{ dashboardData?.total_used ?? 0 }} 次
+          </div>
+        </div>
+
+        <div class="page-card page-card--accent">
+          <div class="text-sm text-gray-500">每次消耗</div>
+          <div class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
+            {{ dashboardData?.cost_per_summary ?? 10 }} <span class="text-base">积分</span>
+          </div>
+          <div class="mt-2 text-xs text-gray-400">按次计费</div>
+        </div>
+
+        <div class="page-card">
+          <div class="text-sm text-gray-500">订阅状态</div>
+          <div class="mt-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+            免费版
+          </div>
+          <button class="mt-2 text-xs text-primary hover:underline" @click="openPricing">
+            升级 Pro →
+          </button>
+        </div>
       </section>
 
       <section class="mt-8 text-sm text-gray-600 dark:text-gray-300" data-reveal>
@@ -41,13 +53,53 @@
 </template>
 
 <script setup lang="ts">
-import { inject } from 'vue'
+import { inject, ref, onMounted, watch } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { useReveal } from '../composables/useReveal'
+import { isSupabaseConfigured, supabase } from '../supabase'
 
 const { user } = useAuth()
 useReveal()
-const appActions = inject<{ openLogin: () => void; openDashboard: () => void }>('appActions')
+const appActions = inject<{ openLogin: () => void; openDashboard: () => void; openPricing: () => void }>('appActions')
 const openLogin = () => appActions?.openLogin()
 const openDashboard = () => appActions?.openDashboard()
+const openPricing = () => appActions?.openPricing()
+
+const loading = ref(false)
+const dashboardData = ref<{
+  credits: number
+  total_used: number
+  cost_per_summary: number
+} | null>(null)
+
+const getSupabaseToken = async () => {
+  if (!isSupabaseConfigured || !supabase) return null
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
+}
+
+const fetchDashboard = async () => {
+  if (!user.value) {
+    dashboardData.value = null
+    return
+  }
+  loading.value = true
+  try {
+    const token = await getSupabaseToken()
+    if (!token) return
+    const response = await fetch('/api/dashboard', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (response.ok) {
+      dashboardData.value = await response.json()
+    }
+  } catch (error) {
+    console.error('Failed to fetch dashboard:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchDashboard)
+watch(user, fetchDashboard)
 </script>

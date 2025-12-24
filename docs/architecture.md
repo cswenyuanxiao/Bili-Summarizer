@@ -1,90 +1,30 @@
-# Architecture
+# 系统架构
 
-This document describes the system architecture, data flow, and deployment topology for Bili‑Summarizer.
-
-## 1) System Components
-```mermaid
-flowchart LR
-  U[User Browser] --> FE[Vue Frontend]
-  FE -->|SSE| API[FastAPI Backend]
-  FE -->|REST| API
-  API --> YT[yt-dlp / Bilibili]
-  API --> G[Gemini API]
-  API --> DB[(SQLite cache.db)]
-  API --> FS[(videos/)]
+## 组件关系
+```
+Browser -> Vue SPA -> FastAPI
+FastAPI -> yt-dlp / Gemini / DB / 本地视频
 ```
 
-## 2) Core Data Flow (Summarize)
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant FE as Frontend
-  participant BE as Backend
-  participant YT as yt-dlp
-  participant GM as Gemini
-  U->>FE: 提交视频 URL
-  FE->>BE: GET /api/summarize (SSE)
-  BE->>BE: Cache check
-  alt cache hit
-    BE-->>FE: transcript_complete + summary_complete
-  else cache miss
-    BE->>YT: Download/Subtitle
-    BE->>GM: Upload (if needed)
-    BE->>GM: Summarize + Transcript
-    BE-->>FE: progress/status stream
-    BE-->>FE: transcript_complete + summary_complete
-    BE->>BE: cache save
-  end
-```
+## 核心流程（总结）
+1) 前端发起 `GET /api/summarize`（SSE）。
+2) 后端检查缓存（命中直接返回）。
+3) 缓存未命中：下载字幕/视频 -> Gemini 分析 -> 回传 summary/transcript。
+4) 结果写入数据库与历史。
 
-## 3) Auth & API Key
-```mermaid
-flowchart LR
-  C[Client] --> B[Backend]
-  B --> K{Has x-api-key?}
-  K -->|Yes| V[Verify key_hash]
-  K -->|No| S{Has Bearer token?}
-  S -->|Yes| T[Verify Supabase session]
-  S -->|No| E[401]
-  V -->|Valid| OK[Attach user_id]
-  T -->|Valid| OK
-```
+## Auth 与鉴权
+- 优先 x-api-key，其次 Bearer token（Supabase）。
+- Supabase 未配置时，登录入口降级但 UI 仍可运行。
 
-## 4) Cloud History Sync
-```mermaid
-flowchart TD
-  FE[Frontend] --> HGET[GET /api/history]
-  HGET --> DB[(Supabase summaries)]
-  FE --> HPOST[POST /api/history]
-  HPOST --> DB
-  FE --> MERGE[Merge local + cloud]
-```
+## 数据与存储
+- 生产推荐：PostgreSQL（`DATABASE_URL`）。
+- 开发可用：SQLite（本地）。
+- 重要表：`summaries`、`user_credits`、`credit_events`、`payment_orders`、`billing_events`。
 
-## 5) Deployment Topology
+## 部署拓扑
+- 本地开发：Vite 5173 -> FastAPI 7860。
+- 生产部署：FastAPI 服务 + 前端 `dist` 静态文件。
 
-### Local Dev (Vite + Uvicorn)
-```
-Browser -> http://localhost:5173 (Vite)
-Vite proxy -> http://localhost:7860 (FastAPI)
-```
-
-### Docker Compose
-```
-Browser -> Nginx (frontend)
-Nginx -> FastAPI (backend)
-FastAPI -> Gemini / yt-dlp / cache.db / videos/
-```
-
-### Render (Single Service)
-```
-Browser -> FastAPI (serves /api + SPA from frontend/dist)
-FastAPI -> Gemini / yt-dlp / cache.db / videos/
-```
-
-## 6) Storage
-- `cache.db`: summary/transcript cache + API keys + usage_daily.
-- `videos/`: downloaded media for playback.
-- Supabase: cloud history (optional).
-
-## 7) Legacy UI
-If `frontend/dist` is missing, backend serves `web_app/legacy_ui/index.html` and `web_app/legacy_ui/static/`.
+## 已知边界
+- Render 免费实例无持久化磁盘。
+- 支付平台资质未完成时，生产支付不可用。
