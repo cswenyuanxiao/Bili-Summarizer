@@ -36,13 +36,17 @@
               :key="up.mid"
               class="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-800"
             >
-              <div class="flex items-center gap-4">
+              <a 
+                :href="`https://space.bilibili.com/${up.mid}`" 
+                target="_blank"
+                class="flex items-center gap-4 hover:opacity-80 transition-opacity"
+              >
                 <img :src="getProxyUrl(up.avatar)" class="w-12 h-12 rounded-full border-2 border-white dark:border-slate-700" />
                 <div>
                   <div class="font-bold text-gray-900 dark:text-gray-100">{{ up.name }}</div>
                   <div class="text-xs text-gray-500">{{ up.fans }} 粉丝 · {{ up.videos }} 视频</div>
                 </div>
-              </div>
+              </a>
               <button 
                 class="px-4 py-2 rounded-lg text-sm font-semibold transition"
                 :class="isSubscribed(up.mid) ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-primary/10 text-primary hover:bg-primary/20'"
@@ -91,7 +95,11 @@
             class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 shadow-xl rounded-2xl p-5 border border-gray-100 dark:border-slate-800 hover:shadow-md transition group"
           >
             <div class="flex items-start justify-between mb-4">
-              <div class="flex items-center gap-3">
+              <a 
+                :href="`https://space.bilibili.com/${sub.up_mid}`" 
+                target="_blank"
+                class="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              >
                 <img :src="getProxyUrl(sub.up_avatar)" class="w-12 h-12 rounded-xl" />
                 <div>
                   <div class="font-bold text-gray-900 dark:text-gray-100 line-clamp-1">{{ sub.up_name }}</div>
@@ -99,7 +107,7 @@
                     订阅于 {{ formatDate(sub.created_at) }}
                   </div>
                 </div>
-              </div>
+              </a>
               <button 
                 class="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 transition-all"
                 title="取消订阅"
@@ -132,6 +140,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { supabase } from '../supabase'
 import { subscribeToPush } from '../utils/push'
 
 interface UPInfo {
@@ -178,7 +187,9 @@ async function handleSearch() {
 async function fetchSubscriptions() {
   loading.value = true
   try {
-    const token = localStorage.getItem('supabase_token')
+    if (!supabase) throw new Error('Supabase not initialized')
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
     const res = await fetch('/api/subscriptions', {
       headers: { 'Authorization': `Bearer ${token || ''}` }
     })
@@ -193,7 +204,9 @@ async function fetchSubscriptions() {
 
 async function handleSubscribe(up: UPInfo) {
   try {
-    const token = localStorage.getItem('supabase_token')
+    if (!supabase) throw new Error('Supabase not initialized')
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
     const res = await fetch('/api/subscriptions', {
       method: 'POST',
       headers: { 
@@ -226,7 +239,9 @@ async function confirmUnsubscribe(sub: Subscription) {
   if (!confirm(`确定要取消关注 ${sub.up_name} 吗？`)) return
   
   try {
-    const token = localStorage.getItem('supabase_token')
+    if (!supabase) throw new Error('Supabase not initialized')
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
     const res = await fetch(`/api/subscriptions/${sub.id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token || ''}` }

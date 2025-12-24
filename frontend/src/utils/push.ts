@@ -3,6 +3,7 @@
  */
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || ""
+import { supabase } from '../supabase'
 
 export async function subscribeToPush() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -34,12 +35,21 @@ export async function subscribeToPush() {
         })
 
         // 4. 将订阅对象发送给后端
-        const token = localStorage.getItem('supabase_token')
+        // FIXED: Use supabase.auth.getSession() instead of localStorage
+        if (!supabase) return subscription
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+
+        if (!token) {
+            console.warn('User not logged in, skipping push subscription upload')
+            return subscription
+        }
+
         await fetch('/api/push/subscribe', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token || ''}`
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(subscription)
         })
