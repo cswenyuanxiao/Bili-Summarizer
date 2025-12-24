@@ -18,5 +18,12 @@ if (!isSupabaseConfigured) {
 
 // 只有配置完整时才创建客户端，否则导出 null
 export const supabase = isSupabaseConfigured
-    ? createClient(supabaseUrl, supabaseAnonKey)
+    ? createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: 'bili-summarizer-auth'
+        }
+    })
     : null

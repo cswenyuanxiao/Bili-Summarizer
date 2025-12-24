@@ -1,9 +1,16 @@
 <template>
   <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @mousedown.self="$emit('close')">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden transform transition-all">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all">
       
       <!-- Header -->
       <div class="p-8 text-center border-b border-gray-100 dark:border-gray-700 bg-gradient-to-b from-primary/5 to-transparent relative">
+        <button
+          @click="$emit('close')"
+          class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 text-gray-500 hover:text-gray-700 hover:bg-white shadow-sm flex items-center justify-center"
+          aria-label="关闭"
+        >
+          ✕
+        </button>
         <h2 class="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
           升级到 Pro 专业版
         </h2>

@@ -17,13 +17,36 @@ export function useAuth() {
             return
         }
 
+        const resetAuthState = async () => {
+            try {
+                await supabase.auth.signOut({ scope: 'local' })
+            } catch {
+                // ignore sign out failures
+            }
+            user.value = null
+            loading.value = false
+        }
+
         // Get initial session
-        const { data } = await supabase.auth.getSession()
-        user.value = data.session?.user ?? null
-        loading.value = false
+        try {
+            const { data, error } = await supabase.auth.getSession()
+            if (error) {
+                await resetAuthState()
+                return
+            }
+            user.value = data.session?.user ?? null
+            loading.value = false
+        } catch {
+            await resetAuthState()
+            return
+        }
 
         // Listen for auth changes
-        supabase.auth.onAuthStateChange((_event, session) => {
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'TOKEN_REFRESH_FAILED' || event === 'USER_DELETED') {
+                void resetAuthState()
+                return
+            }
             user.value = session?.user ?? null
             loading.value = false
         })
@@ -33,11 +56,18 @@ export function useAuth() {
 
     const loginWithEmail = async (email: string, password: string) => {
         if (!isSupabaseConfigured || !supabase) throw new Error('Auth is not configured')
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password
         })
         if (error) throw error
+        if (!data.session) {
+            const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+            if (sessionError || !sessionData.session) {
+                await supabase.auth.signOut({ scope: 'local' })
+                throw new Error('登录会话异常，请清理缓存后重试')
+            }
+        }
     }
 
     const signUpWithEmail = async (email: string, password: string) => {
@@ -76,8 +106,8 @@ export function useAuth() {
             user.value = null
             return
         }
-        const { error } = await supabase.auth.signOut()
-        if (error) throw error
+        const { error } = await supabase.auth.signOut({ scope: 'local' })
+        if (error && error.message !== 'Auth session missing!') throw error
         user.value = null
     }
 

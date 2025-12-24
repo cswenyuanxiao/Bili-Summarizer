@@ -13,21 +13,24 @@
       </section>
 
       <section class="grid grid-cols-1 lg:grid-cols-3 gap-5 text-sm text-gray-600 dark:text-gray-300 mt-8" data-reveal>
-        <div class="page-card card-hover-elevate">
+        <button class="page-card card-hover-elevate card-action" type="button" @click="openPricing">
           <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Starter Pack</div>
           <div class="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">¥1</div>
           <div class="mt-1 text-xs text-gray-500">30 积分 / 适合轻度使用</div>
-        </div>
-        <div class="page-card card-hover-elevate page-card--accent">
+          <div class="mt-4 text-xs text-primary font-semibold">立即购买 →</div>
+        </button>
+        <button class="page-card card-hover-elevate page-card--accent card-action" type="button" @click="openPricing">
           <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Pro Pack</div>
           <div class="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">¥3</div>
           <div class="mt-1 text-xs text-gray-500">120 积分 / 高频总结</div>
-        </div>
-        <div class="page-card card-hover-elevate">
+          <div class="mt-4 text-xs text-primary font-semibold">升级加速 →</div>
+        </button>
+        <button class="page-card card-hover-elevate card-action" type="button" @click="openPricing">
           <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Pro 专业版</div>
           <div class="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">¥29.9</div>
           <div class="mt-1 text-xs text-gray-500">月付 / 无限次总结</div>
-        </div>
+          <div class="mt-4 text-xs text-primary font-semibold">订阅 Pro →</div>
+        </button>
       </section>
     </div>
   </main>

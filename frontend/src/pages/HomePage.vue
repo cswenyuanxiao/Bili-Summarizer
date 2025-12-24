@@ -121,32 +121,35 @@
         </div>
 
         <!-- Section: Product Features -->
-        <section class="pt-10 pb-6 space-y-8 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
+        <section id="features" class="pt-10 pb-6 space-y-8 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
           <div class="text-center space-y-3">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">核心特性</h2>
             <p class="text-gray-500 dark:text-gray-400 text-sm">专为 B 站长视频打造的智能总结工具</p>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div class="page-card hover:translate-y-[-4px] transition-transform duration-300">
+            <button class="page-card card-action hover:translate-y-[-4px] transition-transform duration-300" type="button" @click="scrollToStart">
               <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-xl mb-4">⚡️</div>
               <div class="text-base font-semibold text-gray-900 dark:text-gray-100">结构化总结</div>
               <div class="mt-2 text-sm text-gray-500 leading-relaxed">AI 智能提取视频核心观点，生成层级分明的笔记，通过大纲快速把握重点。</div>
-            </div>
-            <div class="page-card hover:translate-y-[-4px] transition-transform duration-300">
+              <div class="mt-4 text-xs text-primary font-semibold">开始总结 →</div>
+            </button>
+            <button class="page-card card-action hover:translate-y-[-4px] transition-transform duration-300" type="button" @click="scrollToStart">
               <div class="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-xl mb-4">📝</div>
               <div class="text-base font-semibold text-gray-900 dark:text-gray-100">自动转录</div>
               <div class="mt-2 text-sm text-gray-500 leading-relaxed">提供精准的逐字稿与时间戳，支持一键定位播放，不错过任何细节。</div>
-            </div>
-            <div class="page-card hover:translate-y-[-4px] transition-transform duration-300 page-card--accent">
+              <div class="mt-4 text-xs text-primary font-semibold">立即试用 →</div>
+            </button>
+            <button class="page-card card-action hover:translate-y-[-4px] transition-transform duration-300 page-card--accent" type="button" @click="scrollToStart">
               <div class="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-xl mb-4">🧠</div>
               <div class="text-base font-semibold text-gray-900 dark:text-gray-100">思维导图</div>
               <div class="mt-2 text-sm text-gray-500 leading-relaxed">自动分析逻辑脉络，生成可视化思维导图，支持导出 SVG/PNG，便于复习与分享。</div>
-            </div>
+              <div class="mt-4 text-xs text-primary font-semibold">立即生成 →</div>
+            </button>
           </div>
         </section>
 
         <!-- Section: Pricing -->
-        <section class="pt-10 pb-6 space-y-8 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
+        <section id="pricing" class="pt-10 pb-6 space-y-8 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
           <div class="text-center space-y-3">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">灵活方案</h2>
             <p class="text-gray-500 dark:text-gray-400 text-sm">按需付费，余额永久有效</p>
@@ -204,7 +207,7 @@
         </section>
 
         <!-- Section: Developer & Resources -->
-        <section class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-6 pb-10 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
+        <section id="resources" class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-6 pb-10 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
           <RouterLink to="/developer" class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">🛠️</div>
             <div>
@@ -310,6 +313,13 @@ const getSupabaseToken = async () => {
   return data.session?.access_token ?? null
 }
 
+const scrollToStart = () => {
+  const target = document.getElementById('start')
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
 const fetchDashboard = async () => {
   if (!user.value) {
     dashboardData.value = null
@@ -407,10 +417,10 @@ const activeStep = computed(() => {
   }
 })
 
-const phaseNote = computed(() => {
-  if (phase.value === 'error') return '发生错误'
-  if (phase.value === 'complete') return '完成'
-  return ''
+const phaseNote = computed<{ title: string; body: string } | null>(() => {
+  if (phase.value === 'error') return { title: '发生错误', body: '请检查错误信息' }
+  if (phase.value === 'complete') return { title: '完成', body: '总结已生成' }
+  return null
 })
 
 const copySummary = () => {
@@ -492,27 +502,76 @@ const shareHistoryItem = async (item: { title: string; summary: string; transcri
 
 const exportMindmap = async (format: 'svg' | 'png') => {
   if (!mindmapRef.value) return
-  await mindmapRef.value.exportAs(format)
+  const svg = mindmapRef.value.getSvgElement()
+  if (!svg) return
+  
+  if (format === 'svg') {
+    const svgData = new XMLSerializer().serializeToString(svg)
+    const blob = new Blob([svgData], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'mindmap.svg'
+    link.click()
+    URL.revokeObjectURL(url)
+  } else {
+    // PNG export via canvas
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    
+    const svgData = new XMLSerializer().serializeToString(svg)
+    const img = new Image()
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    
+    img.onload = () => {
+      canvas.width = img.width
+      canvas.height = img.height
+      ctx.drawImage(img, 0, 0)
+      canvas.toBlob((pngBlob) => {
+        if (!pngBlob) return
+        const pngUrl = URL.createObjectURL(pngBlob)
+        const link = document.createElement('a')
+        link.href = pngUrl
+        link.download = 'mindmap.png'
+        link.click()
+        URL.revokeObjectURL(pngUrl)
+      })
+      URL.revokeObjectURL(url)
+    }
+    img.src = url
+  }
 }
 
-const handleExport = async (type: 'pdf' | 'png') => {
-  const element = document.getElementById('summary-card')
-  if (!element) return
-  const options = {
-    margin: 0.5,
-    filename: `summary.${type}`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-  }
-  if (type === 'pdf') {
-    await html2pdf().set(options).from(element).save()
-  } else {
-    const canvas = await html2pdf().set(options).from(element).outputImg()
+const handleExport = async (format: 'md' | 'txt' | 'pdf') => {
+  if (format === 'md') {
+    const blob = new Blob([result.value.summary], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = canvas.src
-    link.download = 'summary.png'
+    link.href = url
+    link.download = 'summary.md'
     link.click()
+    URL.revokeObjectURL(url)
+  } else if (format === 'txt') {
+    const blob = new Blob([result.value.summary], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'summary.txt'
+    link.click()
+    URL.revokeObjectURL(url)
+  } else {
+    const element = document.getElementById('summary-card')
+    if (!element) return
+    const options = {
+      margin: 0.5,
+      filename: 'summary.pdf',
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
+    }
+    await html2pdf().set(options).from(element).save()
   }
 }
 </script>

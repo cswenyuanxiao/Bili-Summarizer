@@ -13,18 +13,21 @@
       </section>
 
       <section class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm text-gray-600 dark:text-gray-300 mt-8" data-reveal>
-        <div class="page-card card-hover-elevate">
+        <button class="page-card card-hover-elevate card-action" type="button" @click="openBilling">
           <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">订阅记录</div>
           <div class="mt-2 text-xs text-gray-500">展示每次续费的周期与金额。</div>
-        </div>
-        <div class="page-card card-hover-elevate page-card--accent">
+          <div class="mt-4 text-xs text-primary font-semibold">查看订单 →</div>
+        </button>
+        <button class="page-card card-hover-elevate page-card--accent card-action" type="button" @click="openBilling">
           <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">额度包订单</div>
           <div class="mt-2 text-xs text-gray-500">查看一次性积分包的购买记录。</div>
-        </div>
-        <div class="page-card card-hover-elevate">
+          <div class="mt-4 text-xs text-primary font-semibold">查看账单 →</div>
+        </button>
+        <button class="page-card card-hover-elevate card-action" type="button" @click="openBilling">
           <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">发票状态</div>
           <div class="mt-2 text-xs text-gray-500">下载电子发票或申请补开。</div>
-        </div>
+          <div class="mt-4 text-xs text-primary font-semibold">申请发票 →</div>
+        </button>
       </section>
 
       <section class="mt-8 text-sm text-gray-600 dark:text-gray-300" data-reveal>

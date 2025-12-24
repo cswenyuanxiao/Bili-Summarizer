@@ -13,18 +13,21 @@
       </section>
 
       <section class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm text-gray-600 dark:text-gray-300 mt-8" data-reveal>
-        <div class="page-card card-hover-elevate">
+        <button class="page-card card-hover-elevate card-action" type="button" @click="openDashboard">
           <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">积分概览</div>
           <div class="mt-2 text-xs text-gray-500">查看剩余积分与本月使用次数。</div>
-        </div>
-        <div class="page-card card-hover-elevate page-card--accent">
+          <div class="mt-4 text-xs text-primary font-semibold">查看详情 →</div>
+        </button>
+        <button class="page-card card-hover-elevate page-card--accent card-action" type="button" @click="openDashboard">
           <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">消费趋势</div>
           <div class="mt-2 text-xs text-gray-500">每日使用曲线与高峰提醒。</div>
-        </div>
-        <div class="page-card card-hover-elevate">
+          <div class="mt-4 text-xs text-primary font-semibold">打开面板 →</div>
+        </button>
+        <button class="page-card card-hover-elevate card-action" type="button" @click="openDashboard">
           <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">订阅状态</div>
           <div class="mt-2 text-xs text-gray-500">套餐剩余天数与自动续费提示。</div>
-        </div>
+          <div class="mt-4 text-xs text-primary font-semibold">查看订阅 →</div>
+        </button>
       </section>
 
       <section class="mt-8 text-sm text-gray-600 dark:text-gray-300" data-reveal>

@@ -13,18 +13,21 @@
       </section>
 
       <section class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm text-gray-600 dark:text-gray-300 mt-8" data-reveal>
-        <div class="page-card card-hover-elevate">
+        <button class="page-card card-hover-elevate card-action" type="button" @click="goHomeSection('features')">
           <div class="text-base font-semibold text-gray-900 dark:text-gray-100">结构化总结</div>
           <div class="mt-2 text-xs text-gray-500">一键生成关键观点、结论与行动项。</div>
-        </div>
-        <div class="page-card card-hover-elevate">
+          <div class="mt-4 text-xs text-primary font-semibold">查看示例 →</div>
+        </button>
+        <button class="page-card card-hover-elevate card-action" type="button" @click="goHomeSection('features')">
           <div class="text-base font-semibold text-gray-900 dark:text-gray-100">自动转录</div>
           <div class="mt-2 text-xs text-gray-500">精准字幕与时间戳，方便回看。</div>
-        </div>
-        <div class="page-card card-hover-elevate page-card--accent">
+          <div class="mt-4 text-xs text-primary font-semibold">去体验 →</div>
+        </button>
+        <button class="page-card card-hover-elevate page-card--accent card-action" type="button" @click="goHomeSection('features')">
           <div class="text-base font-semibold text-gray-900 dark:text-gray-100">思维导图</div>
           <div class="mt-2 text-xs text-gray-500">自动生成知识脉络，支持导出。</div>
-        </div>
+          <div class="mt-4 text-xs text-primary font-semibold">查看示例 →</div>
+        </button>
       </section>
     </div>
   </main>
@@ -38,5 +41,9 @@ const router = useRouter()
 useReveal()
 const goHome = () => {
   router.push('/')
+}
+
+const goHomeSection = (hash: string) => {
+  router.push({ path: '/', hash: `#${hash}` })
 }
 </script>

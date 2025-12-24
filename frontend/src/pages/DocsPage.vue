@@ -13,18 +13,20 @@
       </section>
 
       <section class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300 mt-8" data-reveal>
-        <div class="page-card card-hover-elevate">
+        <button class="page-card card-hover-elevate card-action" type="button" @click="openUsageGuide">
           <div class="text-base font-semibold text-gray-900 dark:text-gray-100">快速上手</div>
           <ol class="mt-2 space-y-1 text-xs text-gray-500 list-decimal list-inside">
             <li>登录后获取积分</li>
             <li>粘贴 B 站链接生成总结</li>
             <li>导出或分享结果</li>
           </ol>
-        </div>
-        <div class="page-card card-hover-elevate page-card--accent">
+          <div class="mt-4 text-xs text-primary font-semibold">打开指南 →</div>
+        </button>
+        <button class="page-card card-hover-elevate page-card--accent card-action" type="button" @click="openUsageGuide">
           <div class="text-base font-semibold text-gray-900 dark:text-gray-100">常见问题</div>
           <div class="mt-2 text-xs text-gray-500">积分不足时可购买额度包或升级订阅。</div>
-        </div>
+          <div class="mt-4 text-xs text-primary font-semibold">查看 FAQ →</div>
+        </button>
       </section>
     </div>
   </main>

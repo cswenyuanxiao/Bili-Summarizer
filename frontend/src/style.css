@@ -180,6 +180,16 @@ body {
   background-color: var(--card-80);
 }
 
+.card-action {
+  cursor: pointer;
+  text-align: left;
+}
+
+.card-action:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .badge-pill {
   display: inline-flex;
   align-items: center;

@@ -16,7 +16,7 @@
         </section>
 
         <section class="grid grid-cols-1 md:grid-cols-2 gap-6" data-reveal>
-          <div class="page-card space-y-4">
+          <div class="page-card space-y-4 card-action" role="button" tabindex="0" @click="handleInviteAction" @keydown.enter.prevent="handleInviteAction" @keydown.space.prevent="handleInviteAction">
             <div class="flex items-center justify-between">
               <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">专属邀请码</div>
               <span class="badge-pill badge-soft">实时更新</span>
@@ -25,10 +25,10 @@
             <div class="rounded-2xl border border-dashed border-gray-200 dark:border-slate-700 px-4 py-3 text-xs text-gray-400">
               登录后展示邀请码与链接
             </div>
-            <button class="text-sm text-primary hover:underline" @click="openInvite">打开邀请面板</button>
+            <button class="text-sm text-primary hover:underline" @click.stop="openInvite">打开邀请面板</button>
           </div>
 
-          <div class="page-card page-card--accent space-y-4">
+          <div class="page-card page-card--accent space-y-4 card-action" role="button" tabindex="0" @click="handleInviteAction" @keydown.enter.prevent="handleInviteAction" @keydown.space.prevent="handleInviteAction">
             <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">奖励到账节奏</div>
             <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-2">
               <li>好友注册并登录，系统记录邀请关系。</li>
@@ -37,7 +37,7 @@
             </ul>
             <div v-if="!user" class="rounded-2xl border border-blue-100/80 bg-blue-50/80 px-4 py-3 text-sm text-blue-700">
               登录后可生成邀请码与兑换奖励。
-              <button class="ml-2 text-xs font-semibold text-primary hover:underline" @click="openLogin">去登录</button>
+              <button class="ml-2 text-xs font-semibold text-primary hover:underline" @click.stop="openLogin">去登录</button>
             </div>
           </div>
         </section>
@@ -56,4 +56,11 @@ useReveal()
 const appActions = inject<{ openLogin: () => void; openInvite: () => void }>('appActions')
 const openLogin = () => appActions?.openLogin()
 const openInvite = () => appActions?.openInvite()
+const handleInviteAction = () => {
+  if (user.value) {
+    openInvite()
+  } else {
+    openLogin()
+  }
+}
 </script>
