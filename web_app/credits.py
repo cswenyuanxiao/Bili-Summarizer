@@ -114,7 +114,41 @@ def get_user_credits(user_id: str) -> Optional[Dict]:
     }
 
 
+def should_charge_credits(user_id: str) -> bool:
+    """检查是否应该扣除积分（Pro 用户在订阅期内不扣除）"""
+    from .db import get_connection
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT plan, status, current_period_end
+            FROM subscriptions
+            WHERE user_id = ?
+        """, (user_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return True  # 无订阅记录，需要扣除积分
+        
+        # 检查是否为激活的 Pro 订阅
+        if row["plan"] == "pro" and row["status"] == "active":
+            # TODO: 可以进一步检查 current_period_end 是否未过期
+            return False  # Pro 用户不扣除
+        
+        return True  # 其他情况需要扣除
+    except Exception:
+        return True  # 出错时默认扣除
+    finally:
+        conn.close()
+
+
 def charge_user_credits(user_id: str, cost: int, metadata: Optional[str] = None) -> bool:
+    """扣除用户积分 - Pro 用户在订阅期内不扣除"""
+    # Pro 用户直接返回成功，不扣除积分
+    if not should_charge_credits(user_id):
+        return True
+    
     conn = _get_connection()
     cursor = conn.cursor()
     cursor.execute("""

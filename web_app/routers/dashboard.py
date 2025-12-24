@@ -80,6 +80,10 @@ async def get_dashboard(request: Request):
     credits_info = ensure_user_credits(user["user_id"])
     usage = get_daily_usage(user["user_id"])
     history = get_credit_history(user["user_id"])
+    subscription = fetch_subscription(user["user_id"])
+    
+    # 检查是否为激活的 Pro 订阅
+    is_pro_active = (subscription["plan"] == "pro" and subscription["status"] == "active")
     
     return {
         "credits": credits_info["credits"],
@@ -87,6 +91,7 @@ async def get_dashboard(request: Request):
         "usage_history": usage,
         "credit_history": history,
         "is_admin": is_unlimited_user(user),
+        "is_pro_active": is_pro_active,  # 新增：Pro 是否激活
         "cost_per_summary": 10
     }
 

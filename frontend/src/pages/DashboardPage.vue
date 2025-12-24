@@ -16,10 +16,13 @@
         <div class="page-card">
           <div class="text-sm text-gray-500">当前积分</div>
           <div class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {{ loading ? '...' : (dashboardData?.credits ?? '--') }}
+            <template v-if="loading">...</template>
+            <template v-else-if="dashboardData?.is_pro_active">∞</template>
+            <template v-else>{{ dashboardData?.credits ?? '--' }}</template>
           </div>
           <div class="mt-2 text-xs text-gray-400">
-            已使用 {{ dashboardData?.total_used ?? 0 }} 次
+            <template v-if="dashboardData?.is_pro_active">Pro 无限使用</template>
+            <template v-else>已使用 {{ dashboardData?.total_used ?? 0 }} 次</template>
           </div>
         </div>
 
@@ -70,6 +73,7 @@ const dashboardData = ref<{
   credits: number
   total_used: number
   cost_per_summary: number
+  is_pro_active?: boolean  // Pro 是否激活
 } | null>(null)
 
 const subscriptionData = ref<{

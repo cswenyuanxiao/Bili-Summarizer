@@ -35,10 +35,13 @@
           <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-900/40 p-4">
             <div class="text-xs uppercase tracking-wide text-gray-400">当前积分</div>
             <div class="mt-2 text-3xl font-semibold text-gray-900 dark:text-gray-100">
-              {{ loading ? '...' : (data?.credits ?? '--') }}
+              <template v-if="loading">...</template>
+              <template v-else-if="data?.is_pro_active">∞</template>
+              <template v-else>{{ data?.credits ?? '--' }}</template>
             </div>
             <div class="mt-2 text-xs text-gray-500">
-              每次总结消耗 {{ data?.cost_per_summary ?? 10 }} 积分
+              <template v-if="data?.is_pro_active">Pro 无限使用</template>
+              <template v-else>每次总结消耗 {{ data?.cost_per_summary ?? 10 }} 积分</template>
             </div>
           </div>
           <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-900/40 p-4">
@@ -47,7 +50,8 @@
               {{ loading ? '...' : (data?.total_used ?? '--') }}
             </div>
             <div class="mt-2 text-xs text-gray-500">
-              剩余次数约 {{ remainingUses }}
+              <template v-if="data?.is_pro_active">剩余次数约 ∞</template>
+              <template v-else>剩余次数约 {{ remainingUses }}</template>
             </div>
           </div>
         </div>
@@ -159,6 +163,7 @@ const props = defineProps<{
     credits: number
     total_used: number
     cost_per_summary: number
+    is_pro_active?: boolean  // 新增：Pro 是否激活
     daily_usage?: { day: string; count: number }[]
     credit_history?: {
       type: string
