@@ -13,11 +13,25 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any, Tuple
+
+
 @dataclass
 class PaymentInitResult:
     payment_url: Optional[str] = None
     qr_url: Optional[str] = None
     raw: Optional[Dict[str, Any]] = None
+
+
+# ============ 订单状态常量 ============
+class OrderStatus:
+    PENDING = "pending"      # 待支付
+    PAID = "paid"           # 已支付
+    DELIVERED = "delivered"  # 已发货（积分/订阅已到账）
+    FAILED = "failed"       # 失败
+    REFUNDED = "refunded"   # 已退款
+    EXPIRED = "expired"     # 已过期
 
 
 def _normalize_pem(value: Optional[str]) -> Optional[str]:
@@ -252,3 +266,150 @@ async def verify_wechat_signature(headers: Dict[str, str], body: str) -> bool:
 def parse_wechat_notification(payload: Dict[str, Any]) -> Dict[str, Any]:
     resource = payload.get("resource") or {}
     return _decrypt_wechat_resource(resource)
+
+
+# ============ 高级订单管理 ============
+
+def create_payment_order(
+    user_id: str,
+    plan_id: str,
+    provider: str,  # 'alipay' | 'wechat'
+    amount_cents: int,
+    metadata: Optional[Dict] = None
+) -> Tuple[str, str, str]:
+    """
+    创建支付订单
+    返回: (order_id, payment_link_or_qr, billing_id)
+    """
+    import uuid
+    import time
+    from .db import get_connection
+    
+    order_id = f"ORD_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+    billing_id = f"BIL_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # 创建账单记录
+    cursor.execute("""
+        INSERT INTO billing_events (id, user_id, amount_cents, currency, status, created_at)
+        VALUES (?, ?, ?, 'CNY', 'pending', ?)
+    """, (billing_id, user_id, amount_cents, datetime.utcnow().isoformat()))
+    
+    # 创建支付订单
+    cursor.execute("""
+        INSERT INTO payment_orders (id, user_id, provider, plan, amount_cents, status, billing_id, created_at)
+        VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
+    """, (order_id, user_id, provider, plan_id, amount_cents, billing_id, datetime.utcnow().isoformat()))
+    
+    conn.commit()
+    conn.close()
+    
+    # 调用支付渠道创建预支付
+    payment_link = ""
+    if provider == 'alipay':
+        res = create_alipay_payment(order_id, amount_cents, f"BiliSummarizer-{plan_id}")
+        if res:
+            payment_link = res.payment_url or ""
+    else:
+        # WeChat Pay 这里需要 async 处理，但目前的 payments.py 是混用的
+        # 实际调用时建议在异步环境运行
+        # 这里为了兼容性，如果是 async 我们后续在 API 调用
+        payment_link = "" # 会在 API 层处理异步
+    
+    return order_id, payment_link, billing_id
+
+
+def update_order_status(order_id: str, new_status: str, transaction_id: Optional[str] = None) -> bool:
+    """更新订单状态并记录外部交易号"""
+    from .db import get_connection
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        UPDATE payment_orders 
+        SET status = ?, updated_at = ?, transaction_id = ?
+        WHERE id = ?
+    """, (new_status, datetime.utcnow().isoformat(), transaction_id, order_id))
+    
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    
+    return affected > 0
+
+
+def deliver_order(order_id: str) -> bool:
+    """
+    发货：根据订单类型发放积分或激活订阅
+    """
+    import logging
+    from .db import get_connection
+    from .credits import grant_credits
+    
+    logger = logging.getLogger(__name__)
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # 获取订单信息
+    cursor.execute("""
+        SELECT user_id, plan, amount_cents, status, billing_id
+        FROM payment_orders WHERE id = ?
+    """, (order_id,))
+    
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return False
+    
+    user_id, plan, amount_cents, status, billing_id = row
+    
+    # 检查是否已发货
+    if status == OrderStatus.DELIVERED:
+        logger.info(f"Order {order_id} already delivered, skipping")
+        conn.close()
+        return True
+    
+    # 根据套餐类型发货
+    # 注意：这里需要从 PRICING_PLANS 获取信息，
+    # 避免循环引用，我们可以直接从 main 导入或者按规范传参
+    # 这里我们采用局部导入
+    from .main import PRICING_PLANS
+    plan_info = PRICING_PLANS.get(plan, {})
+    
+    if plan_info.get("type") == "one_time":
+        # 积分包：发放积分
+        credits_to_add = plan_info.get("credits", 0)
+        grant_credits(user_id, credits_to_add, f"purchase_{order_id}")
+        logger.info(f"Granted {credits_to_add} credits to user {user_id}")
+    else:
+        # 订阅：激活订阅
+        period_days = plan_info.get("period_days", 30)
+        period_end = datetime.utcnow() + timedelta(days=period_days)
+        cursor.execute("""
+            INSERT INTO subscriptions (user_id, plan, status, current_period_end, updated_at)
+            VALUES (?, ?, 'active', ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                plan = EXCLUDED.plan,
+                status = EXCLUDED.status,
+                current_period_end = EXCLUDED.current_period_end,
+                updated_at = EXCLUDED.updated_at
+        """ if conn._is_postgres else """
+            INSERT OR REPLACE INTO subscriptions (user_id, plan, status, current_period_end, updated_at)
+            VALUES (?, ?, 'active', ?, ?)
+        """, (user_id, plan, period_end.isoformat(), datetime.utcnow().isoformat()))
+        logger.info(f"Activated subscription {plan} for user {user_id}")
+    
+    # 更新订单和账单状态
+    cursor.execute("UPDATE payment_orders SET status = ?, updated_at = ? WHERE id = ?", 
+                  (OrderStatus.DELIVERED, datetime.utcnow().isoformat(), order_id))
+    cursor.execute("UPDATE billing_events SET status = 'paid', updated_at = ? WHERE id = ?", 
+                  (datetime.utcnow().isoformat(), billing_id))
+    
+    conn.commit()
+    conn.close()
+    
+    return True

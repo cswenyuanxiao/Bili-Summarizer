@@ -37,6 +37,11 @@ class HistoryItem(BaseModel):
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
+class BatchSummarizeRequest(BaseModel):
+    urls: List[str]
+    mode: str = "smart"
+    focus: str = "default"
+
 # --- web_app 内部模块导入 ---
 from .downloader import download_content
 from .summarizer_gemini import summarize_content, extract_ai_transcript, upload_to_gemini, delete_gemini_file
@@ -50,8 +55,15 @@ from .payments import (
     create_wechat_payment,
     verify_alipay_notify,
     verify_wechat_signature,
-    parse_wechat_notification
+    parse_wechat_notification,
+    create_payment_order,
+    update_order_status,
+    deliver_order,
+    OrderStatus
 )
+from .idempotency import idempotency
+from .reconciliation import reconciliation
+from .batch_summarize import batch_service
 from .telemetry import record_failure
 from typing import List
 from .db import get_connection, get_backend_info, using_postgres
@@ -218,8 +230,20 @@ async def init_database():
             amount_cents INTEGER NOT NULL,
             status TEXT NOT NULL DEFAULT 'pending',
             billing_id TEXT NOT NULL,
+            transaction_id TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # 幂等键表 (模块 2)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS idempotency_keys (
+            key TEXT PRIMARY KEY,
+            status TEXT NOT NULL DEFAULT 'processing',
+            result TEXT,
+            created_at TEXT NOT NULL,
+            completed_at TEXT
         )
     """)
 
@@ -659,21 +683,172 @@ async def run_summarization_api(
 
 
 @app.get("/api/dashboard")
-async def get_dashboard(user: dict = Depends(get_current_user)):
-    credits = get_user_credits(user["user_id"]) or ensure_user_credits(user["user_id"])
-    usage = get_daily_usage(user["user_id"], 14)
-    daily_usage = [
-        {"day": day, "count": usage[day]}
-        for day in sorted(usage.keys())
-    ]
+async def get_dashboard(request: Request):
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    credits = ensure_user_credits(user["user_id"])
+    usage = get_daily_usage(user["user_id"])
+    
     return {
-        "user_id": user["user_id"],
-        "email": user.get("email"),
         "credits": credits["credits"],
         "total_used": credits["total_used"],
-        "cost_per_summary": 10,
-        "daily_usage": daily_usage
+        "usage_history": usage,
+        "is_admin": is_unlimited_user(user),
+        "cost_per_summary": 10
     }
+
+
+# ============ 支付相关端点 ============
+
+@app.post("/api/payments/create")
+async def create_payment_route(
+    request: Request,
+    plan_id: str,
+    provider: str = "alipay"
+):
+    """创建支付订单"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    if plan_id not in PRICING_PLANS:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+    
+    plan = PRICING_PLANS[plan_id]
+    
+    order_id, payment_url, billing_id = create_payment_order(
+        user_id=user["user_id"],
+        plan_id=plan_id,
+        provider=provider,
+        amount_cents=plan["amount_cents"]
+    )
+    
+    # 特殊处理微信支付异步创建
+    if provider == 'wechat':
+        try:
+            res = await create_wechat_payment(order_id, plan["amount_cents"], f"BiliSummarizer-{plan_id}")
+            payment_url = res.qr_url or ""
+        except Exception as e:
+            logger.error(f"Failed to create WeChat payment: {e}")
+            raise HTTPException(status_code=500, detail=f"WeChat Pay error: {str(e)}")
+
+    return {
+        "order_id": order_id,
+        "payment_url": payment_url,
+        "billing_id": billing_id,
+        "amount_cents": plan["amount_cents"]
+    }
+
+@app.get("/api/payments/status/{order_id}")
+async def get_payment_status(order_id: str, request: Request):
+    """查询支付状态"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT status, plan, amount_cents, created_at
+        FROM payment_orders
+        WHERE id = ? AND user_id = ?
+    """, (order_id, user["user_id"]))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    return {
+        "order_id": order_id,
+        "status": row["status"],
+        "plan": row["plan"],
+        "amount_cents": row["amount_cents"],
+        "created_at": row["created_at"]
+    }
+
+# ============ 支付回调处理器 ============
+
+@app.post("/api/payments/callback/alipay")
+async def alipay_callback(request: Request):
+    """支付宝异步回调"""
+    form_data = await request.form()
+    data = dict(form_data)
+    
+    # 验证签名
+    verified_data = verify_alipay_notify(data)
+    if not verified_data:
+        logger.warning(f"Alipay callback signature verification failed: {data}")
+        return "fail"
+    
+    trade_status = verified_data.get("trade_status")
+    out_trade_no = verified_data.get("out_trade_no")
+    trade_no = verified_data.get("trade_no")
+    
+    # 幂等性检查
+    idempotency_key = idempotency.generate_idempotency_key("alipay", trade_no)
+    is_new, existing_result = idempotency.check_and_lock(idempotency_key)
+    
+    if not is_new:
+        logger.info(f"Duplicate Alipay callback for trade {trade_no}, returning cached result")
+        return existing_result or "success"
+    
+    try:
+        if trade_status in ["TRADE_SUCCESS", "TRADE_FINISHED"]:
+            # 更新状态为 PAID
+            update_order_status(out_trade_no, OrderStatus.PAID, trade_no)
+            # 发货
+            deliver_order(out_trade_no)
+            
+            idempotency.mark_completed(idempotency_key, "success")
+            return "success"
+        else:
+            idempotency.mark_completed(idempotency_key, "ignored")
+            return "success"
+    except Exception as e:
+        logger.error(f"Alipay callback processing error: {e}")
+        idempotency.mark_failed(idempotency_key, str(e))
+        return "fail"
+
+@app.post("/api/payments/callback/wechat")
+async def wechat_callback(request: Request):
+    """微信支付异步回调"""
+    body = await request.body()
+    headers = dict(request.headers)
+    
+    # 验证签名
+    if not await verify_wechat_signature(headers, body.decode()):
+        logger.warning("WeChat callback signature verification failed")
+        return {"code": "FAIL", "message": "Invalid signature"}
+    
+    # 解析通知
+    try:
+        data = json.loads(body)
+        decrypted = parse_wechat_notification(data)
+        
+        out_trade_no = decrypted.get("out_trade_no")
+        transaction_id = decrypted.get("transaction_id")
+        trade_state = decrypted.get("trade_state")
+        
+        # 幂等性检查
+        idempotency_key = idempotency.generate_idempotency_key("wechat", transaction_id)
+        is_new, _ = idempotency.check_and_lock(idempotency_key)
+        
+        if not is_new:
+            return {"code": "SUCCESS", "message": "OK"}
+        
+        if trade_state == "SUCCESS":
+            update_order_status(out_trade_no, OrderStatus.PAID, transaction_id)
+            deliver_order(out_trade_no)
+            idempotency.mark_completed(idempotency_key, "success")
+        else:
+            idempotency.mark_completed(idempotency_key, "ignored")
+            
+        return {"code": "SUCCESS", "message": "OK"}
+        
+    except Exception as e:
+        logger.error(f"WeChat callback processing error: {e}")
+        return {"code": "FAIL", "message": str(e)}
 
 
 def fetch_subscription(user_id: str) -> dict:
@@ -2002,6 +2177,98 @@ async def delete_history_item(
     except Exception as e:
         logger.error(f"Delete history error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/reconciliation")
+async def run_reconciliation(
+    request: Request,
+    auto_fix: bool = False
+):
+    """执行对账（仅管理员）"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    if not is_unlimited_user(user):
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    result = reconciliation.run_full_reconciliation(auto_fix=auto_fix)
+    
+    return {
+        "success": result.success,
+        "checked_count": result.checked_count,
+        "issues": result.issues,
+        "fixed_count": result.fixed_count,
+        "summary": result.summary
+    }
+
+# ============ 批量总结端点 ============
+
+@app.post("/api/batch/summarize")
+async def create_batch_summarize(
+    request: Request,
+    body: BatchSummarizeRequest
+):
+    """创建批量总结任务"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    # 积分校验：每个视频固定消耗 10 积分
+    required_credits = len(body.urls) * 10
+    credits_data = get_user_credits(user["user_id"])
+    
+    if not is_unlimited_user(user) and (not credits_data or credits_data["credits"] < required_credits):
+        raise HTTPException(
+            status_code=402,
+            detail=f"余额不足。此批次需要 {required_credits} 积分，当前余额为 {credits_data['credits'] if credits_data else 0}。"
+        )
+    
+    try:
+        job_id = await batch_service.create_batch(
+            user_id=user["user_id"],
+            urls=body.urls,
+            mode=body.mode,
+            focus=body.focus
+        )
+        
+        # 预扣积分
+        if not is_unlimited_user(user):
+            charge_user_credits(user["user_id"], required_credits)
+            
+        return {
+            "job_id": job_id,
+            "count": len(body.urls),
+            "credits_charged": required_credits if not is_unlimited_user(user) else 0
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/batch/{job_id}")
+async def get_batch_job_status(job_id: str, request: Request):
+    """获取批量任务状态和结果"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    job = batch_service.get_job_status(job_id)
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Batch job not found")
+    
+    # 权限校验
+    if job.user_id != user["user_id"] and not is_unlimited_user(user):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    return {
+        "job_id": job.id,
+        "status": job.status.value,
+        "progress": job.progress,
+        "total": len(job.urls),
+        "completed_count": len(job.results),
+        "failed_count": len(job.errors),
+        "results": job.results if job.status.value in ["completed", "partial"] else {},
+        "errors": job.errors,
+        "created_at": job.created_at,
+        "completed_at": job.completed_at
+    }
 
 
 # --- Frontend Static (Render) ---
