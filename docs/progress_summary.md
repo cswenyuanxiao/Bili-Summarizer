@@ -1,5 +1,11 @@
 # Bili-Summarizer 功能实现进度总结
 
+## ✅ 近期系统更新（重要）
+- ✅ **PostgreSQL 持久化**：新增 `web_app/db.py`，支持 `DATABASE_URL` 切换到 Supabase/外部 Postgres，带连接池。
+- ✅ **调试与支付开关**：`DEBUG_API` 控制调试接口；`PAYMENT_MOCK` 默认关闭。
+- ✅ **前端路由化**：主入口改为 `AppShell.vue` + `vue-router`，菜单栏对应独立页面。
+- ✅ **商业化价格统一**：Starter ¥1/30积分，Pro Pack ¥3/120积分，Pro 专业版 ¥29.9/月。
+
 ## ✅ 已完成的功能 (3个Phase)
 
 ### Phase 8.1: API Key 系统恢复

@@ -118,6 +118,7 @@ npx localtunnel --port 7860
 6. 等待自动部署完成
 
 > ⚠️ 免费版 15 分钟无活动会休眠，首次访问需等待 30-50 秒唤醒
+> ⚠️ Render 免费实例不支持持久化磁盘，生产环境建议使用外部 Postgres（如 Supabase/Neon），配置 `DATABASE_URL` 以持久化积分与订单数据。
 
 ### 更多平台
 
@@ -130,6 +131,11 @@ npx localtunnel --port 7860
 | 变量名 | 必填 | 说明 | 获取方式 |
 |--------|------|------|----------|
 | `GOOGLE_API_KEY` | ✅ | Google Gemini API 密钥 | [Google AI Studio](https://aistudio.google.com/app/apikey) |
+| `DATABASE_URL` | ❌ | 外部 Postgres 连接字符串（生产建议配置） | Supabase/Neon 控制台 |
+| `PG_POOL_MIN` | ❌ | Postgres 连接池最小连接数 | 默认 1 |
+| `PG_POOL_MAX` | ❌ | Postgres 连接池最大连接数 | 默认 5 |
+| `DEBUG_API` | ❌ | 调试接口开关（1=开启） | 生产默认关闭 |
+| `PAYMENT_MOCK` | ❌ | 支付 Mock 开关（1=开启） | 默认关闭 |
 
 ---
 
@@ -201,7 +207,9 @@ https://b23.tv/xxxxxx
 bili-summarizer/
 ├── frontend/                # Vue 3 前端应用
 │   ├── src/
-│   │   ├── App.vue          # 根组件
+│   │   ├── AppShell.vue     # 路由壳组件（含导航与弹窗）
+│   │   ├── router/          # 前端路由配置
+│   │   ├── pages/           # 独立路由页面
 │   │   ├── components/      # UI 组件
 │   │   ├── composables/     # 组合式函数
 │   │   └── types/           # TypeScript 类型
@@ -219,6 +227,10 @@ bili-summarizer/
 ├── requirements.txt         # Python 依赖
 └── DEPLOYMENT.md            # 部署完整指南
 ```
+
+## 📎 维护上下文
+
+对话关键背景与近期修复总结见：`docs/conversation_context.md`。
 
 ---
 

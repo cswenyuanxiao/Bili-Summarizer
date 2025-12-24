@@ -3,9 +3,9 @@
     <div class="container mx-auto max-w-6xl px-4">
       <section class="page-hero space-y-4" data-reveal>
         <div class="page-hero__cloud" aria-hidden="true"></div>
-        <div class="page-hero__kicker">Product</div>
-        <div class="page-hero__title">产品</div>
-        <div class="page-hero__subtitle">把 B 站长视频拆成可执行的知识模块。</div>
+        <p class="page-hero__kicker">Product</p>
+        <h1 class="page-hero__title">产品</h1>
+        <p class="page-hero__subtitle">把 B 站长视频拆成可执行的知识模块。</p>
         <div class="flex flex-wrap gap-3">
           <button class="btn-primary px-5 py-2 text-sm wiggle-soft" @click="goHome">立即体验</button>
           <span class="badge-pill badge-soft">云端同步 · 导出 · 邀请奖励</span>
@@ -32,8 +32,10 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useReveal } from '../composables/useReveal'
 
 const router = useRouter()
+useReveal()
 const goHome = () => {
   router.push('/')
 }

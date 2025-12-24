@@ -1,7 +1,7 @@
 <template>
-  <main class="min-h-screen pb-20">
+  <main class="min-h-screen pb-20 page-shell">
     <div class="container mx-auto max-w-6xl px-4">
-      <div class="page-shell flex flex-col gap-[var(--section-gap)]">
+      <div class="flex flex-col gap-[var(--section-gap)]">
         <section class="page-hero space-y-4" data-reveal>
           <div class="page-hero__cloud" aria-hidden="true"></div>
           <p class="page-hero__kicker">Referral</p>
@@ -49,8 +49,10 @@
 <script setup lang="ts">
 import { inject } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import { useReveal } from '../composables/useReveal'
 
 const { user } = useAuth()
+useReveal()
 const appActions = inject<{ openLogin: () => void; openInvite: () => void }>('appActions')
 const openLogin = () => appActions?.openLogin()
 const openInvite = () => appActions?.openInvite()

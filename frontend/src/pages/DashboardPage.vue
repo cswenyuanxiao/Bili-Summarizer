@@ -3,9 +3,9 @@
     <div class="container mx-auto max-w-6xl px-4">
       <section class="page-hero space-y-4" data-reveal>
         <div class="page-hero__cloud" aria-hidden="true"></div>
-        <div class="page-hero__kicker">Dashboard</div>
-        <div class="page-hero__title">仪表盘</div>
-        <div class="page-hero__subtitle">查看积分余额、使用趋势与订阅状态。</div>
+        <p class="page-hero__kicker">Dashboard</p>
+        <h1 class="page-hero__title">仪表盘</h1>
+        <p class="page-hero__subtitle">查看积分余额、使用趋势与订阅状态。</p>
         <div class="flex flex-wrap gap-3">
           <button class="btn-primary px-5 py-2 text-sm wiggle-soft" @click="openDashboard">打开仪表盘</button>
           <span class="badge-pill badge-soft">实时更新</span>
@@ -40,8 +40,10 @@
 <script setup lang="ts">
 import { inject } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import { useReveal } from '../composables/useReveal'
 
 const { user } = useAuth()
+useReveal()
 const appActions = inject<{ openLogin: () => void; openDashboard: () => void }>('appActions')
 const openLogin = () => appActions?.openLogin()
 const openDashboard = () => appActions?.openDashboard()

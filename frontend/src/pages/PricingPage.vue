@@ -3,9 +3,9 @@
     <div class="container mx-auto max-w-6xl px-4">
       <section class="page-hero space-y-4" data-reveal>
         <div class="page-hero__cloud" aria-hidden="true"></div>
-        <div class="page-hero__kicker">Pricing</div>
-        <div class="page-hero__title">方案</div>
-        <div class="page-hero__subtitle">灵活购买额度包或升级 Pro。</div>
+        <p class="page-hero__kicker">Pricing</p>
+        <h1 class="page-hero__title">方案</h1>
+        <p class="page-hero__subtitle">灵活购买额度包或升级 Pro。</p>
         <div class="flex flex-wrap gap-3">
           <button class="btn-primary px-5 py-2 text-sm wiggle-soft" @click="openPricing">立即购买</button>
           <span class="badge-pill badge-soft">支持支付宝 / 微信支付</span>
@@ -35,7 +35,9 @@
 
 <script setup lang="ts">
 import { inject } from 'vue'
+import { useReveal } from '../composables/useReveal'
 
+useReveal()
 const appActions = inject<{ openPricing: () => void }>('appActions')
 const openPricing = () => appActions?.openPricing()
 </script>

@@ -77,6 +77,7 @@ cd frontend
 npm install
 npm run dev
 ```
+> 若遇到 `Failed to resolve import "vue-router"`，请确认已安装依赖：`npm install vue-router@4`。
 
 ### 访问链接（推荐）
 - `http://localhost:5173`

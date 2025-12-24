@@ -1,7 +1,7 @@
 from typing import Optional, Dict
 
 from .db import get_connection, using_postgres
-INITIAL_CREDITS = 30
+INITIAL_CREDITS = 50
 FIRST_SUMMARY_BONUS = 10
 
 

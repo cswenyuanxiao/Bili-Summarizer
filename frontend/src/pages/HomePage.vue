@@ -117,7 +117,111 @@
             @share="shareHistoryItem"
           />
         </div>
-      </div>
+
+        </div>
+
+        <!-- Section: Product Features -->
+        <section class="pt-10 pb-6 space-y-8 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
+          <div class="text-center space-y-3">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">核心特性</h2>
+            <p class="text-gray-500 dark:text-gray-400 text-sm">专为 B 站长视频打造的智能总结工具</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div class="page-card hover:translate-y-[-4px] transition-transform duration-300">
+              <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-xl mb-4">⚡️</div>
+              <div class="text-base font-semibold text-gray-900 dark:text-gray-100">结构化总结</div>
+              <div class="mt-2 text-sm text-gray-500 leading-relaxed">AI 智能提取视频核心观点，生成层级分明的笔记，通过大纲快速把握重点。</div>
+            </div>
+            <div class="page-card hover:translate-y-[-4px] transition-transform duration-300">
+              <div class="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-xl mb-4">📝</div>
+              <div class="text-base font-semibold text-gray-900 dark:text-gray-100">自动转录</div>
+              <div class="mt-2 text-sm text-gray-500 leading-relaxed">提供精准的逐字稿与时间戳，支持一键定位播放，不错过任何细节。</div>
+            </div>
+            <div class="page-card hover:translate-y-[-4px] transition-transform duration-300 page-card--accent">
+              <div class="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-xl mb-4">🧠</div>
+              <div class="text-base font-semibold text-gray-900 dark:text-gray-100">思维导图</div>
+              <div class="mt-2 text-sm text-gray-500 leading-relaxed">自动分析逻辑脉络，生成可视化思维导图，支持导出 SVG/PNG，便于复习与分享。</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Pricing -->
+        <section class="pt-10 pb-6 space-y-8 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
+          <div class="text-center space-y-3">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">灵活方案</h2>
+            <p class="text-gray-500 dark:text-gray-400 text-sm">按需付费，余额永久有效</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div class="page-card hover:border-primary/30 transition-colors cursor-pointer group" @click="openPricing">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Starter</div>
+                  <div class="mt-1 text-xs text-gray-500">尝鲜体验</div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">¥1</span>
+              </div>
+              <div class="mt-4 flex items-baseline gap-1">
+                <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">30</span>
+                <span class="text-sm text-gray-500">积分</span>
+              </div>
+              <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center text-xs text-primary font-medium group-hover:underline">
+                立即购买 <span class="ml-1">→</span>
+              </div>
+            </div>
+            <div class="page-card hover:border-primary/30 transition-colors cursor-pointer group page-card--accent" @click="openPricing">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Value Pack</div>
+                  <div class="mt-1 text-xs text-gray-500">高频总结</div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">¥3</span>
+              </div>
+              <div class="mt-4 flex items-baseline gap-1">
+                <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">120</span>
+                <span class="text-sm text-gray-500">积分</span>
+              </div>
+              <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center text-xs text-primary font-medium group-hover:underline">
+                立即购买 <span class="ml-1">→</span>
+              </div>
+            </div>
+            <div class="page-card hover:border-primary/30 transition-colors cursor-pointer group" @click="openPricing">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Pro Plan</div>
+                  <div class="mt-1 text-xs text-gray-500">无限次使用</div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300">¥29.9/月</span>
+              </div>
+              <div class="mt-4 flex items-baseline gap-1">
+                <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">∞</span>
+                <span class="text-sm text-gray-500">无限量</span>
+              </div>
+              <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center text-xs text-primary font-medium group-hover:underline">
+                订阅 Pro <span class="ml-1">→</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Developer & Resources -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-6 pb-10 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
+          <RouterLink to="/developer" class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">🛠️</div>
+            <div>
+              <div class="text-base font-semibold text-gray-900 dark:text-gray-100">开发者 API</div>
+              <div class="mt-1 text-sm text-gray-500">将总结能力集成到你的应用中</div>
+            </div>
+            <div class="ml-auto text-gray-400 group-hover:translate-x-1 transition-transform">→</div>
+          </RouterLink>
+          <RouterLink to="/docs" class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📖</div>
+            <div>
+              <div class="text-base font-semibold text-gray-900 dark:text-gray-100">使用文档</div>
+              <div class="mt-1 text-sm text-gray-500">查看详细功能介绍与常见问题</div>
+            </div>
+            <div class="ml-auto text-gray-400 group-hover:translate-x-1 transition-transform">→</div>
+          </RouterLink>
+        </section>
     </div>
   </main>
 </template>

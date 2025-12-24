@@ -3,9 +3,9 @@
     <div class="container mx-auto max-w-6xl px-4">
       <section class="page-hero space-y-4" data-reveal>
         <div class="page-hero__cloud" aria-hidden="true"></div>
-        <div class="page-hero__kicker">Billing</div>
-        <div class="page-hero__title">账单</div>
-        <div class="page-hero__subtitle">查看订阅与额度包订单。</div>
+        <p class="page-hero__kicker">Billing</p>
+        <h1 class="page-hero__title">账单</h1>
+        <p class="page-hero__subtitle">查看订阅与额度包订单。</p>
         <div class="flex flex-wrap gap-3">
           <button class="btn-primary px-5 py-2 text-sm wiggle-soft" @click="openBilling">查看账单</button>
           <span class="badge-pill badge-soft">发票支持</span>
@@ -40,8 +40,10 @@
 <script setup lang="ts">
 import { inject } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import { useReveal } from '../composables/useReveal'
 
 const { user } = useAuth()
+useReveal()
 const appActions = inject<{ openLogin: () => void; openBilling: () => void }>('appActions')
 const openLogin = () => appActions?.openLogin()
 const openBilling = () => appActions?.openBilling()

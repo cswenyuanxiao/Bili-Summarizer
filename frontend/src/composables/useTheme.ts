@@ -17,8 +17,8 @@ const updateDOM = (dark: boolean) => {
 export function useTheme() {
     const initTheme = () => {
         const saved = localStorage.getItem('theme')
-        const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
-        isDark.value = saved === 'dark' || (!saved && prefersDark)
+        // Default to light mode (ignore system preference unless saved)
+        isDark.value = saved === 'dark'
         updateDOM(isDark.value)
     }
 

@@ -5,7 +5,7 @@ Bili-Summarizer is a Vue + FastAPI app that summarizes Bilibili videos, generate
 
 ## Primary Entry Points
 - **Backend**: `web_app/main.py`
-- **Frontend**: `frontend/src/App.vue`
+- **Frontend**: `frontend/src/AppShell.vue`
 - **Docs**: `docs/system-analysis.md`, `docs/feature-roadmap.md`, `docs/implementation/three_phases_summary.md`
 
 ## Key Runtime Flows
@@ -20,7 +20,7 @@ Bili-Summarizer is a Vue + FastAPI app that summarizes Bilibili videos, generate
 5. **Cloud History**  
    `GET/POST/DELETE /api/history` → `frontend/src/composables/useHistorySync.ts`.
 6. **Export**  
-   Summary export (MD/TXT/PDF) and mindmap export (SVG/PNG) are handled in `frontend/src/App.vue`.
+   Summary export (MD/TXT/PDF) and mindmap export (SVG/PNG) are handled in `frontend/src/pages/HomePage.vue`.
 7. **Resummarize**  
    Summary card can trigger a re-run with `skip_cache=true` to force a fresh summary.
 8. **Dashboard**  
@@ -28,13 +28,17 @@ Bili-Summarizer is a Vue + FastAPI app that summarizes Bilibili videos, generate
 
 ## Auth & API Key
 - Supabase auth (optional) lives in `frontend/src/composables/useAuth.ts`.
-- API keys stored in `cache.db` (SQLite).  
+- API keys stored in database (`DATABASE_URL` → Postgres, otherwise SQLite).  
 - Auth entry: `web_app/auth.py` via `get_current_user`.
 
 ## Environment Variables
 - `GOOGLE_API_KEY`: required for Gemini calls.
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`: optional for auth + cloud history.
 - `SUPABASE_SERVICE_KEY`: optional for server‑side access.
+- `DATABASE_URL`: optional external Postgres (production recommended).
+- `PG_POOL_MIN` / `PG_POOL_MAX`: Postgres connection pool size.
+- `DEBUG_API`: debug endpoints gate (1=enable).
+- `PAYMENT_MOCK`: payment mock gate (1=enable).
 
 ## Legacy UI (Fallback)
 If `frontend/dist` is missing, backend serves `web_app/templates/index.html` and `web_app/static/*`.  
@@ -43,10 +47,14 @@ These files are legacy and not used by the Vue app.
 ## Project Structure (Selected)
 ```
 frontend/               # Vue app
+  src/AppShell.vue      # Router shell + global modals
+  src/router/           # Vue Router config
+  src/pages/            # Route pages (Home/Product/Pricing/etc.)
   src/components/       # UI components
   src/composables/      # data flow hooks
 web_app/                # FastAPI backend
   main.py               # API + SSE
+  db.py                 # DB connection proxy + pool
   auth.py               # API key + session auth
   downloader.py         # yt-dlp + subtitles
 docs/                   # planning + analysis
@@ -67,3 +75,4 @@ cd frontend
 npm install
 npm run dev
 ```
+> 如果报 `Failed to resolve import "vue-router"`，需要在 `frontend/` 安装 `vue-router@4`。

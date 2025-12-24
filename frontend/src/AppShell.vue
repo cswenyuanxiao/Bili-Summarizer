@@ -6,7 +6,7 @@
       <div class="aurora-blob is-tertiary top-[360px] left-[-80px] bg-[#22d3ee]/70"></div>
     </div>
 
-    <header class="relative z-40 overflow-hidden">
+    <header class="relative z-40">
       <div class="hero-glow" aria-hidden="true"></div>
       <div class="hero-fade" aria-hidden="true"></div>
       <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-gray-200/70 dark:border-slate-800/70">
@@ -53,41 +53,52 @@
                 
                 <div
                   v-show="showUserMenu"
-                  class="absolute top-full right-0 mt-2 w-56 glass-card rounded-xl overflow-hidden border border-white/40 z-50"
+                  class="absolute top-full -right-4 mt-2 w-56 glass-card rounded-xl overflow-hidden border border-white/40 z-[70] flex flex-col shadow-2xl py-1"
                   role="menu"
                 >
-                  <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">{{ user.email }}</p>
+                  <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-700/50 bg-gray-50/50 dark:bg-slate-800/50">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{{ user.email }}</p>
                     <div class="flex items-center gap-2 mt-1">
-                      <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ planLabel }}</span>
-                      <button @click="openPricing" class="text-xs text-primary hover:underline">升级</button>
+                      <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary border border-primary/20 font-bold">{{ planLabel }}</span>
+                      <button @click="openPricing" class="text-xs text-gray-500 hover:text-primary font-medium transition-colors">升级</button>
                     </div>
                   </div>
-                  <RouterLink to="/pricing" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between group/item">
-                    <span>升级 Pro</span>
-                    <span class="text-xs bg-gradient-to-r from-primary to-purple-500 text-white px-1.5 py-0.5 rounded">HOT</span>
-                  </RouterLink>
-                  <RouterLink to="/dashboard" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    仪表盘
-                  </RouterLink>
-                  <RouterLink to="/billing" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    账单与发票
-                  </RouterLink>
-                  <RouterLink to="/invite" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    邀请好友
-                  </RouterLink>
-                  <RouterLink to="/developer" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    开发者 API
-                  </RouterLink>
-                  <RouterLink to="/docs" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    使用文档
-                  </RouterLink>
-                  <button 
-                    @click="handleLogout"
-                    class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    退出登录
-                  </button>
+                  
+                  <div class="p-1 flex flex-col gap-0.5">
+                    <RouterLink to="/pricing" class="flex items-center justify-between px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">升级 Pro</span>
+                      <span class="text-[10px] font-bold bg-gradient-to-r from-primary to-purple-600 text-white px-1.5 py-0.5 rounded shadow-sm">HOT</span>
+                    </RouterLink>
+                    
+                    <RouterLink to="/dashboard" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">仪表盘</span>
+                    </RouterLink>
+                    
+                    <RouterLink to="/billing" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">账单与发票</span>
+                    </RouterLink>
+                    
+                    <RouterLink to="/invite" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">邀请好友</span>
+                    </RouterLink>
+                    
+                    <RouterLink to="/developer" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">开发者 API</span>
+                    </RouterLink>
+                    
+                    <RouterLink to="/docs" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">使用文档</span>
+                    </RouterLink>
+                  </div>
+                  
+                  <div class="px-1 pb-1 pt-1 border-t border-gray-100 dark:border-gray-700/50 mt-1">
+                    <button 
+                      @click="handleLogout"
+                      class="w-full flex items-center px-4 py-2.5 rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 group"
+                    >
+                      <span class="text-sm font-semibold group-hover:translate-x-1 transition-transform">退出登录</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 

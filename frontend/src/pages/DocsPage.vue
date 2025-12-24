@@ -3,9 +3,9 @@
     <div class="container mx-auto max-w-6xl px-4">
       <section class="page-hero space-y-4" data-reveal>
         <div class="page-hero__cloud" aria-hidden="true"></div>
-        <div class="page-hero__kicker">Docs</div>
-        <div class="page-hero__title">使用文档</div>
-        <div class="page-hero__subtitle">快速上手与常见问题。</div>
+        <p class="page-hero__kicker">Docs</p>
+        <h1 class="page-hero__title">使用文档</h1>
+        <p class="page-hero__subtitle">快速上手与常见问题。</p>
         <div class="flex flex-wrap gap-3">
           <button class="btn-primary px-5 py-2 text-sm wiggle-soft" @click="openUsageGuide">查看详细指南</button>
           <span class="badge-pill badge-soft">最新版本</span>
@@ -32,7 +32,9 @@
 
 <script setup lang="ts">
 import { inject } from 'vue'
+import { useReveal } from '../composables/useReveal'
 
+useReveal()
 const appActions = inject<{ openUsageGuide: () => void }>('appActions')
 const openUsageGuide = () => appActions?.openUsageGuide()
 </script>
