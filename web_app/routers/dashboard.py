@@ -3,15 +3,31 @@ Dashboard Router - 用户面板、订阅、额度相关端点
 """
 from fastapi import APIRouter, Request, HTTPException, Depends
 from typing import Optional
+import os
 import logging
 
-from ..dependencies import get_current_user, get_optional_user, get_db
+from ..dependencies import get_current_user, get_optional_user
+from ..auth import verify_session_token
 from ..credits import ensure_user_credits, get_user_credits, get_credit_history, get_daily_usage
 from ..db import get_connection
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["Dashboard"])
+
+# 管理员邮箱列表（避免循环导入 main.py）
+ADMIN_EMAILS = {
+    email.strip().lower()
+    for email in os.getenv("ADMIN_EMAILS", "admin@bili-summarizer.com").split(",")
+    if email.strip()
+}
+
+
+def is_unlimited_user(user: Optional[dict]) -> bool:
+    """检查用户是否为无限额度用户（管理员）"""
+    if not user:
+        return False
+    return user.get("email", "").lower() in ADMIN_EMAILS
 
 
 # --- 订阅检查辅助函数 ---
@@ -65,9 +81,6 @@ async def get_dashboard(request: Request):
     usage = get_daily_usage(user["user_id"])
     history = get_credit_history(user["user_id"])
     
-    # 判断是否为管理员（无限额度用户）
-    from ..main import is_unlimited_user
-    
     return {
         "credits": credits_info["credits"],
         "total_used": credits_info["total_used"],
@@ -90,3 +103,4 @@ async def get_subscription(user: dict = Depends(get_current_user)):
         "current_period_end": subscription["current_period_end"],
         "updated_at": subscription["updated_at"]
     }
+
