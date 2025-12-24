@@ -94,7 +94,7 @@ from .cache import get_cached_result, save_to_cache, get_cache_stats, init_cache
 from .queue_manager import task_queue
 from .rate_limiter import rate_limiter
 from .auth import get_current_user, verify_session_token
-from .credits import ensure_user_credits, get_user_credits, charge_user_credits, get_daily_usage, grant_credits, get_credit_history
+from .credits import ensure_user_credits, get_user_credits, charge_user_credits, get_daily_usage, grant_credits, get_credit_history, init_credits_db
 from .payments import (
     create_alipay_payment,
     create_wechat_payment,
@@ -121,7 +121,7 @@ from .teams import (
     create_team, get_user_teams, get_team_details, 
     share_summary_to_team, add_comment, get_summary_comments
 )
-from .telemetry import record_failure
+from .telemetry import record_failure, init_telemetry_db
 from typing import List
 from .db import get_connection, get_backend_info, using_postgres
 from io import BytesIO
@@ -184,19 +184,21 @@ async def on_startup():
     # 数据库
     conn = get_connection()
 
-    # 缓存表初始化（允许失败并重试，避免启动崩溃）
-    async def init_cache_with_retry():
+    async def init_db_with_retry(name: str, init_fn):
         for attempt in range(1, 6):
             try:
-                init_cache_db()
-                logger.info("Cache DB initialized")
+                init_fn()
+                logger.info(f"{name} initialized")
                 return
             except Exception as exc:
-                logger.warning(f"Cache DB init failed (attempt {attempt}/5): {exc}")
+                logger.warning(f"{name} init failed (attempt {attempt}/5): {exc}")
                 await asyncio.sleep(min(2 ** (attempt - 1), 10))
-        logger.error("Cache DB init failed after retries; cache may be unavailable")
+        logger.error(f"{name} init failed after retries; service may be degraded")
 
-    asyncio.create_task(init_cache_with_retry())
+    # 表初始化（允许失败并重试，避免启动崩溃）
+    asyncio.create_task(init_db_with_retry("Cache DB", init_cache_db))
+    asyncio.create_task(init_db_with_retry("Credits DB", init_credits_db))
+    asyncio.create_task(init_db_with_retry("Telemetry DB", init_telemetry_db))
     
     # 周期性清理任务
     async def schedule_cleanups():

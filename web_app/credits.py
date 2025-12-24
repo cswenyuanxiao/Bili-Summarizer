@@ -223,5 +223,3 @@ def get_credit_history(user_id: str, limit: int = 50):
         })
     return history
 
-
-init_credits_db()

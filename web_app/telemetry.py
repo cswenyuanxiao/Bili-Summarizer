@@ -46,5 +46,3 @@ def record_failure(user_id: Optional[str], code: str, stage: str, detail: str = 
     conn.commit()
     conn.close()
 
-
-init_telemetry_db()
