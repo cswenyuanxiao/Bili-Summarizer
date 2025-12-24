@@ -82,5 +82,7 @@ jobs:
         working-directory: frontend
       - name: Start backend
         run: uvicorn web_app.main:app --host 127.0.0.1 --port 7860 &
+      - name: Wait for backend startup
+        run: sleep 10
       - name: Preflight health check
         run: ./scripts/preflight_check.sh http://localhost:7860
