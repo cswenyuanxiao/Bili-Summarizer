@@ -13,7 +13,7 @@
         <div class="container mx-auto max-w-6xl px-4 sm:px-6">
           <div class="flex items-center justify-between h-14 sm:h-16">
             <RouterLink to="/" class="flex items-center gap-3">
-              <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-cyan-400 text-white font-semibold">✨</div>
+              <img src="/favicon.png" alt="Logo" class="w-9 h-9 rounded-xl shadow-sm" />
               <div class="text-base sm:text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">Bili-Summarizer</div>
             </RouterLink>
 
