@@ -22,7 +22,7 @@
         </div>
         
         <!-- Email Form -->
-        <div class="space-y-3">
+        <form class="space-y-3" @submit.prevent="handleEmailAuth">
             <input 
                 v-model="email" 
                 type="email" 
@@ -36,7 +36,7 @@
                 class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white"
             />
             <button 
-                @click="handleEmailAuth"
+                type="submit"
                 :disabled="isLoading || !isSupabaseConfigured"
                 class="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-medium transition-colors disabled:opacity-50"
             >
@@ -44,10 +44,10 @@
             </button>
             
             <div class="text-center text-sm text-gray-500">
-                <span v-if="isSignUp">已有账号？ <button @click="isSignUp = false" class="text-primary hover:underline">去登录</button></span>
-                <span v-else>没有账号？ <button @click="isSignUp = true" class="text-primary hover:underline">去注册</button></span>
+                <span v-if="isSignUp">已有账号？ <button type="button" @click="isSignUp = false" class="text-primary hover:underline">去登录</button></span>
+                <span v-else>没有账号？ <button type="button" @click="isSignUp = true" class="text-primary hover:underline">去注册</button></span>
             </div>
-        </div>
+        </form>
 
         <div class="relative flex py-2 items-center">
             <div class="flex-grow border-t border-gray-200 dark:border-gray-600"></div>
@@ -57,6 +57,7 @@
 
         <button
           @click="handleGitHubLogin"
+          type="button"
           :disabled="!isSupabaseConfigured"
           class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:text-gray-200"
         >
@@ -69,6 +70,7 @@
         <!-- Google Login -->
         <button
           @click="handleGoogleLogin"
+          type="button"
           :disabled="!isSupabaseConfigured"
           class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:text-gray-200"
         >
