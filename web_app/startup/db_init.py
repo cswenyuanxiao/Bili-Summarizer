@@ -96,6 +96,79 @@ async def init_core_tables():
             )
         """)
         
+        # UP 主订阅表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS up_subscriptions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                up_mid TEXT NOT NULL,
+                up_name TEXT,
+                up_avatar TEXT,
+                notify_methods TEXT,
+                last_checked_at TEXT,
+                last_video_bvid TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, up_mid)
+            )
+        """)
+        
+        # 总结模板表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS summary_templates (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                prompt_template TEXT NOT NULL,
+                output_format TEXT DEFAULT 'markdown',
+                sections TEXT,
+                is_preset BOOLEAN DEFAULT FALSE,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # 幂等性主键表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS idempotency_keys (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                action TEXT,
+                status TEXT,
+                result TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # 通知队列表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS notification_queue (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                type TEXT NOT NULL,
+                title TEXT,
+                body TEXT,
+                payload TEXT,
+                status TEXT DEFAULT 'pending',
+                method TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                sent_at TEXT
+            )
+        """)
+        
+        # 浏览器推送订阅表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                endpoint TEXT NOT NULL,
+                p256dh TEXT NOT NULL,
+                auth TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, endpoint)
+            )
+        """)
+        
         conn.commit()
         conn.close()
         logger.info("Core tables initialized")
