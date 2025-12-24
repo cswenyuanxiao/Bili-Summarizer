@@ -18,7 +18,7 @@
         <!-- 团队列表侧边栏 -->
         <aside class="lg:col-span-3 space-y-4">
           <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest px-2">我的团队</h2>
-          <div v-if="teams.length === 0 && !loading" class="p-8 text-center glass-card rounded-2xl">
+          <div v-if="teams.length === 0 && !loading" class="p-8 text-center bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-2xl">
              <p class="text-xs text-gray-500">尚无团队</p>
           </div>
           <div v-else class="space-y-2">
@@ -39,14 +39,14 @@
         
         <!-- 团队主内容 -->
         <main class="lg:col-span-9">
-          <div v-if="!activeTeamId" class="flex flex-col items-center justify-center py-40 glass-card rounded-3xl opacity-50">
+          <div v-if="!activeTeamId" class="flex flex-col items-center justify-center py-40 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl opacity-50">
             <div class="text-6xl mb-6">🤝</div>
             <p class="text-gray-500">请在左侧选择一个团队以查看详情</p>
           </div>
           
           <div v-else-if="activeTeam" class="space-y-8 fade-up">
             <!-- 团队详情头部 -->
-            <div class="glass-card rounded-3xl p-8 relative overflow-hidden">
+            <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8 relative overflow-hidden">
               <div class="relative z-10">
                 <h2 class="text-2xl font-bold mb-2">{{ activeTeam.name }}</h2>
                 <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">{{ activeTeam.description || '暂无描述' }}</p>
@@ -75,7 +75,7 @@
                 <span>📂</span> 共享总结
               </h3>
               
-              <div v-if="activeTeam.summaries.length === 0" class="py-20 text-center glass-card rounded-3xl bg-gray-50/50 dark:bg-slate-900/30">
+              <div v-if="activeTeam.summaries.length === 0" class="py-20 text-center bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl bg-gray-50/50 dark:bg-slate-900/30">
                 <p class="text-gray-500">该团队成员尚未分享任何内容</p>
                 <button class="mt-4 text-sm text-primary hover:underline">去分享第一篇</button>
               </div>
@@ -85,7 +85,7 @@
                 <div 
                   v-for="item in activeTeam.summaries" 
                   :key="item.share_id"
-                  class="glass-card rounded-3xl overflow-hidden hover:shadow-xl transition-all group"
+                  class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl overflow-hidden hover:shadow-xl transition-all group"
                 >
                   <div class="flex flex-col md:flex-row">
                     <div class="md:w-64 h-40 md:h-auto relative overflow-hidden">
@@ -133,7 +133,7 @@
     <!-- 创建团队弹窗 -->
     <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showCreateModal = false"></div>
-      <div class="relative w-full max-w-md glass-card rounded-3xl p-8 shadow-2xl">
+      <div class="relative w-full max-w-md bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8 shadow-2xl">
         <h3 class="text-xl font-bold mb-6 italic">创建新团队</h3>
         <div class="space-y-4">
           <div>
@@ -264,7 +264,7 @@ function formatDate(dateStr: string) {
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`
 }
 
-function getCommentCount(summaryId: string) {
+function getCommentCount(_summaryId: string) {
   // 模拟数据，实际应从 API 获取
   return Math.floor(Math.random() * 5)
 }
@@ -279,9 +279,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.glass-card {
-  @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50;
-}
+
 
 .fade-up {
   animation: fadeUp 0.6s ease-out forwards;

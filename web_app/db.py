@@ -8,7 +8,8 @@ _PG_POOL = None
 
 
 def using_postgres() -> bool:
-    return bool(os.getenv("DATABASE_URL"))
+    db_url = os.getenv("DATABASE_URL", "")
+    return db_url.startswith("postgres://") or db_url.startswith("postgresql://")
 
 
 class CursorProxy:

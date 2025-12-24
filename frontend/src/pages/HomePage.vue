@@ -300,6 +300,28 @@ const { syncToCloud, addHistoryItem, getLocalHistory, clearHistory: clearHistory
 const lastRequest = ref<SummarizeRequest | null>(null)
 
 const rawHistory = ref(getLocalHistory())
+
+const refreshHistory = async () => {
+  if (user.value) {
+    try {
+      await syncToCloud()
+    } catch (e) {
+      console.error('History sync failed:', e)
+    }
+  }
+  rawHistory.value = getLocalHistory()
+}
+
+import { onMounted } from 'vue'
+
+onMounted(() => {
+  refreshHistory()
+})
+
+watch(user, () => {
+  fetchDashboard().catch(() => undefined)
+  refreshHistory()
+})
 const displayHistory = computed(() => {
   return rawHistory.value.map(item => ({
     id: item.id || item.video_url,
@@ -375,9 +397,7 @@ const fetchDashboard = async () => {
   }
 }
 
-watch(user, () => {
-  fetchDashboard().catch(() => undefined)
-})
+
 
 const costPerSummary = computed(() => dashboardData.value?.cost_per_summary ?? 10)
 const creditsLabel = computed(() => {
@@ -409,10 +429,7 @@ const handleSummarize = async (request: SummarizeRequest) => {
       transcript: result.value.transcript,
       mindmap: extractedMindmap.value || ''
     })
-    rawHistory.value = getLocalHistory()
-    if (user.value) {
-      syncToCloud().catch(err => console.error('Sync failed:', err))
-    }
+    await refreshHistory()
     fetchDashboard().catch(() => undefined)
   }
 }

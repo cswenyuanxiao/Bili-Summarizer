@@ -70,7 +70,7 @@ async function fetchHistory() {
       headers: { 'Authorization': `Bearer ${token || ''}` }
     })
     const data = await res.json()
-    items.value = (data.history || []).map((i: any) => ({
+    items.value = (Array.isArray(data) ? data : []).map((i: any) => ({
       id: i.id,
       title: i.video_title || '未命名',
       thumbnail: i.video_thumbnail || 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&q=80&w=200',

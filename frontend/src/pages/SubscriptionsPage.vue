@@ -8,7 +8,7 @@
 
       <!-- 搜索栏 -->
       <section class="mb-12">
-        <div class="glass-card rounded-2xl p-6 shadow-sm">
+        <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 shadow-xl rounded-2xl p-6 shadow-sm">
           <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
             <span>🔍</span> 发现 UP 主
           </h2>
@@ -37,7 +37,7 @@
               class="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-800"
             >
               <div class="flex items-center gap-4">
-                <img :src="up.avatar" class="w-12 h-12 rounded-full border-2 border-white dark:border-slate-700" />
+                <img :src="getProxyUrl(up.avatar)" class="w-12 h-12 rounded-full border-2 border-white dark:border-slate-700" />
                 <div>
                   <div class="font-bold text-gray-900 dark:text-gray-100">{{ up.name }}</div>
                   <div class="text-xs text-gray-500">{{ up.fans }} 粉丝 · {{ up.videos }} 视频</div>
@@ -78,7 +78,7 @@
            <p>正在拉取列表...</p>
         </div>
 
-        <div v-else-if="subscriptions.length === 0" class="text-center py-20 glass-card rounded-2xl">
+        <div v-else-if="subscriptions.length === 0" class="text-center py-20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 shadow-xl rounded-2xl">
           <div class="text-4xl mb-4">💨</div>
           <p class="text-gray-500">你还没有订阅任何 UP 主</p>
           <p class="text-xs text-gray-400 mt-2">快在上方搜索并开启你的每日总结之旅吧</p>
@@ -88,11 +88,11 @@
           <div 
             v-for="sub in subscriptions" 
             :key="sub.id"
-            class="glass-card rounded-2xl p-5 border border-gray-100 dark:border-slate-800 hover:shadow-md transition group"
+            class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 shadow-xl rounded-2xl p-5 border border-gray-100 dark:border-slate-800 hover:shadow-md transition group"
           >
             <div class="flex items-start justify-between mb-4">
               <div class="flex items-center gap-3">
-                <img :src="sub.up_avatar" class="w-12 h-12 rounded-xl" />
+                <img :src="getProxyUrl(sub.up_avatar)" class="w-12 h-12 rounded-xl" />
                 <div>
                   <div class="font-bold text-gray-900 dark:text-gray-100 line-clamp-1">{{ sub.up_name }}</div>
                   <div class="text-[10px] text-gray-400 mt-1">
@@ -260,13 +260,16 @@ function formatDate(dateStr: string) {
   return `${date.getMonth() + 1}月${date.getDate()}日`
 }
 
+function getProxyUrl(url: string) {
+  if (!url) return ''
+  // Bilibili 图片通常以 http: 开头，weserv 需要清理
+  const cleanUrl = url.replace(/^https?:\/\//, '')
+  return `https://images.weserv.nl/?url=${cleanUrl}&w=120&h=120&fit=cover`
+}
+
 onMounted(() => {
   fetchSubscriptions()
 })
 </script>
 
-<style scoped>
-.glass-card {
-  @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 shadow-xl;
-}
-</style>
+

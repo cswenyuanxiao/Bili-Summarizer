@@ -8,7 +8,7 @@
       
       <!-- 选择区域 -->
       <section v-if="!comparing && !result" class="space-y-8 fade-up">
-        <div class="glass-card rounded-3xl p-8 shadow-sm">
+        <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8 shadow-sm">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-lg font-semibold flex items-center gap-2">
               <span>📹</span> 选择对比视频
@@ -50,7 +50,7 @@
         </div>
 
         <!-- 对比维度 -->
-        <div class="glass-card rounded-3xl p-8 shadow-sm">
+        <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8 shadow-sm">
           <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
             <span>⚙️</span> 对比维度
           </h2>
@@ -108,7 +108,7 @@
         </div>
 
         <!-- 分析总结 -->
-        <div class="glass-card rounded-3xl p-8 bg-gradient-to-br from-primary/5 to-purple-500/5 border-primary/20">
+        <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8 bg-gradient-to-br from-primary/5 to-purple-500/5 border-primary/20">
           <div class="text-sm font-semibold text-primary uppercase tracking-widest mb-3">Overall Analysis</div>
           <p class="text-lg sm:text-xl text-gray-800 dark:text-gray-200 leading-relaxed font-medium">
             {{ result.analysis_summary }}
@@ -116,7 +116,7 @@
         </div>
 
         <!-- 对比表格 -->
-        <div class="glass-card rounded-3xl overflow-hidden shadow-lg">
+        <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl overflow-hidden shadow-lg">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead>
@@ -141,7 +141,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- 关键差异 -->
-          <div class="glass-card rounded-3xl p-8">
+          <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8">
             <h3 class="text-lg font-bold mb-6 flex items-center gap-2 text-orange-500">
               <span>🔍</span> 关键差异点
             </h3>
@@ -167,7 +167,7 @@
           </div>
 
           <!-- 共识点 -->
-          <div class="glass-card rounded-3xl p-8">
+          <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8">
             <h3 class="text-lg font-bold mb-6 flex items-center gap-2 text-green-500">
               <span>✅</span> 核心共识
             </h3>
@@ -188,7 +188,7 @@
         </div>
 
         <!-- 专家建议 -->
-        <div v-if="result.recommendations?.length" class="glass-card rounded-3xl p-8 border-l-8 border-primary">
+        <div v-if="result.recommendations?.length" class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8 border-l-8 border-primary">
           <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
             <span>💡</span> 推荐建议
           </h3>
@@ -323,9 +323,7 @@ function resetCompare() {
   100% { transform: translateX(100%); }
 }
 
-.glass-card {
-  @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50;
-}
+
 
 .fade-up {
   animation: fadeUp 0.6s ease-out forwards;

@@ -25,9 +25,15 @@ async def search_up(keyword: str, limit: int = 10) -> List[Dict[str, Any]]:
         "page_size": limit
     }
     
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://search.bilibili.com/",
+        "Cookie": "buvid3=infoc;"  # 尝试简单的 buvid3
+    }
+    
     async with httpx.AsyncClient(timeout=10) as client:
         try:
-            response = await client.get(url, params=params)
+            response = await client.get(url, params=params, headers=headers)
             data = response.json()
             
             if data.get("code") != 0:

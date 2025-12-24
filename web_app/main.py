@@ -3,6 +3,7 @@ import sys
 import json
 import asyncio
 import logging
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException, Security, Depends
@@ -12,6 +13,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
+
+# Ensure local env vars (.env) are available before auth/client setup.
+load_dotenv()
 
 # --- 数据模型 ---
 class ChatMessage(BaseModel):
@@ -2835,4 +2839,3 @@ async def list_comments(team_id: str, team_summary_id: str, request: Request):
     await verify_session_token(token)
     comments = get_summary_comments(team_summary_id)
     return {"comments": comments}
-

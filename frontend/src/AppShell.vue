@@ -21,6 +21,7 @@
               <RouterLink to="/product" class="hover:text-gray-900 dark:hover:text-white transition-colors">产品</RouterLink>
               <RouterLink to="/pricing" class="hover:text-gray-900 dark:hover:text-white transition-colors">方案</RouterLink>
               <RouterLink to="/docs" class="hover:text-gray-900 dark:hover:text-white transition-colors">使用文档</RouterLink>
+              <RouterLink v-if="user" to="/subscriptions" class="hover:text-gray-900 dark:hover:text-white transition-colors">我的订阅</RouterLink>
               <RouterLink v-if="user" to="/dashboard" class="hover:text-gray-900 dark:hover:text-white transition-colors">仪表盘</RouterLink>
               <RouterLink v-if="user" to="/billing" class="hover:text-gray-900 dark:hover:text-white transition-colors">账单</RouterLink>
               <RouterLink v-if="user" to="/invite" class="hover:text-gray-900 dark:hover:text-white transition-colors">邀请好友</RouterLink>
@@ -74,6 +75,19 @@
                       <span class="text-[10px] font-bold bg-gradient-to-r from-primary to-purple-600 text-white px-1.5 py-0.5 rounded shadow-sm">HOT</span>
                     </RouterLink>
                     
+                    <RouterLink to="/subscriptions" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">我的订阅</span>
+                    </RouterLink>
+
+                    <RouterLink to="/compare" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">总结对比</span>
+                      <span class="text-[10px] font-bold bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded shadow-sm ml-auto">NEW</span>
+                    </RouterLink>
+
+                    <RouterLink to="/teams" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">我的团队</span>
+                    </RouterLink>
+
                     <RouterLink to="/dashboard" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
                       <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">仪表盘</span>
                     </RouterLink>
@@ -136,9 +150,13 @@
               <RouterLink class="w-full text-left" to="/product" @click="showMobileMenu = false">产品</RouterLink>
               <RouterLink class="w-full text-left" to="/pricing" @click="showMobileMenu = false">方案</RouterLink>
               <RouterLink class="w-full text-left" to="/docs" @click="showMobileMenu = false">使用文档</RouterLink>
+              <RouterLink v-if="user" class="w-full text-left" to="/subscriptions" @click="showMobileMenu = false">我的订阅</RouterLink>
+              <RouterLink v-if="user" class="w-full text-left" to="/compare" @click="showMobileMenu = false">总结对比</RouterLink>
+              <RouterLink v-if="user" class="w-full text-left" to="/teams" @click="showMobileMenu = false">我的团队</RouterLink>
               <RouterLink v-if="user" class="w-full text-left" to="/dashboard" @click="showMobileMenu = false">仪表盘</RouterLink>
               <RouterLink v-if="user" class="w-full text-left" to="/billing" @click="showMobileMenu = false">账单与发票</RouterLink>
               <RouterLink v-if="user" class="w-full text-left" to="/invite" @click="showMobileMenu = false">邀请好友</RouterLink>
+              <RouterLink v-if="user" class="w-full text-left" to="/templates" @click="showMobileMenu = false">总结模板</RouterLink>
               <RouterLink v-if="user" class="w-full text-left" to="/developer" @click="showMobileMenu = false">开发者 API</RouterLink>
             </div>
           </div>
