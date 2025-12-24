@@ -58,10 +58,9 @@
           </div>
           <div class="mb-6 space-y-1">
             <div class="flex items-baseline gap-2">
-              <span class="text-4xl font-bold dark:text-white">¥9.9</span>
+              <span class="text-4xl font-bold dark:text-white">¥29.9</span>
               <span class="text-gray-400">/月</span>
             </div>
-            <div class="text-xs text-gray-400">年付 ¥99 / 年（约省 2 个月）</div>
           </div>
           <ul class="space-y-3 mb-8">
             <li class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 font-medium">
@@ -82,7 +81,7 @@
             </li>
           </ul>
           <div class="space-y-3">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 gap-3">
               <button 
                 @click="handlePayment('pro_monthly', 'alipay')"
                 :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
@@ -96,22 +95,6 @@
                 class="w-full py-2.5 rounded-xl border border-primary/50 text-primary font-medium hover:bg-primary/10 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '微信月付') }}
-              </button>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <button 
-                @click="handlePayment('pro_yearly', 'alipay')"
-                :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
-                class="w-full py-2.5 rounded-xl bg-gray-900 text-white font-medium hover:shadow-lg hover:scale-105 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '支付宝年付') }}
-              </button>
-              <button 
-                @click="handlePayment('pro_yearly', 'wechat')"
-                :disabled="loading || subscriptionUnavailable || !isSupabaseConfigured"
-                class="w-full py-2.5 rounded-xl border border-gray-800 text-gray-800 dark:text-gray-100 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {{ subscriptionUnavailable ? '暂未开放' : (loading ? '处理中...' : '微信年付') }}
               </button>
             </div>
           </div>
@@ -129,7 +112,7 @@
               <div class="text-base font-semibold">Starter Pack</div>
               <span class="badge-pill">30 积分</span>
             </div>
-            <div class="mt-2 text-3xl font-bold">¥19</div>
+            <div class="mt-2 text-3xl font-bold">¥1</div>
             <div class="mt-4 grid grid-cols-2 gap-2">
               <button
                 @click="handlePayment('starter_pack', 'alipay')"
@@ -149,10 +132,10 @@
           </div>
           <div class="rounded-2xl border border-gray-100 dark:border-gray-700 p-5 card-hover-elevate">
             <div class="flex items-center justify-between">
-              <div class="text-base font-semibold">Creator Pack</div>
+              <div class="text-base font-semibold">Pro Pack</div>
               <span class="badge-pill badge-accent">120 积分</span>
             </div>
-            <div class="mt-2 text-3xl font-bold">¥49</div>
+            <div class="mt-2 text-3xl font-bold">¥3</div>
             <div class="mt-4 grid grid-cols-2 gap-2">
               <button
                 @click="handlePayment('creator_pack', 'alipay')"

@@ -86,26 +86,20 @@ PRICING_PLANS = {
     "starter_pack": {
         "plan": "credits_pack",
         "type": "one_time",
-        "amount_cents": 1900,
+        "amount_cents": 100,
         "credits": 30
     },
     "creator_pack": {
         "plan": "credits_pack",
         "type": "one_time",
-        "amount_cents": 4900,
+        "amount_cents": 300,
         "credits": 120
     },
     "pro_monthly": {
         "plan": "pro",
         "type": "subscription",
-        "amount_cents": 990,
+        "amount_cents": 2990,
         "period_days": 30
-    },
-    "pro_yearly": {
-        "plan": "pro",
-        "type": "subscription",
-        "amount_cents": 9900,
-        "period_days": 365
     }
 }
 
@@ -153,6 +147,32 @@ async def init_database():
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    if using_postgres():
+        cursor.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'subscriptions'
+        """)
+        existing_columns = {row[0] for row in cursor.fetchall()}
+        required_columns = {
+            "user_id",
+            "plan",
+            "status",
+            "current_period_end",
+            "updated_at"
+        }
+        missing = required_columns - existing_columns
+        for column in missing:
+            if column == "user_id":
+                cursor.execute("ALTER TABLE subscriptions ADD COLUMN user_id TEXT")
+            elif column == "plan":
+                cursor.execute("ALTER TABLE subscriptions ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'")
+            elif column == "status":
+                cursor.execute("ALTER TABLE subscriptions ADD COLUMN status TEXT NOT NULL DEFAULT 'inactive'")
+            elif column == "current_period_end":
+                cursor.execute("ALTER TABLE subscriptions ADD COLUMN current_period_end TEXT")
+            elif column == "updated_at":
+                cursor.execute("ALTER TABLE subscriptions ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP")
 
     # 账单记录表
     cursor.execute("""
@@ -834,7 +854,7 @@ async def create_payment(request: PaymentRequest, user: dict = Depends(get_curre
     payment_url = None
     qr_url = None
 
-    if os.getenv("PAYMENT_MOCK", "1") == "1":
+    if os.getenv("PAYMENT_MOCK", "0") == "1":
         payment_url = f"/api/payments/mock-complete?order_id={order['order_id']}"
     elif provider == "alipay":
         result = create_alipay_payment(
@@ -873,7 +893,7 @@ async def create_payment(request: PaymentRequest, user: dict = Depends(get_curre
 @app.get("/api/payments/config")
 async def payment_config():
     return {
-        "mock_enabled": os.getenv("PAYMENT_MOCK", "1") == "1"
+        "mock_enabled": os.getenv("PAYMENT_MOCK", "0") == "1"
     }
 
 
@@ -903,13 +923,15 @@ async def payment_status(order_id: str, user: dict = Depends(get_current_user)):
 
 @app.post("/api/payments/mock-complete")
 async def mock_payment_complete(order_id: str):
-    if os.getenv("PAYMENT_MOCK", "1") != "1":
+    if os.getenv("PAYMENT_MOCK", "0") != "1":
         raise HTTPException(403, "Mock payment disabled")
     return mark_payment_paid(order_id)
 
 
 @app.get("/api/debug/db")
 async def debug_db(user: dict = Depends(get_current_user)):
+    if os.getenv("DEBUG_API", "0") != "1":
+        raise HTTPException(404, "Not Found")
     info = get_backend_info()
     result = {"db": info, "reachable": False, "version": None}
     try:
@@ -932,6 +954,8 @@ async def debug_db(user: dict = Depends(get_current_user)):
 
 @app.get("/api/debug/credits")
 async def debug_credits(user: dict = Depends(get_current_user)):
+    if os.getenv("DEBUG_API", "0") != "1":
+        raise HTTPException(404, "Not Found")
     conn = get_connection()
     cursor = conn.cursor()
     try:
