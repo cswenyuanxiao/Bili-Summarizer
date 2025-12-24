@@ -181,9 +181,6 @@ app = FastAPI(title="Bili-Summarizer")
 @app.on_event("startup")
 async def on_startup():
     """启动项集合"""
-    # 数据库
-    conn = get_connection()
-
     async def init_db_with_retry(name: str, init_fn):
         for attempt in range(1, 6):
             try:
@@ -195,7 +192,235 @@ async def on_startup():
                 await asyncio.sleep(min(2 ** (attempt - 1), 10))
         logger.error(f"{name} init failed after retries; service may be degraded")
 
+    def init_core_tables():
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            # 创建 API Keys 表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS api_keys (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    prefix TEXT NOT NULL,
+                    key_hash TEXT NOT NULL UNIQUE,
+                    is_active INTEGER DEFAULT 1,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    last_used_at TEXT
+                )
+            """)
+
+            # API Key 使用统计（按天）
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS api_key_usage_daily (
+                    key_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    date TEXT NOT NULL,
+                    count INTEGER DEFAULT 0,
+                    PRIMARY KEY (key_id, date)
+                )
+            """)
+
+            # 创建使用配额表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS usage_daily (
+                    user_id TEXT NOT NULL,
+                    date TEXT NOT NULL,
+                    count INTEGER DEFAULT 0,
+                    PRIMARY KEY (user_id, date)
+                )
+            """)
+
+            # 订阅状态表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS subscriptions (
+                    user_id TEXT PRIMARY KEY,
+                    plan TEXT NOT NULL DEFAULT 'free',
+                    status TEXT NOT NULL DEFAULT 'inactive',
+                    current_period_end TEXT,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # 账单记录表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS billing_events (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    amount_cents INTEGER NOT NULL DEFAULT 0,
+                    currency TEXT NOT NULL DEFAULT 'CNY',
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    period_start TEXT,
+                    period_end TEXT,
+                    invoice_url TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # 执行迁移逻辑（包裹在 try-except 中以防止阻塞其他表创建）
+            try:
+                if using_postgres():
+                    cursor.execute("""
+                        SELECT column_name
+                        FROM information_schema.columns
+                        WHERE table_name = 'subscriptions'
+                    """)
+                    existing_columns = {row[0] for row in cursor.fetchall()}
+                    required_columns = {
+                        "user_id",
+                        "plan",
+                        "status",
+                        "current_period_end",
+                        "updated_at"
+                    }
+                    missing = required_columns - existing_columns
+                    for column in missing:
+                        if column == "user_id":
+                            cursor.execute("ALTER TABLE subscriptions ADD COLUMN user_id TEXT")
+                        elif column == "plan":
+                            cursor.execute("ALTER TABLE subscriptions ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'")
+                        elif column == "status":
+                            cursor.execute("ALTER TABLE subscriptions ADD COLUMN status TEXT NOT NULL DEFAULT 'inactive'")
+                        elif column == "current_period_end":
+                            cursor.execute("ALTER TABLE subscriptions ADD COLUMN current_period_end TEXT")
+                        elif column == "updated_at":
+                            cursor.execute("ALTER TABLE subscriptions ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP")
+            except Exception as e:
+                logger.error(f"Migration failed: {e}")
+
+            # 支付订单
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS payment_orders (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    plan TEXT NOT NULL,
+                    amount_cents INTEGER NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    billing_id TEXT NOT NULL,
+                    transaction_id TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # 幂等键表 (模块 2)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS idempotency_keys (
+                    key TEXT PRIMARY KEY,
+                    status TEXT NOT NULL DEFAULT 'processing',
+                    result TEXT,
+                    created_at TEXT NOT NULL,
+                    completed_at TEXT
+                )
+            """)
+
+            # 邀请码
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS invite_codes (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    code TEXT NOT NULL UNIQUE,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS invite_redemptions (
+                    id TEXT PRIMARY KEY,
+                    invite_id TEXT NOT NULL,
+                    inviter_id TEXT NOT NULL,
+                    invitee_id TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(invitee_id)
+                )
+            """)
+
+            # 分享链接
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS share_links (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    title TEXT,
+                    summary TEXT NOT NULL,
+                    transcript TEXT,
+                    mindmap TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TEXT
+                )
+            """)
+
+            # 创建索引
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_api_keys_user 
+                ON api_keys(user_id)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_api_keys_hash 
+                ON api_keys(key_hash)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_usage_daily_user 
+                ON usage_daily(user_id)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_billing_user 
+                ON billing_events(user_id)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_api_key_usage_user 
+                ON api_key_usage_daily(user_id)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_payment_user 
+                ON payment_orders(user_id)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_invite_user 
+                ON invite_codes(user_id)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_share_user 
+                ON share_links(user_id)
+            """)
+
+            # 反馈表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS feedbacks (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT,
+                    feedback_type TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    contact TEXT,
+                    status TEXT DEFAULT 'pending',
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_feedback_user
+                ON feedbacks(user_id)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_feedback_status
+                ON feedbacks(status)
+            """)
+            
+            conn.commit()
+            logger.info("Database tables initialized successfully")
+        finally:
+            conn.close()
+
     # 表初始化（允许失败并重试，避免启动崩溃）
+    asyncio.create_task(init_db_with_retry("Core DB", init_core_tables))
     asyncio.create_task(init_db_with_retry("Cache DB", init_cache_db))
     asyncio.create_task(init_db_with_retry("Credits DB", init_credits_db))
     asyncio.create_task(init_db_with_retry("Telemetry DB", init_telemetry_db))
@@ -211,230 +436,6 @@ async def on_startup():
     
     # 启动定时任务调度器 (P4 每日推送到订阅)
     start_scheduler()
-    cursor = conn.cursor()
-    
-    # 创建 API Keys 表
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS api_keys (
-            id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            name TEXT NOT NULL,
-            prefix TEXT NOT NULL,
-            key_hash TEXT NOT NULL UNIQUE,
-            is_active INTEGER DEFAULT 1,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            last_used_at TEXT
-        )
-    """)
-    
-    # API Key 使用统计（按天）
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS api_key_usage_daily (
-            key_id TEXT NOT NULL,
-            user_id TEXT NOT NULL,
-            date TEXT NOT NULL,
-            count INTEGER DEFAULT 0,
-            PRIMARY KEY (key_id, date)
-        )
-    """)
-
-    # 创建使用配额表
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS usage_daily (
-            user_id TEXT NOT NULL,
-            date TEXT NOT NULL,
-            count INTEGER DEFAULT 0,
-            PRIMARY KEY (user_id, date)
-        )
-    """)
-
-    # 订阅状态表
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS subscriptions (
-            user_id TEXT PRIMARY KEY,
-            plan TEXT NOT NULL DEFAULT 'free',
-            status TEXT NOT NULL DEFAULT 'inactive',
-            current_period_end TEXT,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    
-    # 账单记录表
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS billing_events (
-            id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            amount_cents INTEGER NOT NULL DEFAULT 0,
-            currency TEXT NOT NULL DEFAULT 'CNY',
-            status TEXT NOT NULL DEFAULT 'pending',
-            period_start TEXT,
-            period_end TEXT,
-            invoice_url TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    # 执行迁移逻辑（包裹在 try-except 中以防止阻塞其他表创建）
-    try:
-        if using_postgres():
-            cursor.execute("""
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name = 'subscriptions'
-            """)
-            existing_columns = {row[0] for row in cursor.fetchall()}
-            required_columns = {
-                "user_id",
-                "plan",
-                "status",
-                "current_period_end",
-                "updated_at"
-            }
-            missing = required_columns - existing_columns
-            for column in missing:
-                if column == "user_id":
-                    cursor.execute("ALTER TABLE subscriptions ADD COLUMN user_id TEXT")
-                elif column == "plan":
-                    cursor.execute("ALTER TABLE subscriptions ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'")
-                elif column == "status":
-                    cursor.execute("ALTER TABLE subscriptions ADD COLUMN status TEXT NOT NULL DEFAULT 'inactive'")
-                elif column == "current_period_end":
-                    cursor.execute("ALTER TABLE subscriptions ADD COLUMN current_period_end TEXT")
-                elif column == "updated_at":
-                    cursor.execute("ALTER TABLE subscriptions ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP")
-    except Exception as e:
-        logger.error(f"Migration failed: {e}")
-
-
-    # 支付订单
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS payment_orders (
-            id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            provider TEXT NOT NULL,
-            plan TEXT NOT NULL,
-            amount_cents INTEGER NOT NULL,
-            status TEXT NOT NULL DEFAULT 'pending',
-            billing_id TEXT NOT NULL,
-            transaction_id TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    # 幂等键表 (模块 2)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS idempotency_keys (
-            key TEXT PRIMARY KEY,
-            status TEXT NOT NULL DEFAULT 'processing',
-            result TEXT,
-            created_at TEXT NOT NULL,
-            completed_at TEXT
-        )
-    """)
-
-    # 邀请码
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS invite_codes (
-            id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            code TEXT NOT NULL UNIQUE,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS invite_redemptions (
-            id TEXT PRIMARY KEY,
-            invite_id TEXT NOT NULL,
-            inviter_id TEXT NOT NULL,
-            invitee_id TEXT NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(invitee_id)
-        )
-    """)
-
-    # 分享链接
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS share_links (
-            id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            title TEXT,
-            summary TEXT NOT NULL,
-            transcript TEXT,
-            mindmap TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            expires_at TEXT
-        )
-    """)
-    
-    # 创建索引
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_api_keys_user 
-        ON api_keys(user_id)
-    """)
-    
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_api_keys_hash 
-        ON api_keys(key_hash)
-    """)
-
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_usage_daily_user 
-        ON usage_daily(user_id)
-    """)
-
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_billing_user 
-        ON billing_events(user_id)
-    """)
-
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_api_key_usage_user 
-        ON api_key_usage_daily(user_id)
-    """)
-
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_payment_user 
-        ON payment_orders(user_id)
-    """)
-
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_invite_user 
-        ON invite_codes(user_id)
-    """)
-
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_share_user 
-        ON share_links(user_id)
-    """)
-
-    # 反馈表
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS feedbacks (
-            id TEXT PRIMARY KEY,
-            user_id TEXT,
-            feedback_type TEXT NOT NULL,
-            content TEXT NOT NULL,
-            contact TEXT,
-            status TEXT DEFAULT 'pending',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_feedback_user
-        ON feedbacks(user_id)
-    """)
-
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_feedback_status
-        ON feedbacks(status)
-    """)
-    
-    conn.commit()
-    conn.close()
-    logger.info("Database tables initialized successfully")
 
 @app.on_event("startup")
 async def start_queue():

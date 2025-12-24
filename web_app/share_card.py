@@ -51,10 +51,33 @@ THEMES = {
 }
 
 # 字体路径
-# 注意：已修改为 .otf 以匹配下载的文件
+# 优先使用圆润字体，如果不存在则使用 Noto Sans SC
 FONT_DIR = Path(__file__).parent / "fonts"
-FONT_REGULAR = str(FONT_DIR / "NotoSansSC-Regular.otf")
-FONT_BOLD = str(FONT_DIR / "NotoSansSC-Bold.otf")
+
+# 字体优先级列表（圆润 -> 标准）
+FONT_CANDIDATES_REGULAR = [
+    "SourceHanRoundedSC-Medium.otf",  # 思源圆体
+    "HarmonyOS_Sans_SC_Regular.ttf",  # 鸿蒙字体
+    "NotoSansSC-Regular.otf",         # 思源黑体（备用）
+]
+
+FONT_CANDIDATES_BOLD = [
+    "SourceHanRoundedSC-Bold.otf",
+    "HarmonyOS_Sans_SC_Bold.ttf",
+    "NotoSansSC-Bold.otf",
+]
+
+def get_font_path(candidates: list) -> str:
+    """从候选字体列表中选择第一个存在的字体"""
+    for font_name in candidates:
+        font_path = FONT_DIR / font_name
+        if font_path.exists():
+            return str(font_path)
+    # 如果都不存在，返回最后一个作为默认值
+    return str(FONT_DIR / candidates[-1])
+
+FONT_REGULAR = get_font_path(FONT_CANDIDATES_REGULAR)
+FONT_BOLD = get_font_path(FONT_CANDIDATES_BOLD)
 
 # 卡片存储目录
 CARDS_DIR = Path(__file__).parent.parent / "cards"
@@ -127,11 +150,11 @@ def generate_share_card(
     
     draw = ImageDraw.Draw(img)
     
-    # 加载字体
+    # 加载字体（调整字号以适应更好的行距）
     try:
-        font_title = ImageFont.truetype(FONT_BOLD, 48)
-        font_body = ImageFont.truetype(FONT_REGULAR, 32)
-        font_footer = ImageFont.truetype(FONT_REGULAR, 24)
+        font_title = ImageFont.truetype(FONT_BOLD, 52)
+        font_body = ImageFont.truetype(FONT_REGULAR, 28)
+        font_footer = ImageFont.truetype(FONT_REGULAR, 22)
     except Exception as e:
         logger.warning(f"Failed to load custom fonts from {FONT_BOLD} or {FONT_REGULAR}: {e}, using default")
         font_title = ImageFont.load_default()
@@ -165,13 +188,13 @@ def generate_share_card(
         except Exception as e:
             logger.warning(f"Failed to load thumbnail: {e}")
     
-    # 绘制标题
+    # 绘制标题（增加行高）
     title_lines = wrap_text(title[:50], font_title, content_width)
     for line in title_lines[:2]:
         draw.text((padding, y_offset), line, font=font_title, fill=hex_to_rgb(theme["text"]))
-        y_offset += 60
+        y_offset += 70  # 增加行高
     
-    y_offset += 20
+    y_offset += 30  # 标题和分隔线间距
     
     # 绘制分隔线
     draw.line(
@@ -181,14 +204,32 @@ def generate_share_card(
     )
     y_offset += 30
     
-    # 绘制总结内容
+    # 绘制总结内容（优化行间距和段落间距）
     summary_text = summary[:300]
-    summary_lines = wrap_text(summary_text, font_body, content_width)
     
+    # 按段落处理：检测换行符
+    paragraphs = summary_text.split('\n')
     max_summary_lines = 12 if template != "minimal" else 6
-    for line in summary_lines[:max_summary_lines]:
-        draw.text((padding, y_offset), line, font=font_body, fill=hex_to_rgb(theme["secondary"]))
-        y_offset += 45
+    line_count = 0
+    
+    for para in paragraphs:
+        if line_count >= max_summary_lines:
+            break
+        para = para.strip()
+        if not para:
+            y_offset += 20  # 空段落间距
+            continue
+        
+        para_lines = wrap_text(para, font_body, content_width)
+        for line in para_lines:
+            if line_count >= max_summary_lines:
+                break
+            draw.text((padding, y_offset), line, font=font_body, fill=hex_to_rgb(theme["secondary"]))
+            y_offset += 50  # 增加行间距到50px（原为45px）
+            line_count += 1
+        
+        # 段落间增加额外间距
+        y_offset += 15
     
     # 绘制底部水印
     footer_text = "由 Bili-Summarizer 生成 | bili-summarizer.com"

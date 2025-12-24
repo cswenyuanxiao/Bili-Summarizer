@@ -133,7 +133,7 @@
 
         <div data-reveal data-delay="200">
           <HistoryList
-            :items="historyItems"
+            :items="displayHistory"
             @select="loadFromHistory"
             @clear="clearHistory"
             @guide="openUsageGuide"
@@ -385,7 +385,7 @@ const displayHistory = computed(() => {
   }))
 })
 
-const historyItems = displayHistory
+
 
 const currentVideoUrl = ref('')
 type VideoInfo = {
@@ -479,7 +479,10 @@ const handleSummarize = async (request: SummarizeRequest) => {
       transcript: result.value.transcript,
       mindmap: extractedMindmap.value || ''
     })
-    await refreshHistory()
+    // 立即更新本地历史显示
+    rawHistory.value = getLocalHistory()
+    // 后台同步到云端
+    refreshHistory().catch(() => undefined)
     fetchDashboard().catch(() => undefined)
   }
 }
