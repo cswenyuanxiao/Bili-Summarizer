@@ -1,6 +1,6 @@
 # 文档索引（精简版）
 
-Last updated: 2025-12-24
+Last updated: 2025-12-25
 Owner: Core Eng
 
 ## 适用对象
@@ -32,3 +32,4 @@ Owner: Core Eng
 11) `docs/COMMERCIAL.md`（定价与支付）  
 12) `docs/ROADMAP.md`（路线图与验收）  
 13) `docs/CHANGELOG.md`（变更记录）  
+14) `docs/EXTERNAL_DEPENDENCIES.md`（外部依赖与 API 文档链接）

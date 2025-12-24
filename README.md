@@ -223,16 +223,21 @@ bili-summarizer/
 │   └── vite.config.ts           # Vite 构建配置
 │
 ├── web_app/                     # FastAPI 后端
-│   ├── main.py                  # API 路由入口 (1800+ 行)
+│   ├── main.py                  # API 路由入口 (2200+ 行)
 │   ├── auth.py                  # 鉴权模块（API Key/JWT）
 │   ├── credits.py               # 积分系统
 │   ├── cache.py                 # 缓存模块
 │   ├── db.py                    # 数据库抽象层（SQLite/PG）
 │   ├── downloader.py            # yt-dlp 视频下载
 │   ├── summarizer_gemini.py     # Gemini AI 总结
-│   ├── payments.py              # 支付处理
+│   ├── payments.py              # 支付全链路处理
+│   ├── idempotency.py           # 幂等性管理器
+│   ├── reconciliation.py        # 对账服务
+│   ├── batch_summarize.py       # 批量总结服务
+│   ├── queue_manager.py         # 任务队列管理
+│   ├── rate_limiter.py          # 请求限流
 │   ├── ppt_generator.py         # PPT 生成
-│   └── history_sync_endpoints.py # 历史同步 API
+│   └── telemetry.py             # 遥测与错误记录
 │
 ├── docs/                        # 项目文档 (14 个)
 │   ├── START_HERE.md            # 入口文档（10 条硬约束）
@@ -344,13 +349,22 @@ B 站可能限制了您的 IP，尝试：
 - [x] 单元测试框架 (Vitest)
 - [x] 页面内容丰富 (Product/Pricing/Docs)
 
+### v1.2 ✅ 已完成 (2025-12-25)
+- [x] 订阅与支付全链路（支付宝/微信）
+- [x] 支付回调幂等处理
+- [x] 订单/账单/积分一致性对账
+- [x] 批量视频总结 (最多 20 个/批次)
+- [x] PDF 导出稳定性优化
+- [x] 任务队列与 Worker 架构
+- [x] 请求限流机制
+
 ### v2.0 📋 规划中
-- [ ] 批量视频总结
+- [ ] 前端批量总结 UI
 - [ ] 总结模板自定义
-- [ ] 导出为 PDF
 - [ ] 分享卡片生成
 - [ ] 浏览器插件
 - [ ] API 开放平台
+- [ ] 多语言支持
 
 ---
 
