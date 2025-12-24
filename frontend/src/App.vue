@@ -30,14 +30,14 @@
               </div>
               <button @click="scrollToSection('pricing')" class="hover:text-gray-900 dark:hover:text-white transition-colors">方案</button>
               <button @click="scrollToSection('docs')" class="hover:text-gray-900 dark:hover:text-white transition-colors">使用文档</button>
-              <button v-if="user" @click="scrollToSection('dashboard')" class="hover:text-gray-900 dark:hover:text-white transition-colors">仪表盘</button>
-              <button v-if="user" @click="scrollToSection('billing')" class="hover:text-gray-900 dark:hover:text-white transition-colors">账单</button>
-              <button v-if="user" @click="scrollToSection('invite')" class="hover:text-gray-900 dark:hover:text-white transition-colors">邀请好友</button>
-              <button v-if="user" @click="$router.push('/templates')" class="hover:text-gray-900 dark:hover:text-white transition-colors">总结模板</button>
-              <button v-if="user" @click="$router.push('/subscriptions')" class="hover:text-gray-900 dark:hover:text-white transition-colors">每日推送</button>
-              <button v-if="user" @click="$router.push('/compare')" class="hover:text-gray-900 dark:hover:text-white transition-colors">总结对比</button>
-              <button v-if="user" @click="$router.push('/teams')" class="hover:text-gray-900 dark:hover:text-white transition-colors">团队协作</button>
-              <button v-if="user" @click="scrollToSection('developer')" class="hover:text-gray-900 dark:hover:text-white transition-colors">开发者 API</button>
+              <button @click="requireAuth(() => scrollToSection('dashboard'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">仪表盘</button>
+              <button @click="requireAuth(() => scrollToSection('billing'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">账单</button>
+              <button @click="requireAuth(() => scrollToSection('invite'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">邀请好友</button>
+              <button @click="requireAuth(() => $router.push('/templates'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">总结模板</button>
+              <button @click="requireAuth(() => $router.push('/subscriptions'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">每日推送</button>
+              <button @click="requireAuth(() => $router.push('/compare'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">总结对比</button>
+              <button @click="requireAuth(() => $router.push('/teams'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">团队协作</button>
+              <button @click="requireAuth(() => scrollToSection('developer'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">开发者 API</button>
             </nav>
 
             <div class="flex items-center gap-3">
@@ -168,10 +168,10 @@
               <button class="w-full text-left" @click="scrollToSection('product'); showMobileMenu = false">产品</button>
               <button class="w-full text-left" @click="scrollToSection('pricing'); showMobileMenu = false">方案</button>
               <button class="w-full text-left" @click="scrollToSection('docs'); showMobileMenu = false">使用文档</button>
-              <button v-if="user" class="w-full text-left" @click="scrollToSection('dashboard'); showMobileMenu = false">仪表盘</button>
-              <button v-if="user" class="w-full text-left" @click="scrollToSection('billing'); showMobileMenu = false">账单与发票</button>
-              <button v-if="user" class="w-full text-left" @click="scrollToSection('invite'); showMobileMenu = false">邀请好友</button>
-              <button v-if="user" class="w-full text-left" @click="scrollToSection('developer'); showMobileMenu = false">开发者 API</button>
+              <button class="w-full text-left" @click="requireAuth(() => { scrollToSection('dashboard'); showMobileMenu = false })">仪表盘</button>
+              <button class="w-full text-left" @click="requireAuth(() => { scrollToSection('billing'); showMobileMenu = false })">账单与发票</button>
+              <button class="w-full text-left" @click="requireAuth(() => { scrollToSection('invite'); showMobileMenu = false })">邀请好友</button>
+              <button class="w-full text-left" @click="requireAuth(() => { scrollToSection('developer'); showMobileMenu = false })">开发者 API</button>
             </div>
           </div>
         </div>
@@ -433,10 +433,10 @@
           </section>
 
           <!-- Dashboard -->
-          <section id="dashboard" v-if="user" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
+          <section id="dashboard" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
             <div class="flex items-center justify-between">
               <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">仪表盘</h2>
-              <button class="text-sm text-primary hover:underline" @click="openDashboard">打开仪表盘</button>
+              <button class="text-sm text-primary hover:underline" @click="requireAuth(openDashboard)">打开仪表盘</button>
             </div>
             <div class="text-sm text-gray-600 dark:text-gray-300">
               查看剩余积分、使用趋势与订阅状态。
@@ -444,10 +444,10 @@
           </section>
 
           <!-- Billing -->
-          <section id="billing" v-if="user" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
+          <section id="billing" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
             <div class="flex items-center justify-between">
               <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">账单</h2>
-              <button class="text-sm text-primary hover:underline" @click="openBilling">查看账单</button>
+              <button class="text-sm text-primary hover:underline" @click="requireAuth(openBilling)">查看账单</button>
             </div>
             <div class="text-sm text-gray-600 dark:text-gray-300">
               查看订阅与一次性额度包的支付记录，支持发票下载。
@@ -455,10 +455,10 @@
           </section>
 
           <!-- Invite -->
-          <section id="invite" v-if="user" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
+          <section id="invite" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
             <div class="flex items-center justify-between">
               <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">邀请好友</h2>
-              <button class="text-sm text-primary hover:underline" @click="showInviteModal = true">生成邀请码</button>
+              <button class="text-sm text-primary hover:underline" @click="requireAuth(() => showInviteModal = true)">生成邀请码</button>
             </div>
             <div class="text-sm text-gray-600 dark:text-gray-300">
               分享邀请码，双方各获得 10 积分奖励。
@@ -466,10 +466,10 @@
           </section>
 
           <!-- Developer API -->
-          <section id="developer" v-if="user" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
+          <section id="developer" data-reveal class="rounded-3xl glass-card p-8 sm:p-10 space-y-4">
             <div class="flex items-center justify-between">
               <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">开发者 API</h2>
-              <button class="text-sm text-primary hover:underline" @click="showApiKeyModal = true">管理 API Key</button>
+              <button class="text-sm text-primary hover:underline" @click="requireAuth(() => showApiKeyModal = true)">管理 API Key</button>
             </div>
             <div class="text-sm text-gray-600 dark:text-gray-300">
               通过 API Key 将总结能力集成到你的应用或工作流。
@@ -578,6 +578,13 @@ type VideoInfo = {
 }
 
 const videoInfo = ref<VideoInfo | null>(null)
+const requireAuth = (action: () => any) => {
+  if (!user.value) {
+    showLoginModal.value = true
+    return
+  }
+  action()
+}
 const mindmapRef = ref<InstanceType<typeof MindmapViewer> | null>(null)
 const dashboardLoading = ref(false)
 const dashboardError = ref('')

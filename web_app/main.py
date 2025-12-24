@@ -77,7 +77,7 @@ class TTSRequest(BaseModel):
     text: str
     voice: Optional[str] = "zh-CN-XiaoxiaoNeural"
 
-class SubscribeRequest(BaseModel):
+class UPSubscribeRequest(BaseModel):
     up_mid: str
     up_name: str
     up_avatar: Optional[str] = ""
@@ -94,7 +94,7 @@ from .cache import get_cached_result, save_to_cache, get_cache_stats
 from .queue_manager import task_queue
 from .rate_limiter import rate_limiter
 from .auth import get_current_user, verify_session_token
-from .credits import ensure_user_credits, get_user_credits, charge_user_credits, get_daily_usage, grant_credits
+from .credits import ensure_user_credits, get_user_credits, charge_user_credits, get_daily_usage, grant_credits, get_credit_history
 from .payments import (
     create_alipay_payment,
     create_wechat_payment,
@@ -727,7 +727,7 @@ async def run_summarization(
             
             if final_summary:
                  if user and not unlimited_user:
-                     charge_user_credits(user["user_id"], credit_cost)
+                     charge_user_credits(user["user_id"], credit_cost, metadata=json.dumps({"url": safe_url}))
                  save_to_cache(url, mode, focus, final_summary, final_transcript or '', final_usage)
                  yield f"data: {json.dumps({'type': 'status', 'status': 'complete'})}\n\n"
 
@@ -777,11 +777,13 @@ async def get_dashboard(request: Request):
     
     credits = ensure_user_credits(user["user_id"])
     usage = get_daily_usage(user["user_id"])
+    history = get_credit_history(user["user_id"])
     
     return {
         "credits": credits["credits"],
         "total_used": credits["total_used"],
         "usage_history": usage,
+        "credit_history": history,
         "is_admin": is_unlimited_user(user),
         "cost_per_summary": 10
     }
@@ -1011,7 +1013,7 @@ async def get_plans():
     }
 
 
-class SubscribeRequest(BaseModel):
+class PlanSubscribeRequest(BaseModel):
     plan_id: str
 
 
@@ -1032,7 +1034,7 @@ class ShareRequest(BaseModel):
 
 
 @app.post("/api/subscribe")
-async def create_subscription(request: SubscribeRequest, user: dict = Depends(get_current_user)):
+async def handle_plan_subscribe(request: PlanSubscribeRequest, user: dict = Depends(get_current_user)):
     plan = PRICING_PLANS.get(request.plan_id)
     if not plan or plan["type"] != "subscription":
         raise HTTPException(400, "Invalid plan")
@@ -2642,7 +2644,7 @@ async def list_subscriptions(request: Request):
     return {"subscriptions": subscriptions}
 
 @app.post("/api/subscriptions")
-async def create_subscription(request: Request, body: SubscribeRequest):
+async def handle_up_subscribe(request: Request, body: UPSubscribeRequest):
     """订阅 UP 主"""
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     user = await verify_session_token(token)

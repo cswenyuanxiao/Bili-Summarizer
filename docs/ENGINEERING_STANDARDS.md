@@ -18,3 +18,7 @@ Owner: Core Eng
 - 新增 API 必须有错误码覆盖（401/403/5xx）
 - 支付回调必须幂等
 - SSE 事件类型不破坏兼容
+
+## CI 基线（必过）
+- Backend 依赖安装 + `pip check`
+- Frontend `npm run build` 成功

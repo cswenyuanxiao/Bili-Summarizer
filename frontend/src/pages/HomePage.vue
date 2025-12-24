@@ -229,16 +229,52 @@
           </div>
         </section>
 
+        <!-- Section: User Account Management -->
+        <section id="user-management" class="grid grid-cols-1 md:grid-cols-3 gap-5 pt-6 pb-6 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
+          <div class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex flex-col gap-4">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📊</div>
+              <div>
+                <div class="text-base font-semibold text-gray-900 dark:text-gray-100">仪表盘</div>
+                <div class="mt-1 text-sm text-gray-500">查看使用趋势与剩余积分</div>
+              </div>
+            </div>
+            <button @click="requireAuth(openDashboard)" class="mt-auto text-xs text-primary font-semibold hover:underline text-left">立即查看 →</button>
+          </div>
+          
+          <div class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex flex-col gap-4">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">💳</div>
+              <div>
+                <div class="text-base font-semibold text-gray-900 dark:text-gray-100">账单与发票</div>
+                <div class="mt-1 text-sm text-gray-500">管理订阅记录与查看发票</div>
+              </div>
+            </div>
+            <button @click="requireAuth(openBilling)" class="mt-auto text-xs text-primary font-semibold hover:underline text-left">立即管理 →</button>
+          </div>
+
+          <div class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex flex-col gap-4">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">🎁</div>
+              <div>
+                <div class="text-base font-semibold text-gray-900 dark:text-gray-100">邀请好友</div>
+                <div class="mt-1 text-sm text-gray-500">分享邀请码，赢取积分奖励</div>
+              </div>
+            </div>
+            <button @click="requireAuth(openInvite)" class="mt-auto text-xs text-primary font-semibold hover:underline text-left">获取邀请码 →</button>
+          </div>
+        </section>
+
         <!-- Section: Developer & Resources -->
         <section id="resources" class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-6 pb-10 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
-          <RouterLink to="/developer" class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center gap-4">
+          <button @click="requireAuth(() => $router.push('/developer'))" class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center gap-4 text-left">
             <div class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">🛠️</div>
             <div>
               <div class="text-base font-semibold text-gray-900 dark:text-gray-100">开发者 API</div>
               <div class="mt-1 text-sm text-gray-500">将总结能力集成到你的应用中</div>
             </div>
             <div class="ml-auto text-gray-400 group-hover:translate-x-1 transition-transform">→</div>
-          </RouterLink>
+          </button>
           <RouterLink to="/docs" class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📖</div>
             <div>
@@ -277,11 +313,25 @@ const appActions = inject<{
   openLogin: () => void
   openPricing: () => void
   openUsageGuide: () => void
+  openDashboard: () => void
+  openBilling: () => void
+  openInvite: () => void
 }>('appActions')
 
 const openLogin = () => appActions?.openLogin()
 const openPricing = () => appActions?.openPricing()
 const openUsageGuide = () => appActions?.openUsageGuide()
+const openDashboard = () => appActions?.openDashboard()
+const openBilling = () => appActions?.openBilling()
+const openInvite = () => appActions?.openInvite()
+
+const requireAuth = (action: () => any) => {
+  if (!user.value) {
+    openLogin()
+    return
+  }
+  action()
+}
 
 const { refresh: refreshReveal } = useReveal()
 const { user } = useAuth()

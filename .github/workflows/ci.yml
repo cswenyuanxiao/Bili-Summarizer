@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  python-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Guard requirements.txt changes
+        run: |
+          set -euo pipefail
+          BASE_REF="${{ github.event.pull_request.base.sha || github.event.before }}"
+          HEAD_REF="${{ github.sha }}"
+          if [[ -z "${BASE_REF}" ]]; then
+            echo "Skip dependency guard: base ref not found."
+            exit 0
+          fi
+          CHANGED_PY="$(git diff --name-only "${BASE_REF}" "${HEAD_REF}" -- '*.py')"
+          CHANGED_REQ="$(git diff --name-only "${BASE_REF}" "${HEAD_REF}" -- 'requirements.txt')"
+          if [[ -n "${CHANGED_PY}" && -z "${CHANGED_REQ}" ]]; then
+            echo "Python files changed but requirements.txt not updated."
+            echo "Please update requirements.txt if new dependencies were added."
+            exit 1
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Dependency sanity check
+        run: pip check
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+      - name: Start backend
+        run: uvicorn web_app.main:app --host 127.0.0.1 --port 7860 &
+      - name: Preflight health check
+        run: ./scripts/preflight_check.sh http://localhost:7860

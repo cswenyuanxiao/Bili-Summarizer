@@ -21,12 +21,31 @@
               <RouterLink to="/product" class="hover:text-gray-900 dark:hover:text-white transition-colors">产品</RouterLink>
               <RouterLink to="/pricing" class="hover:text-gray-900 dark:hover:text-white transition-colors">方案</RouterLink>
               <RouterLink to="/docs" class="hover:text-gray-900 dark:hover:text-white transition-colors">使用文档</RouterLink>
-              <RouterLink v-if="user" to="/subscriptions" class="hover:text-gray-900 dark:hover:text-white transition-colors">我的订阅</RouterLink>
-              <RouterLink v-if="user" to="/dashboard" class="hover:text-gray-900 dark:hover:text-white transition-colors">仪表盘</RouterLink>
-              <RouterLink v-if="user" to="/billing" class="hover:text-gray-900 dark:hover:text-white transition-colors">账单</RouterLink>
-              <RouterLink v-if="user" to="/invite" class="hover:text-gray-900 dark:hover:text-white transition-colors">邀请好友</RouterLink>
-              <RouterLink v-if="user" to="/templates" class="hover:text-gray-900 dark:hover:text-white transition-colors">总结模板</RouterLink>
-              <RouterLink v-if="user" to="/developer" class="hover:text-gray-900 dark:hover:text-white transition-colors">开发者 API</RouterLink>
+              
+              <button @click="requireAuth(() => $router.push('/subscriptions'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
+                我的订阅
+                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+              </button>
+              <button @click="requireAuth(() => $router.push('/dashboard'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
+                仪表盘
+                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+              </button>
+              <button @click="requireAuth(() => $router.push('/billing'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
+                账单
+                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+              </button>
+              <button @click="requireAuth(() => $router.push('/invite'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
+                邀请好友
+                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+              </button>
+              <button @click="requireAuth(() => $router.push('/templates'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
+                总结模板
+                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+              </button>
+              <button @click="requireAuth(() => $router.push('/developer'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
+                开发者 API
+                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+              </button>
             </nav>
 
             <div class="flex items-center gap-3">
@@ -146,18 +165,35 @@
             </div>
           </div>
           <div v-if="showMobileMenu" ref="mobileMenuRef" class="lg:hidden pb-4">
-            <div class="rounded-2xl glass-card p-4 space-y-2 text-sm text-gray-700 dark:text-gray-200">
-              <RouterLink class="w-full text-left" to="/product" @click="showMobileMenu = false">产品</RouterLink>
-              <RouterLink class="w-full text-left" to="/pricing" @click="showMobileMenu = false">方案</RouterLink>
-              <RouterLink class="w-full text-left" to="/docs" @click="showMobileMenu = false">使用文档</RouterLink>
-              <RouterLink v-if="user" class="w-full text-left" to="/subscriptions" @click="showMobileMenu = false">我的订阅</RouterLink>
-              <RouterLink v-if="user" class="w-full text-left" to="/compare" @click="showMobileMenu = false">总结对比</RouterLink>
-              <RouterLink v-if="user" class="w-full text-left" to="/teams" @click="showMobileMenu = false">我的团队</RouterLink>
-              <RouterLink v-if="user" class="w-full text-left" to="/dashboard" @click="showMobileMenu = false">仪表盘</RouterLink>
-              <RouterLink v-if="user" class="w-full text-left" to="/billing" @click="showMobileMenu = false">账单与发票</RouterLink>
-              <RouterLink v-if="user" class="w-full text-left" to="/invite" @click="showMobileMenu = false">邀请好友</RouterLink>
-              <RouterLink v-if="user" class="w-full text-left" to="/templates" @click="showMobileMenu = false">总结模板</RouterLink>
-              <RouterLink v-if="user" class="w-full text-left" to="/developer" @click="showMobileMenu = false">开发者 API</RouterLink>
+            <div class="rounded-2xl glass-card p-4 space-y-2 text-sm text-gray-700 dark:text-gray-200 flex flex-col items-start">
+              <RouterLink class="w-full text-left py-1" to="/product" @click="showMobileMenu = false">产品</RouterLink>
+              <RouterLink class="w-full text-left py-1" to="/pricing" @click="showMobileMenu = false">方案</RouterLink>
+              <RouterLink class="w-full text-left py-1" to="/docs" @click="showMobileMenu = false">使用文档</RouterLink>
+              
+              <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/subscriptions'); showMobileMenu = false })">
+                我的订阅 <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
+              </button>
+              <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/compare'); showMobileMenu = false })">
+                总结对比 <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
+              </button>
+              <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/teams'); showMobileMenu = false })">
+                我的团队 <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
+              </button>
+              <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/dashboard'); showMobileMenu = false })">
+                仪表盘 <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
+              </button>
+              <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/billing'); showMobileMenu = false })">
+                账单与发票 <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
+              </button>
+              <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/invite'); showMobileMenu = false })">
+                邀请好友 <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
+              </button>
+              <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/templates'); showMobileMenu = false })">
+                总结模板 <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
+              </button>
+              <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/developer'); showMobileMenu = false })">
+                开发者 API <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
+              </button>
             </div>
           </div>
         </div>
@@ -202,6 +238,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, provide } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
+import { LockClosedIcon } from '@heroicons/vue/24/outline'
 import LoginModal from './components/LoginModal.vue'
 import PricingModal from './components/PricingModal.vue'
 import ApiKeyModal from './components/ApiKeyModal.vue'
@@ -236,6 +273,14 @@ const showMobileMenu = ref(false)
 const userMenuRef = ref<HTMLElement | null>(null)
 const mobileMenuRef = ref<HTMLElement | null>(null)
 const mobileMenuButtonRef = ref<HTMLElement | null>(null)
+
+const requireAuth = (action: () => any) => {
+  if (!user.value) {
+    showLoginModal.value = true
+    return
+  }
+  action()
+}
 
 const dashboardLoading = ref(false)
 const dashboardError = ref('')

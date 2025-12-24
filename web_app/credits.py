@@ -28,9 +28,21 @@ def init_credits_db():
                 user_id TEXT NOT NULL,
                 event_type TEXT NOT NULL,
                 cost INTEGER NOT NULL,
+                metadata TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # Migration for existing table
+        try:
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'credit_events' AND column_name = 'metadata'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE credit_events ADD COLUMN metadata TEXT")
+        except Exception:
+            pass
     else:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS credit_events (
@@ -38,9 +50,19 @@ def init_credits_db():
                 user_id TEXT NOT NULL,
                 event_type TEXT NOT NULL,
                 cost INTEGER NOT NULL,
+                metadata TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        try:
+            # Check if metadata column exists in sqlite
+            cursor.execute("PRAGMA table_info(credit_events)")
+            columns = [info[1] for info in cursor.fetchall()]
+            if "metadata" not in columns:
+                cursor.execute("ALTER TABLE credit_events ADD COLUMN metadata TEXT")
+        except Exception:
+            pass
+
     conn.commit()
     conn.close()
 
@@ -92,7 +114,7 @@ def get_user_credits(user_id: str) -> Optional[Dict]:
     }
 
 
-def charge_user_credits(user_id: str, cost: int) -> bool:
+def charge_user_credits(user_id: str, cost: int, metadata: Optional[str] = None) -> bool:
     conn = _get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -104,9 +126,9 @@ def charge_user_credits(user_id: str, cost: int) -> bool:
     """, (cost, user_id, cost))
     if cursor.rowcount > 0:
         cursor.execute("""
-            INSERT INTO credit_events (user_id, event_type, cost)
-            VALUES (?, ?, ?)
-        """, (user_id, "consume", cost))
+            INSERT INTO credit_events (user_id, event_type, cost, metadata)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, "consume", cost, metadata))
     conn.commit()
     success = cursor.rowcount > 0
     conn.close()
@@ -176,6 +198,30 @@ def get_daily_usage(user_id: str, days: int = 14):
     rows = cursor.fetchall()
     conn.close()
     return {row["day"]: row["count"] for row in rows}
+
+
+def get_credit_history(user_id: str, limit: int = 50):
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT event_type, cost, metadata, created_at
+        FROM credit_events
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+    """, (user_id, limit))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    history = []
+    for row in rows:
+        history.append({
+            "type": row["event_type"],
+            "cost": row["cost"],
+            "metadata": row["metadata"],
+            "created_at": row["created_at"]
+        })
+    return history
 
 
 init_credits_db()

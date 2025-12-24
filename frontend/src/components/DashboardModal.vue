@@ -10,7 +10,24 @@
         </p>
       </div>
 
-      <div class="p-6 space-y-4">
+      <div class="px-6 border-b border-gray-100 dark:border-gray-700 flex gap-6">
+        <button 
+          @click="activeTab = 'overview'"
+          class="py-4 text-sm font-medium border-b-2 transition-colors"
+          :class="activeTab === 'overview' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+        >
+          概览
+        </button>
+        <button 
+          @click="activeTab = 'history'"
+          class="py-4 text-sm font-medium border-b-2 transition-colors"
+          :class="activeTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+        >
+          积分记录
+        </button>
+      </div>
+
+      <div v-if="activeTab === 'overview'" class="p-6 space-y-4">
         <div v-if="error" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {{ error }}
         </div>
@@ -78,6 +95,30 @@
         </div>
       </div>
 
+      <div v-else class="p-0 min-h-[300px]">
+        <div v-if="!data?.credit_history?.length" class="p-8 text-center text-gray-500 text-sm">
+          暂无积分记录
+        </div>
+        <div v-else class="divide-y divide-gray-100 dark:divide-gray-800">
+          <div v-for="(item, index) in data.credit_history" :key="index" class="p-4 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-medium text-sm text-gray-900 dark:text-gray-100">
+                {{ item.type === 'consume' ? '总结消耗' : (item.type === 'grant' ? '系统赠送' : '充值获得') }}
+              </span>
+              <span :class="item.type === 'consume' ? 'text-red-500' : 'text-green-500'" class="font-mono font-bold text-sm">
+                {{ item.type === 'consume' ? '-' : '+' }}{{ item.cost }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between text-xs text-gray-500">
+              <span>{{ new Date(item.created_at).toLocaleString() }}</span>
+            </div>
+            <div v-if="parseMetadata(item.metadata)?.url" class="mt-1.5 text-xs bg-gray-100 dark:bg-slate-800 rounded px-2 py-1 truncate text-gray-600 dark:text-gray-400 font-mono">
+              {{ parseMetadata(item.metadata)?.url }}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between text-xs text-gray-500">
         <span>新用户注册即送 50 积分</span>
         <div class="flex gap-2">
@@ -106,7 +147,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+
+const activeTab = ref<'overview' | 'history'>('overview')
 
 const props = defineProps<{
   show: boolean
@@ -117,6 +160,12 @@ const props = defineProps<{
     total_used: number
     cost_per_summary: number
     daily_usage?: { day: string; count: number }[]
+    credit_history?: {
+      type: string
+      cost: number
+      metadata: string | null
+      created_at: string
+    }[]
     email?: string | null
   } | null
   subscription?: {
@@ -168,4 +217,13 @@ const chartLabels = computed(() => {
   const step = Math.ceil(labels.length / 7)
   return labels.filter((_, index) => index % step === 0).slice(0, 7)
 })
+
+const parseMetadata = (jsonStr: string | null) => {
+  if (!jsonStr) return null
+  try {
+    return JSON.parse(jsonStr)
+  } catch {
+    return null
+  }
+}
 </script>

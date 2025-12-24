@@ -214,7 +214,8 @@ async function handleSubscribe(up: UPInfo) {
       searchResults.value = searchResults.value.filter(i => i.mid !== up.mid)
     } else {
       const data = await res.json()
-      alert(data.detail || '订阅失败')
+      const errorMsg = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)
+      alert(errorMsg || '订阅失败')
     }
   } catch (err) {
     alert('订阅请求失败')
