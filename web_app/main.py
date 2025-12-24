@@ -90,7 +90,7 @@ class PushSubscriptionRequest(BaseModel):
 # --- web_app 内部模块导入 ---
 from .downloader import download_content
 from .summarizer_gemini import summarize_content, extract_ai_transcript, upload_to_gemini, delete_gemini_file
-from .cache import get_cached_result, save_to_cache, get_cache_stats
+from .cache import get_cached_result, save_to_cache, get_cache_stats, init_cache_db
 from .queue_manager import task_queue
 from .rate_limiter import rate_limiter
 from .auth import get_current_user, verify_session_token
@@ -183,6 +183,20 @@ async def on_startup():
     """启动项集合"""
     # 数据库
     conn = get_connection()
+
+    # 缓存表初始化（允许失败并重试，避免启动崩溃）
+    async def init_cache_with_retry():
+        for attempt in range(1, 6):
+            try:
+                init_cache_db()
+                logger.info("Cache DB initialized")
+                return
+            except Exception as exc:
+                logger.warning(f"Cache DB init failed (attempt {attempt}/5): {exc}")
+                await asyncio.sleep(min(2 ** (attempt - 1), 10))
+        logger.error("Cache DB init failed after retries; cache may be unavailable")
+
+    asyncio.create_task(init_cache_with_retry())
     
     # 周期性清理任务
     async def schedule_cleanups():

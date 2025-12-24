@@ -211,6 +211,3 @@ def get_cache_stats() -> Dict[str, Any]:
         "total_size_kb": round(size / 1024, 2)
     }
 
-
-# 初始化数据库
-init_cache_db()
