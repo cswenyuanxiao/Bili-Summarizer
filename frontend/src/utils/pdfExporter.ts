@@ -212,7 +212,8 @@ export async function exportToPdfWithToc(
         <h1 style="text-align: center; margin-bottom: 20px;">内容目录</h1>
         <ul style="list-style: none; padding-left: 0;">
           ${Array.from(headings).map((h, _i) => {
-            const level = parseInt(h.tagName[1])
+            const levelStr = h.tagName.charAt(1)
+            const level = parseInt(levelStr || '1')
             const indent = (level - 1) * 20
             const fontSize = level === 1 ? '18px' : level === 2 ? '16px' : '14px'
             return `<li style="margin-left: ${indent}px; margin-bottom: 8px; font-size: ${fontSize};">
