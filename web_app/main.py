@@ -506,7 +506,10 @@ app.add_middleware(
 
 # --- 静态文件（仅保留 videos 用于视频播放）---
 # 允许前端访问 videos 目录下的文件用于播放
-app.mount("/videos", StaticFiles(directory="videos"), name="videos")
+# 确保目录存在（CI 环境可能没有）
+videos_dir = Path("videos")
+videos_dir.mkdir(exist_ok=True)
+app.mount("/videos", StaticFiles(directory=str(videos_dir)), name="videos")
 legacy_static = Path(__file__).resolve().parent / "legacy_ui" / "static"
 if legacy_static.exists():
     app.mount("/static", StaticFiles(directory=str(legacy_static)), name="static")
