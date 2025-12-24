@@ -20,7 +20,8 @@ def init_telemetry_db():
                 detail TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
-        """)\n    else:
+        """)
+    else:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS failure_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
