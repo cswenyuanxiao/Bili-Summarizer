@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import sys
 import time
+from typing import Optional
 
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -155,10 +156,11 @@ def extract_ai_transcript(file_path: Path, progress_callback=None, uploaded_file
         return ""
 
 
-def summarize_content(file_path: Path, media_type: str, progress_callback=None, focus: str = "default", uploaded_file=None) -> str:
+def summarize_content(file_path: Path, media_type: str, progress_callback=None, focus: str = "default", uploaded_file=None, custom_prompt: Optional[str] = None) -> str:
     """
     使用 Google Gemini API 总结内容。
     支持传入 uploaded_file 以避免重复上传。
+    支持传入 custom_prompt 使用自定义模板。
     """
     # 1. 加载和配置 API 密钥
     load_dotenv()
@@ -173,30 +175,41 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
     except Exception as e:
         raise Exception(f"Google AI SDK 配置失败: {e}")
 
-    # 根据不同的视角调整 Prompt
-    focus_prompts = {
-        "default": "深度分析并总结视频的核心内容、关键点和结论。",
-        "study": "以学习者的视角，详细总结视频中的核心知识点、学术概念或技术细节。",
-        "gossip": "以观众互动的视角，提取视频中的槽点、金句、梗以及最具娱乐性的瞬间。",
-        "business": "以商业分析师视角，拆解视频背后的商业模式、市场机会或营销逻辑。"
-    }
-    
-    selected_focus_desc = focus_prompts.get(focus, focus_prompts["default"])
+    # 如果提供了自定义 Prompt，则优先使用
+    if custom_prompt:
+        prompt_text = (
+            f"{custom_prompt}\n\n"
+            "要求：\n"
+            "1. 如果视频有视觉画面，请结合画面信息提供更丰富的描述。\n"
+            "2. 最终总结必须包含一个 Mermaid 格式的思维导图（除非你的模板明确要求不要）。请严格使用 ```mermaid [换行] 代码 [换行] ``` 格式包裹。\n"
+            "3. 直接使用标准 Markdown 格式。"
+        )
+    else:
+        # 根据不同的视角调整 Prompt
+        focus_prompts = {
+            "default": "深度分析并总结视频的核心内容、关键点和结论。",
+            "study": "以学习者的视角，详细总结视频中的核心知识点、学术概念或技术细节。",
+            "gossip": "以观众互动的视角，提取视频中的槽点、金句、梗以及最具娱乐性的瞬间。",
+            "business": "以商业分析师视角，拆解视频背后的商业模式、市场机会或营销逻辑。"
+        }
+        
+        selected_focus_desc = focus_prompts.get(focus, focus_prompts["default"])
 
-    prompt_text = (
-        f"你是一个专业的视频分析助手。请按照以下视角进行总结：【{selected_focus_desc}】\n\n"
-        "要求：\n"
-        "1. 如果视频有视觉画面，请结合画面信息提供更丰富的描述。\n"
-        "2. 摘要需要清晰、结构化且全面。\n"
-        "3. 【重要】必须在总结的末尾提供一个 Mermaid 格式的思维导图。请严格使用 ```mermaid [换行] 代码 [换行] ``` 格式包裹，不要包含任何多余文字。\n"
-        "```mermaid\n"
-        "graph TD\n"
-        "    A[核心主题] --> B(关键分支1)\n"
-        "    B --> C(细分节点1)\n"
-        "    A --> D(关键分支2)\n"
-        "```\n"
-        "4. 直接使用标准 Markdown 格式。严禁使用 LaTeX 格式，表示方向请直接使用 '→' 或 '->'。"
-    )
+        prompt_text = (
+            f"你是一个专业的视频分析助手。请按照以下视角进行总结：【{selected_focus_desc}】\n\n"
+            "要求：\n"
+            "1. 如果视频有视觉画面，请结合画面信息提供更丰富的描述。\n"
+            "2. 摘要需要清晰、结构化且全面。\n"
+            "3. 【重要】必须在总结的末尾提供一个 Mermaid 格式的思维导图。请严格使用 ```mermaid [换行] 代码 [换行] ``` 格式包裹，不要包含任何多余文字。\n"
+            "```mermaid\n"
+            "graph TD\n"
+            "    A[核心主题] --> B(关键分支1)\n"
+            "    B --> C(细分节点1)\n"
+            "    A --> D(关键分支2)\n"
+            "    E --> F(关键分支3)\n"
+            "```\n"
+            "4. 直接使用标准 Markdown 格式。严禁使用 LaTeX 格式，表示方向请直接使用 '→' 或 '->'。"
+        )
 
     content_parts = [prompt_text]
     file_to_delete = None # 本地上传的文件需要删除

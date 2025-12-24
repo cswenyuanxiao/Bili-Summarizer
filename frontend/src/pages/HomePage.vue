@@ -16,6 +16,7 @@
           <UrlInputCard 
             :is-loading="isLoading" 
             @submit="handleSummarize" 
+            @bulk="openFavoritesImport"
           />
           <div
             v-if="!user"
@@ -90,15 +91,22 @@
             </div>
 
             <div class="lg:col-span-2 space-y-6">
-              <SummaryCard
-                :content="result.summary"
-                :loading="isLoading"
-                @copy="copySummary"
-                @refresh="handleResummarize"
-              />
-              
-              <ExportBar @export="handleExport" />
-            </div>
+                <SummaryCard
+                  :content="result.summary"
+                  :loading="isLoading"
+                  @copy="copySummary"
+                  @refresh="handleResummarize"
+                  @tts="showTTS = true"
+                />
+                
+                <ExportBar @export="handleExport" @share="openShareCard" />
+                
+                <AudioPlayer 
+                  v-if="showTTS" 
+                  :text="result.summary" 
+                  @close="showTTS = false" 
+                />
+              </div>
           </div>
           
           <ChatPanel
@@ -107,6 +115,21 @@
             :transcript="result.transcript || ''"
           />
         </div>
+
+        <ShareCardModal
+          :show="showShareCard"
+          :title="videoInfo?.title || extractTitle(result.summary)"
+          :summary="result.summary"
+          :thumbnail="videoInfo?.thumbnail || ''"
+          @close="showShareCard = false"
+        />
+
+        <FavoritesImportModal
+          :show="showFavoritesImport"
+          :cost-per-summary="costPerSummary"
+          @close="showFavoritesImport = false"
+          @import-started="fetchDashboard"
+        />
 
         <div data-reveal data-delay="200">
           <HistoryList
@@ -239,6 +262,9 @@ import TranscriptPanel from '../components/TranscriptPanel.vue'
 import MindmapViewer from '../components/MindmapViewer.vue'
 import ChatPanel from '../components/ChatPanel.vue'
 import ExportBar from '../components/ExportBar.vue'
+import AudioPlayer from '../components/AudioPlayer.vue'
+import ShareCardModal from '../components/ShareCardModal.vue'
+import FavoritesImportModal from '../components/FavoritesImportModal.vue'
 import HistoryList from '../components/HistoryList.vue'
 import { useSummarize } from '../composables/useSummarize'
 import { useAuth } from '../composables/useAuth'
@@ -300,6 +326,17 @@ type VideoInfo = {
 
 const videoInfo = ref<VideoInfo | null>(null)
 const mindmapRef = ref<InstanceType<typeof MindmapViewer> | null>(null)
+const showShareCard = ref(false)
+const showTTS = ref(false)
+const showFavoritesImport = ref(false)
+
+const openShareCard = () => {
+  showShareCard.value = true
+}
+
+const openFavoritesImport = () => {
+  showFavoritesImport.value = true
+}
 
 const dashboardData = ref<{
   credits: number

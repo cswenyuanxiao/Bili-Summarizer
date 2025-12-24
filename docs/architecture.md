@@ -82,7 +82,42 @@ POST /api/batch/summarize { urls: [...] }
   -> GET /api/batch/{job_id} 查询进度与结果
 ```
 
+## v2.0 新增模块
+
+### 分享卡片 (P0)
+- `share_card.py`：Pillow 渲染，4 种模板
+- 文件 24h 过期自动清理
+
+### 收藏夹导入 (P1)
+- `favorites.py`：解析 B 站收藏夹 URL
+- 批量创建总结任务
+
+### 总结模板 (P2)
+- `templates.py`：预设模板 + 用户自定义
+- `summary_templates` 表存储
+
+### 语音播报 (P3)
+- `tts.py`：Edge TTS 集成
+- 支持 6 种中文语音
+
+### 每日推送 (P4)
+- `subscriptions.py`：UP 主订阅管理
+- `notifications.py`：邮件 + 浏览器推送
+- `scheduler.py`：APScheduler 定时检查
+
+### 总结对比 (P5)
+- `compare.py`：2-4 视频 AI 对比分析
+- 差异点、共识点、结论生成
+
+### 团队协作 (P6)
+- `teams.py`：团队 CRUD + 成员管理
+- 内容共享到团队
+- 评论系统（支持嵌套回复）
+
 ## 已知边界
 - Render 免费实例无持久化磁盘。
 - 支付平台资质未完成时，生产支付不可用。
 - 批量任务状态仅在内存中，服务重启后丢失（可扩展为持久化）。
+- 浏览器推送需配置 VAPID 密钥。
+- 团队功能需登录用户使用。
+

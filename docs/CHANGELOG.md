@@ -3,6 +3,45 @@
 Last updated: 2025-12-25  
 Owner: Core Eng
 
+## [2.0.0] - 2025-12-25
+
+### Added - 阶段 1: 获客增长 (P0-P1)
+- **分享卡片生成 (P0)**：`share_card.py` 支持 4 种模板、Pillow 渲染、24h 过期清理
+- **收藏夹导入 (P1)**：`favorites.py` 解析 B 站收藏夹 URL，批量导入视频
+
+### Added - 阶段 2: 用户留存 (P2-P3)
+- **总结模板自定义 (P2)**：`templates.py` 支持预设模板 + 用户自定义 Prompt
+- **语音播报 (P3)**：`tts.py` 集成 Edge TTS，支持多种中文语音
+
+### Added - 阶段 3: 生态建设 (P4-P6)
+- **每日推送 (P4)**：
+  - `subscriptions.py` UP 主订阅管理
+  - `notifications.py` 邮件/浏览器推送
+  - `scheduler.py` APScheduler 定时任务
+- **总结对比 (P5)**：`compare.py` 支持 2-4 视频 AI 深度对比
+- **团队协作 (P6)**：`teams.py` 团队 CRUD、内容共享、评论系统
+
+### Added - 前端
+- `TemplatesPage.vue` 模板管理
+- `SubscriptionsPage.vue` 订阅与推送
+- `ComparePage.vue` 对比实验室
+- `TeamsPage.vue` 团队协作
+- `AudioPlayer.vue` TTS 播放器
+- `ShareCardModal.vue` 分享卡片弹窗
+- `FavoritesImportModal.vue` 收藏夹导入
+- `HistorySelectModal.vue` 历史选择器
+- `push.ts` + `sw.js` 浏览器推送
+
+### Fixed
+- `teams.py`: 修复表结构不匹配（JOIN 错误、字段名错误）
+- `compare.py`: 修复 Supabase 数据源兼容性
+- `subscriptions.py`: 修复 `notify_methods` JSON 解析
+
+### Database
+- 新增 8 张表：`summary_templates`, `up_subscriptions`, `notification_queue`, `push_subscriptions`, `teams`, `team_members`, `team_summaries`, `comments`
+
+---
+
 ## [1.2.0] - 2025-12-25
 
 ### Added
@@ -59,7 +98,3 @@ Owner: Core Eng
 - 响应式设计
 - 云端部署支持
 
-## Unreleased
-- 前端批量总结 UI
-- 总结模板自定义
-- 分享卡片生成

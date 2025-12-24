@@ -24,6 +24,7 @@
               <RouterLink v-if="user" to="/dashboard" class="hover:text-gray-900 dark:hover:text-white transition-colors">仪表盘</RouterLink>
               <RouterLink v-if="user" to="/billing" class="hover:text-gray-900 dark:hover:text-white transition-colors">账单</RouterLink>
               <RouterLink v-if="user" to="/invite" class="hover:text-gray-900 dark:hover:text-white transition-colors">邀请好友</RouterLink>
+              <RouterLink v-if="user" to="/templates" class="hover:text-gray-900 dark:hover:text-white transition-colors">总结模板</RouterLink>
               <RouterLink v-if="user" to="/developer" class="hover:text-gray-900 dark:hover:text-white transition-colors">开发者 API</RouterLink>
             </nav>
 
@@ -83,6 +84,10 @@
                     
                     <RouterLink to="/invite" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
                       <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">邀请好友</span>
+                    </RouterLink>
+                    
+                    <RouterLink to="/templates" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">总结模板</span>
                     </RouterLink>
                     
                     <RouterLink to="/developer" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">

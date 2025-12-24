@@ -106,6 +106,9 @@ export function useSummarize() {
             if (request.skip_cache) {
                 params.append('skip_cache', 'true')
             }
+            if (request.template_id) {
+                params.append('template_id', request.template_id)
+            }
 
             eventSource = new EventSource(`${url}?${params}`)
 

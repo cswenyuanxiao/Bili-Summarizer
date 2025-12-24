@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 # --- 数据模型 ---
 class ChatMessage(BaseModel):
@@ -42,6 +42,47 @@ class BatchSummarizeRequest(BaseModel):
     mode: str = "smart"
     focus: str = "default"
 
+class ShareCardRequest(BaseModel):
+    title: str
+    summary: str
+    thumbnail_url: Optional[str] = None
+    template: str = "default"
+
+class FavoritesImportRequest(BaseModel):
+    favorites_url: str
+    mode: str = "smart"
+    focus: str = "default"
+    limit: int = 50
+    selected_bvids: Optional[List[str]] = None
+
+class TemplateCreateRequest(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    prompt_template: str
+    output_format: Optional[str] = "markdown"
+    sections: Optional[List[str]] = []
+
+class TemplateUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    prompt_template: Optional[str] = None
+    output_format: Optional[str] = None
+    sections: Optional[List[str]] = None
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: Optional[str] = "zh-CN-XiaoxiaoNeural"
+
+class SubscribeRequest(BaseModel):
+    up_mid: str
+    up_name: str
+    up_avatar: Optional[str] = ""
+    notify_methods: Optional[List[str]] = ["browser"]
+
+class PushSubscriptionRequest(BaseModel):
+    endpoint: str
+    keys: Dict[str, str]
+
 # --- web_app 内部模块导入 ---
 from .downloader import download_content
 from .summarizer_gemini import summarize_content, extract_ai_transcript, upload_to_gemini, delete_gemini_file
@@ -64,6 +105,18 @@ from .payments import (
 from .idempotency import idempotency
 from .reconciliation import reconciliation
 from .batch_summarize import batch_service
+from .share_card import generate_share_card, get_card_image, cleanup_expired_cards
+from .favorites import parse_favorites_url, fetch_favorites_info, fetch_favorites_videos, fetch_all_favorites_videos
+from .templates import get_user_templates, get_template_by_id, create_template, update_template, delete_template
+from .tts import generate_tts, cleanup_expired_tts, VOICES
+from .subscriptions import search_up, subscribe_up, unsubscribe_up, get_user_subscriptions
+from .notifications import save_push_subscription
+from .scheduler import start_scheduler, stop_scheduler
+from .compare import compare_summaries, get_summaries_for_compare
+from .teams import (
+    create_team, get_user_teams, get_team_details, 
+    share_summary_to_team, add_comment, get_summary_comments
+)
 from .telemetry import record_failure
 from typing import List
 from .db import get_connection, get_backend_info, using_postgres
@@ -122,9 +175,22 @@ app = FastAPI(title="Bili-Summarizer")
 
 # --- 数据库初始化 ---
 @app.on_event("startup")
-async def init_database():
-    """初始化 API Key 和配额管理表"""
+async def on_startup():
+    """启动项集合"""
+    # 数据库
     conn = get_connection()
+    
+    # 周期性清理任务
+    async def schedule_cleanups():
+        while True:
+            await asyncio.sleep(3600)  # 每小时运行一次
+            cleanup_expired_cards()
+            cleanup_expired_tts()
+            
+    asyncio.create_task(schedule_cleanups())
+    
+    # 启动定时任务调度器 (P4 每日推送到订阅)
+    start_scheduler()
     cursor = conn.cursor()
     
     # 创建 API Keys 表
@@ -358,13 +424,23 @@ async def start_queue():
     async def summarize_handler(payload):
         """总结任务处理器 - 在线程池中执行同步函数"""
         loop = asyncio.get_event_loop()
+        
+        custom_prompt = None
+        template_id = payload.get('template_id')
+        if template_id:
+            from .templates import get_template_by_id
+            template = get_template_by_id(template_id)
+            if template:
+                custom_prompt = template.get('prompt_template')
+        
         func = functools.partial(
             summarize_content,
             payload['file_path'],
             payload['media_type'],
             payload.get('progress_callback'),
             payload.get('focus', 'default'),
-            payload.get('uploaded_file')
+            payload.get('uploaded_file'),
+            custom_prompt
         )
         return await loop.run_in_executor(None, func)
     
@@ -410,6 +486,11 @@ legacy_static = Path(__file__).resolve().parent / "legacy_ui" / "static"
 if legacy_static.exists():
     app.mount("/static", StaticFiles(directory=str(legacy_static)), name="static")
 
+# TTS 静态文件支持
+tts_static = Path(__file__).resolve().parent / "static" / "tts"
+tts_static.mkdir(parents=True, exist_ok=True)
+app.mount("/api/tts/audio", StaticFiles(directory=str(tts_static)), name="tts_audio")
+
 # --- Frontend Static (Render) ---
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 LEGACY_INDEX = Path(__file__).resolve().parent / "legacy_ui" / "index.html"
@@ -448,7 +529,8 @@ async def run_summarization(
     mode: str = "smart",
     focus: str = "default",
     skip_cache: bool = False,
-    token: Optional[str] = None
+    token: Optional[str] = None,
+    template_id: Optional[str] = None
 ):
     safe_url = url.split("?")[0]
     logger.info(f"收到总结请求: URL={safe_url}, Mode={mode}, Focus={focus}")
@@ -558,7 +640,8 @@ async def run_summarization(
                     'media_type': media_type,
                     'progress_callback': progress_callback,
                     'focus': focus,
-                    'uploaded_file': remote_file
+                    'uploaded_file': remote_file,
+                    'template_id': template_id
                 })
                 # 轮询任务状态 (或者可以使用更复杂的事件通知机制)
                 from .queue_manager import TaskStatus
@@ -677,9 +760,10 @@ async def run_summarization_api(
     mode: str = "smart",
     focus: str = "default",
     skip_cache: bool = False,
-    token: Optional[str] = None
+    token: Optional[str] = None,
+    template_id: Optional[str] = None
 ):
-    return await run_summarization(url, mode, focus, skip_cache, token)
+    return await run_summarization(url, mode, focus, skip_cache, token, template_id)
 
 
 @app.get("/api/dashboard")
@@ -2271,23 +2355,484 @@ async def get_batch_job_status(job_id: str, request: Request):
     }
 
 
+
 # --- Frontend Static (Render) ---
-if FRONTEND_DIST.exists():
-    assets_dir = FRONTEND_DIST / "assets"
-    if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+# NOTE: Frontend serving code moved to end of file to avoid interfering with API routes
+# if FRONTEND_DIST.exists():
+#     assets_dir = FRONTEND_DIST / "assets"
+#     if assets_dir.exists():
+#         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+#
+#     @app.get("/", include_in_schema=False)
+#     async def serve_frontend_root():
+#         return FileResponse(FRONTEND_DIST / "index.html")
+#
+#     @app.get("/{full_path:path}", include_in_schema=False)
+#     async def serve_frontend_spa(full_path: str):
+#         # 不要拦截 API 路由和其他后端路由
+#         if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
+#             # 这些路径应该由后端处理，如果到这里说明路由不存在
+#             raise HTTPException(status_code=404, detail="Not found")
+#         
+#         candidate = FRONTEND_DIST / full_path
+#         if candidate.is_file():
+#             return FileResponse(candidate)
+#         return FileResponse(FRONTEND_DIST / "index.html")
+# elif LEGACY_INDEX.exists():
+#     @app.get("/", include_in_schema=False)
+#     async def serve_legacy_root():
+#         return FileResponse(LEGACY_INDEX)
 
-    @app.get("/", include_in_schema=False)
-    async def serve_frontend_root():
-        return FileResponse(FRONTEND_DIST / "index.html")
+# === 分享卡片相关 ===
 
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def serve_frontend_spa(full_path: str):
-        candidate = FRONTEND_DIST / full_path
-        if candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(FRONTEND_DIST / "index.html")
-elif LEGACY_INDEX.exists():
-    @app.get("/", include_in_schema=False)
-    async def serve_legacy_root():
-        return FileResponse(LEGACY_INDEX)
+@app.post("/api/share/card")
+async def create_share_card(request: Request, body: ShareCardRequest):
+    """
+    生成分享卡片
+    """
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    
+    # 尝试验证用户，但如果不成功也允许（支持匿名分享）
+    try:
+        user = await verify_session_token(token)
+    except:
+        user = None
+    
+    # 验证模板
+    if body.template not in ["default", "dark", "gradient", "minimal"]:
+        raise HTTPException(status_code=400, detail="Invalid template")
+    
+    try:
+        # 在主线程外运行耗时的渲染操作
+        result = await asyncio.to_thread(
+            generate_share_card,
+            title=body.title,
+            summary=body.summary,
+            thumbnail_url=body.thumbnail_url,
+            template=body.template
+        )
+        
+        return {
+            "card_id": result["card_id"],
+            "image_url": result["image_url"],
+            "expires_at": result["expires_at"]
+        }
+    except Exception as e:
+        logger.error(f"Failed to generate share card: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/share/card/{card_id}.png")
+async def get_share_card_image(card_id: str):
+    """
+    获取生成的分享卡片图片
+    """
+    image_path = get_card_image(card_id)
+    
+    if not image_path:
+        raise HTTPException(status_code=404, detail="Card not found or expired")
+    
+    return FileResponse(
+        image_path,
+        media_type="image/png",
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "Content-Disposition": f"inline; filename={card_id}.png"
+        }
+    )
+
+@app.on_event("startup")
+async def schedule_cleanup():
+    """
+    启动时清理过期文件
+    """
+    cleanup_expired_cards()
+
+# === 收藏夹导入相关 ===
+
+@app.get("/api/favorites/info")
+async def get_favorites_info_api(url: str):
+    """获取收藏夹信息"""
+    media_id = parse_favorites_url(url)
+    if not media_id:
+        raise HTTPException(status_code=400, detail="无效的收藏夹链接")
+    
+    try:
+        info = await fetch_favorites_info(media_id)
+        return info
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/favorites/videos")
+async def get_favorites_videos_api(url: str, page: int = 1):
+    """预览收藏夹视频列表"""
+    media_id = parse_favorites_url(url)
+    if not media_id:
+        raise HTTPException(status_code=400, detail="无效的收藏夹链接")
+    
+    try:
+        videos = await fetch_favorites_videos(media_id, page=page)
+        return videos
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/favorites/import")
+async def import_favorites_api(request: Request, body: FavoritesImportRequest):
+    """
+    导入收藏夹并开始批量总结
+    """
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    media_id = parse_favorites_url(body.favorites_url)
+    if not media_id:
+        raise HTTPException(status_code=400, detail="无效的收藏夹链接")
+    
+    try:
+        # 获取视频列表
+        if body.selected_bvids:
+            # 如果指定了某些视频
+            urls = [f"https://www.bilibili.com/video/{bvid}" for bvid in body.selected_bvids]
+        else:
+            # 否则获取全部（按限制）
+            videos = await fetch_all_favorites_videos(media_id, limit=body.limit)
+            urls = [v["url"] for v in videos]
+            
+        if not urls:
+            raise HTTPException(status_code=400, detail="没有可导入的视频")
+            
+        # 限制单次导入数量
+        if len(urls) > 100:
+            urls = urls[:100]
+            
+        # 计费检查
+        cost_info = await get_backend_info()
+        cost_per = cost_info.get("cost_per_summary", 10)
+        required_credits = len(urls) * cost_per
+        
+        user_credits = await get_user_credits(user["user_id"])
+        if user_credits < required_credits and not is_unlimited_user(user):
+            raise HTTPException(status_code=402, detail=f"积分不足，需要 {required_credits}，当前 {user_credits}")
+            
+        # 创建批量任务
+        job_id = await batch_service.create_batch(
+            user_id=user["user_id"],
+            urls=urls,
+            mode=body.mode,
+            focus=body.focus
+        )
+        
+        # 扣除积分
+        if not is_unlimited_user(user):
+            await charge_user_credits(user["user_id"], required_credits, f"批量导入收藏夹任务: {job_id}")
+            
+        return {
+            "job_id": job_id,
+            "video_count": len(urls),
+            "credits_charged": required_credits if not is_unlimited_user(user) else 0
+        }
+    except Exception as e:
+        logger.error(f"Favorites import failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+# === 总结模板相关 ===
+
+@app.get("/api/templates")
+async def list_templates(request: Request):
+    """获取用户可用的模板列表"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    try:
+        user = await verify_session_token(token)
+        user_id = user["user_id"]
+    except:
+        user_id = "anonymous"
+    
+    return get_user_templates(user_id)
+
+@app.post("/api/templates")
+async def add_template(request: Request, body: TemplateCreateRequest):
+    """创建自定义模板"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    return create_template(
+        user_id=user["user_id"],
+        name=body.name,
+        prompt_template=body.prompt_template,
+        description=body.description,
+        output_format=body.output_format,
+        sections=body.sections
+    )
+
+@app.patch("/api/templates/{template_id}")
+async def patch_template(request: Request, template_id: str, body: TemplateUpdateRequest):
+    """更新自定义模板"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    success = update_template(
+        template_id=template_id,
+        user_id=user["user_id"],
+        **body.dict(exclude_unset=True)
+    )
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Template not found or no permission")
+        
+    return {"status": "success"}
+
+@app.delete("/api/templates/{template_id}")
+async def remove_template(request: Request, template_id: str):
+    """删除模板"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    success = delete_template(template_id, user["user_id"])
+    if not success:
+        raise HTTPException(status_code=404, detail="Template not found or no permission")
+        
+    return {"status": "success"}
+
+# === 语音播报相关 ===
+
+@app.get("/api/tts/voices")
+async def list_voices():
+    """获取支持的配音列表"""
+    return VOICES
+
+@app.post("/api/tts/generate")
+async def tts_generate(request: Request, body: TTSRequest):
+    """生成语音音频"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    # TTS 目前不需要强制登录，但可以记录用户行为
+    try:
+        user = await verify_session_token(token)
+    except:
+        user = None
+        
+    try:
+        relative_path = await generate_tts(body.text, body.voice)
+        # 转换为外部可访问的 URL
+        audio_url = relative_path.replace("/static/tts/", "/api/tts/audio/")
+        return {"audio_url": audio_url}
+    except Exception as e:
+        logger.error(f"TTS API failed: {e}")
+        raise HTTPException(status_code=500, detail="Voice generation failed")
+
+# === 订阅与推送相关 (P4) ===
+
+@app.get("/api/subscriptions/search")
+async def search_up_users(keyword: str):
+    """搜索 UP 主"""
+    if not keyword or len(keyword) < 2:
+        return {"users": []}
+    
+    users = await search_up(keyword)
+    return {"users": users}
+
+@app.get("/api/subscriptions")
+async def list_subscriptions(request: Request):
+    """获取用户订阅列表"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    subscriptions = get_user_subscriptions(user["user_id"])
+    return {"subscriptions": subscriptions}
+
+@app.post("/api/subscriptions")
+async def create_subscription(request: Request, body: SubscribeRequest):
+    """订阅 UP 主"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    try:
+        result = subscribe_up(
+            user_id=user["user_id"],
+            up_mid=body.up_mid,
+            up_name=body.up_name,
+            up_avatar=body.up_avatar,
+            notify_methods=body.notify_methods
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/subscriptions/{subscription_id}")
+async def cancel_subscription(subscription_id: str, request: Request):
+    """取消订阅"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    success = unsubscribe_up(user["user_id"], subscription_id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    return {"message": "Unsubscribed"}
+
+@app.post("/api/push/subscribe")
+async def register_push_subscription(request: Request, body: PushSubscriptionRequest):
+    """注册浏览器推送订阅"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    save_push_subscription(
+        user_id=user["user_id"],
+        endpoint=body.endpoint,
+        p256dh=body.keys.get("p256dh", ""),
+        auth=body.keys.get("auth", "")
+    )
+    
+    return {"message": "Push subscription saved"}
+
+@app.get("/api/push/vapid-key")
+async def get_vapid_public_key():
+    """获取 VAPID 公钥（用于浏览器订阅）"""
+    return {"publicKey": os.getenv("VAPID_PUBLIC_KEY", "")}
+
+# === 总结对比相关 (P5) ===
+
+class CompareRequest(BaseModel):
+    summary_ids: List[str]           # 要对比的总结 ID 列表
+    aspects: Optional[List[str]] = None  # 可选：自定义对比维度
+
+class CompareDirectRequest(BaseModel):
+    summaries: List[Dict[str, Any]]  # 直接传入总结内容
+    aspects: Optional[List[str]] = None
+
+@app.post("/api/compare")
+async def compare_videos(request: Request, body: CompareRequest):
+    """
+    对比多个视频总结（使用历史记录 ID）
+    """
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    
+    if len(body.summary_ids) < 2:
+        raise HTTPException(status_code=400, detail="至少需要 2 个视频进行对比")
+    
+    if len(body.summary_ids) > 4:
+        raise HTTPException(status_code=400, detail="最多支持 4 个视频对比")
+    
+    # 获取总结内容
+    summaries = get_summaries_for_compare(body.summary_ids, user["user_id"])
+    
+    if len(summaries) < 2:
+        raise HTTPException(status_code=400, detail="找不到足够的总结内容")
+    
+    try:
+        result = await compare_summaries(summaries, body.aspects)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Compare failed: {e}")
+        raise HTTPException(status_code=500, detail="对比分析失败")
+
+@app.post("/api/compare/direct")
+async def compare_videos_direct(request: Request, body: CompareDirectRequest):
+    """
+    对比多个视频总结（直接传入内容）
+    """
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    # 可选登录，但通常建议登录以记录额度或审计
+    try:
+        user = await verify_session_token(token)
+    except:
+        user = None
+    
+    if len(body.summaries) < 2:
+        raise HTTPException(status_code=400, detail="至少需要 2 个视频进行对比")
+    
+    if len(body.summaries) > 4:
+        raise HTTPException(status_code=400, detail="最多支持 4 个视频对比")
+    
+    try:
+        result = await compare_summaries(body.summaries, body.aspects)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Compare failed: {e}")
+        raise HTTPException(status_code=500, detail="对比分析失败")
+
+# === 团队协作相关 (P6) ===
+
+class TeamCreateRequest(BaseModel):
+    name: str
+    description: Optional[str] = ""
+
+class TeamShareRequest(BaseModel):
+    title: str
+    video_url: str
+    summary_content: str
+    video_thumbnail: Optional[str] = ""
+    transcript: Optional[str] = ""
+    mindmap: Optional[str] = ""
+    tags: Optional[str] = ""
+
+class CommentCreateRequest(BaseModel):
+    team_summary_id: str
+    content: str
+    parent_id: Optional[str] = None
+
+@app.get("/api/teams")
+async def list_teams(request: Request):
+    """列出用户的团队"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    teams = get_user_teams(user["user_id"])
+    return {"teams": teams}
+
+@app.post("/api/teams")
+async def handle_create_team(request: Request, body: TeamCreateRequest):
+    """创建团队"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    team = create_team(body.name, user["user_id"], body.description)
+    return team
+
+@app.get("/api/teams/{team_id}")
+async def fetch_team_details(team_id: str, request: Request):
+    """获取团队详情"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    details = get_team_details(team_id, user["user_id"])
+    if not details:
+        raise HTTPException(status_code=403, detail="无权访问该团队")
+    return details
+
+@app.post("/api/teams/{team_id}/share")
+async def handle_share_to_team(team_id: str, body: TeamShareRequest, request: Request):
+    """分享总结到团队"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    success = share_summary_to_team(
+        team_id=team_id,
+        user_id=user["user_id"],
+        title=body.title,
+        video_url=body.video_url,
+        summary_content=body.summary_content,
+        video_thumbnail=body.video_thumbnail,
+        transcript=body.transcript,
+        mindmap=body.mindmap,
+        tags=body.tags
+    )
+    if not success:
+        raise HTTPException(status_code=400, detail="分享失败，请确认权限")
+    return {"status": "success"}
+
+@app.post("/api/teams/{team_id}/comments")
+async def handle_add_comment(team_id: str, body: CommentCreateRequest, request: Request):
+    """发表团队评论"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user = await verify_session_token(token)
+    comment = add_comment(body.team_summary_id, user["user_id"], body.content, body.parent_id)
+    return comment
+
+@app.get("/api/teams/{team_id}/summaries/{team_summary_id}/comments")
+async def list_comments(team_id: str, team_summary_id: str, request: Request):
+    """获取总结的所有评论"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    await verify_session_token(token)
+    comments = get_summary_comments(team_summary_id)
+    return {"comments": comments}
+

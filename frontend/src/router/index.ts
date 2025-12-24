@@ -10,6 +10,7 @@ import DeveloperPage from '../pages/DeveloperPage.vue'
 import ApiDocsPage from '../pages/ApiDocsPage.vue'
 import TermsPage from '../pages/TermsPage.vue'
 import PrivacyPage from '../pages/PrivacyPage.vue'
+import TemplatesPage from '../pages/TemplatesPage.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -23,6 +24,10 @@ const router = createRouter({
     { path: '/invite', name: 'invite', component: InvitePage },
     { path: '/developer', name: 'developer', component: DeveloperPage },
     { path: '/api-docs', name: 'api-docs', component: ApiDocsPage },
+    { path: '/templates', name: 'templates', component: TemplatesPage },
+    { path: '/subscriptions', name: 'subscriptions', component: () => import('../pages/SubscriptionsPage.vue') },
+    { path: '/compare', name: 'compare', component: () => import('../pages/ComparePage.vue') },
+    { path: '/teams', name: 'teams', component: () => import('../pages/TeamsPage.vue') },
     { path: '/terms', name: 'terms', component: TermsPage },
     { path: '/privacy', name: 'privacy', component: PrivacyPage }
   ],

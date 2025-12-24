@@ -33,6 +33,10 @@
               <button v-if="user" @click="scrollToSection('dashboard')" class="hover:text-gray-900 dark:hover:text-white transition-colors">仪表盘</button>
               <button v-if="user" @click="scrollToSection('billing')" class="hover:text-gray-900 dark:hover:text-white transition-colors">账单</button>
               <button v-if="user" @click="scrollToSection('invite')" class="hover:text-gray-900 dark:hover:text-white transition-colors">邀请好友</button>
+              <button v-if="user" @click="$router.push('/templates')" class="hover:text-gray-900 dark:hover:text-white transition-colors">总结模板</button>
+              <button v-if="user" @click="$router.push('/subscriptions')" class="hover:text-gray-900 dark:hover:text-white transition-colors">每日推送</button>
+              <button v-if="user" @click="$router.push('/compare')" class="hover:text-gray-900 dark:hover:text-white transition-colors">总结对比</button>
+              <button v-if="user" @click="$router.push('/teams')" class="hover:text-gray-900 dark:hover:text-white transition-colors">团队协作</button>
               <button v-if="user" @click="scrollToSection('developer')" class="hover:text-gray-900 dark:hover:text-white transition-colors">开发者 API</button>
             </nav>
 
@@ -96,6 +100,30 @@
                     class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     邀请好友
+                  </button>
+                  <button
+                    @click="$router.push('/templates'); showUserMenu = false"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    总结模板
+                  </button>
+                  <button
+                    @click="$router.push('/subscriptions'); showUserMenu = false"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    每日推送
+                  </button>
+                  <button
+                    @click="$router.push('/compare'); showUserMenu = false"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    总结对比
+                  </button>
+                  <button
+                    @click="$router.push('/teams'); showUserMenu = false"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    团队协作
                   </button>
                   <button 
                     @click="showApiKeyModal = true; showUserMenu = false"

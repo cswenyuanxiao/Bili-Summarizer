@@ -1,6 +1,6 @@
 # Bili-Summarizer 项目结构图
 
-> 生成日期: 2024-12-24
+> 生成日期: 2025-12-25
 
 ---
 
@@ -15,46 +15,48 @@ flowchart TB
     subgraph Frontend["📱 前端 (Vue 3 + Vite)"]
         VueApp["Vue SPA"]
         Router["Vue Router"]
-        Composables["Composables"]
-        Components["UI 组件"]
+        Composables["Composables<br/>(useSummarize, useAuth, etc.)"]
+        Components["UI 组件<br/>(UrlInput, ShareCard, etc.)"]
     end
     
     subgraph Backend["⚙️ 后端 (FastAPI)"]
-        MainAPI["main.py<br/>API 路由层"]
-        Auth["auth.py<br/>鉴权模块"]
-        Credits["credits.py<br/>积分系统"]
-        Cache["cache.py<br/>缓存模块"]
-        Downloader["downloader.py<br/>视频下载"]
-        Summarizer["summarizer_gemini.py<br/>AI 总结"]
-        Payments["payments.py<br/>支付处理"]
-        DB["db.py<br/>数据库抽象"]
+        MainAPI["main.py API 路由层"]
+        subgraph Core["核心逻辑"]
+            Auth["auth.py 鉴权"]
+            Credits["credits.py 积分"]
+            Downloader["downloader.py 下载"]
+            Summarizer["summarizer_gemini.py AI"]
+        end
+        subgraph V2Features["v2.0 增强模块"]
+            Teams["teams.py 团队"]
+            Templates["templates.py 模板"]
+            TTS["tts.py 语音"]
+            Push["notifications.py 推送"]
+            Compare["compare.py 对比"]
+            Scheduler["scheduler.py 定时任务"]
+            Favorites["favorites.py 收藏夹"]
+            ShareCard["share_card.py 分享卡"]
+        end
+        DB["db.py 数据库抽象"]
     end
     
     subgraph External["☁️ 外部服务"]
         Bilibili["Bilibili API"]
         Gemini["Google Gemini"]
-        Supabase["Supabase Auth"]
-        PostgreSQL["PostgreSQL"]
-        SQLite["SQLite (开发)"]
+        Supabase["Supabase Auth/DB"]
+        Email["SMTP Server"]
+        PushService["Web Push Service"]
     end
     
     Browser --> VueApp
     VueApp --> MainAPI
-    MainAPI --> Auth
-    MainAPI --> Credits
-    MainAPI --> Cache
-    MainAPI --> Downloader
-    MainAPI --> Summarizer
-    MainAPI --> Payments
+    MainAPI --> Core
+    MainAPI --> V2Features
     
-    Auth --> Supabase
-    Auth --> DB
-    Credits --> DB
-    Cache --> DB
-    Downloader --> Bilibili
-    Summarizer --> Gemini
-    DB --> PostgreSQL
-    DB --> SQLite
+    Core --> External
+    V2Features --> External
+    Core --> DB
+    V2Features --> DB
 ```
 
 ---
@@ -65,89 +67,44 @@ flowchart TB
 bili-summarizer/
 ├── 📁 frontend/                    # Vue 3 前端应用
 │   ├── 📁 src/
-│   │   ├── App.vue                 # 主应用 (48KB, 总结核心逻辑)
-│   │   ├── AppShell.vue            # 路由壳组件 (导航/弹窗)
-│   │   ├── main.ts                 # 入口文件
-│   │   ├── supabase.ts             # Supabase 客户端配置
-│   │   ├── style.css               # 全局样式 (流光渐变主题)
-│   │   │
-│   │   ├── 📁 router/              # Vue Router
-│   │   │   └── index.ts            # 8 条路由配置
-│   │   │
-│   │   ├── 📁 pages/               # 路由页面 (8个)
-│   │   │   ├── HomePage.vue        # 首页 (总结入口)
-│   │   │   ├── ProductPage.vue     # 产品介绍
-│   │   │   ├── PricingPage.vue     # 定价方案
-│   │   │   ├── DocsPage.vue        # 使用文档
-│   │   │   ├── DashboardPage.vue   # 用户仪表盘
-│   │   │   ├── BillingPage.vue     # 账单页面
-│   │   │   ├── InvitePage.vue      # 邀请系统
-│   │   │   └── DeveloperPage.vue   # 开发者 API
-│   │   │
-│   │   ├── 📁 components/          # UI 组件 (15个)
-│   │   │   ├── UrlInputCard.vue    # URL 输入卡片
-│   │   │   ├── SummaryCard.vue     # 总结卡片
-│   │   │   ├── MindmapViewer.vue   # 思维导图
-│   │   │   ├── TranscriptPanel.vue # 转录面板
-│   │   │   ├── ChatPanel.vue       # AI 追问
-│   │   │   ├── HistoryList.vue     # 历史列表
-│   │   │   ├── ExportBar.vue       # 导出工具栏
-│   │   │   ├── LoadingOverlay.vue  # 加载遮罩
-│   │   │   ├── LoginModal.vue      # 登录弹窗
-│   │   │   ├── PricingModal.vue    # 定价弹窗
-│   │   │   ├── DashboardModal.vue  # 仪表盘弹窗
-│   │   │   ├── BillingModal.vue    # 账单弹窗
-│   │   │   ├── InviteModal.vue     # 邀请弹窗
-│   │   │   ├── ApiKeyModal.vue     # API Key 弹窗
-│   │   │   └── UsageGuideModal.vue # 使用指南
-│   │   │
-│   │   ├── 📁 composables/         # 组合式函数 (5个)
-│   │   │   ├── useAuth.ts          # 认证逻辑
-│   │   │   ├── useSummarize.ts     # 总结 SSE 逻辑
-│   │   │   ├── useHistorySync.ts   # 云端历史同步
-│   │   │   ├── useTheme.ts         # 主题切换
-│   │   │   └── useReveal.ts        # 动画效果
-│   │   │
-│   │   └── 📁 types/               # TypeScript 类型
-│   │       └── api.ts              # API 接口类型
-│   │
-│   ├── Dockerfile                  # 前端 Docker 镜像
-│   ├── nginx.conf                  # Nginx 配置
-│   └── vite.config.ts              # Vite 配置
+│   │   ├── App.vue                 # 主入口 (包含总结核心逻辑)
+│   │   ├── 📁 pages/               # 路由页面 (12个)
+│   │   │   ├── HomePage.vue        # 首页
+│   │   │   ├── TeamsPage.vue       # [v2.0] 团队协作
+│   │   │   ├── ComparePage.vue     # [v2.0] 总结对比
+│   │   │   ├── TemplatesPage.vue   # [v2.0] 模板管理
+│   │   │   ├── SubscriptionsPage.vue # [v2.0] UP主订阅
+│   │   │   ├── DashboardPage.vue   # 仪表盘
+│   │   │   └── ...
+│   │   ├── 📁 components/          # UI 组件
+│   │   │   ├── ShareCardModal.vue  # [v2.0] 分享卡片弹窗
+│   │   │   ├── FavImportModal.vue  # [v2.0] 收藏夹导入弹窗
+│   │   │   ├── AudioPlayer.vue     # [v2.0] 语音播放器
+│   │   │   └── ...
+│   │   └── ...
+│   └── ...
 │
 ├── 📁 web_app/                     # FastAPI 后端
-│   ├── main.py                     # 核心 API (1857行, 64KB)
-│   ├── auth.py                     # 鉴权模块
-│   ├── credits.py                  # 积分系统
-│   ├── cache.py                    # 缓存模块
-│   ├── db.py                       # 数据库抽象层
-│   ├── downloader.py               # yt-dlp 视频下载
-│   ├── summarizer_gemini.py        # Gemini AI 调用
-│   ├── payments.py                 # 支付处理
-│   ├── ppt_generator.py            # PPT 生成
-│   ├── history_sync_endpoints.py   # 历史同步 API
-│   ├── telemetry.py                # 遥测日志
-│   └── display.py                  # 显示工具
+│   ├── main.py                     # 核心 API 与路由 (2800+ 行)
+│   ├── teams.py                    # [v2.0] 团队逻辑
+│   ├── compare.py                  # [v2.0] 对比逻辑
+│   ├── tts.py                      # [v2.0] 语音播报
+│   ├── templates.py                # [v2.0] 模板管理
+│   ├── subscriptions.py            # [v2.0] 订阅管理
+│   ├── notifications.py            # [v2.0] 通知推送
+│   ├── scheduler.py                # [v2.0] 任务调度
+│   ├── share_card.py               # [v2.0] 卡片渲染
+│   ├── favorites.py                # [v2.0] 收藏夹解析
+│   ├── auth.py                     # 鉴权
+│   ├── db.py                       # 数据库
+│   └── ...
 │
-├── 📁 docs/                        # 项目文档 (14个)
-│   ├── START_HERE.md               # 入口文档
-│   ├── ARCHITECTURE.md             # 系统架构
-│   ├── API_CONTRACT.md             # API 契约
-│   ├── DATA_MODEL.md               # 数据模型
-│   ├── PRODUCT_UI.md               # UI 规范
-│   ├── COMMERCIAL.md               # 商业化
-│   ├── CONFIGURATION.md            # 配置说明
-│   ├── SECURITY_AUTH.md            # 安全认证
-│   ├── RUNBOOK.md                  # 运维手册
-│   └── ROADMAP.md                  # 路线图
-│
-├── 📁 scripts/                     # 工具脚本
-├── docker-compose.yml              # 生产环境
-├── docker-compose.dev.yml          # 开发环境
-├── Dockerfile.backend              # 后端镜像
-├── requirements.txt                # Python 依赖
-└── AGENTS.md                       # 开发约束
+├── 📁 docs/                        # 项目文档
+├── 📁 videos/                      # 临时视频缓存
+├── 📁 feedback/                    # 用户反馈
+└── ...
 ```
+
 
 ---
 

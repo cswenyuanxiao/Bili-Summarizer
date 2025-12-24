@@ -76,6 +76,99 @@ Owner: Backend
 ### Share
 `POST /api/share` / `GET /share/{id}`
 
+---
+
+## v2.0 新增接口
+
+### Share Card (P0)
+`POST /api/share/card`
+- 请求：`{ video_title, video_url, summary_points, template, overlay_text? }`
+- 返回：`{ card_url }`
+
+`GET /api/share/card/{filename}`
+- 返回：图片文件
+
+### Favorites (P1)
+`GET /api/favorites/parse?url=...`
+- 返回：`{ fid, title, videos: [...] }`
+
+`POST /api/favorites/import`
+- 请求：`{ fid, video_ids: [...], template_id?, credits_estimated }`
+- 返回：`{ job_id, count, credits_charged }`
+
+### Templates (P2)
+`GET /api/templates`
+- 返回：模板列表（预设 + 用户自定义）
+
+`POST /api/templates`
+- 请求：`{ name, description, prompt_template, output_format, sections }`
+- 返回：创建的模板
+
+`PATCH /api/templates/{id}`
+- 更新模板
+
+`DELETE /api/templates/{id}`
+- 删除模板
+
+### TTS (P3)
+`GET /api/tts/voices`
+- 返回：可用语音列表
+
+`POST /api/tts/generate`
+- 请求：`{ text, voice? }`
+- 返回：`{ audio_url, voice, duration }`
+
+### Subscriptions (P4)
+`GET /api/subscription`
+- 返回：用户订阅的 UP 主列表
+
+`POST /api/subscription`
+- 请求：`{ up_mid, up_name, notify_methods }`
+
+`DELETE /api/subscription/{id}`
+
+### Push Notifications (P4)
+`POST /api/push/subscribe`
+- 请求：`{ endpoint, keys }`
+
+`POST /api/push/unsubscribe`
+
+`GET /api/notifications`
+- 返回：通知列表
+
+`PATCH /api/notifications/{id}/read`
+
+### Compare (P5)
+`POST /api/compare`
+- 请求：`{ summary_ids: string[] }`
+- 返回：AI 对比分析结果
+
+`POST /api/compare/direct`
+- 请求：`{ summaries: [{ title, summary, video_url }] }`
+- 返回：AI 对比分析结果
+
+### Teams (P6)
+`GET /api/teams`
+- 返回：用户的团队列表
+
+`POST /api/teams`
+- 请求：`{ name, description? }`
+- 返回：创建的团队
+
+`GET /api/teams/{id}`
+- 返回：团队详情（成员 + 共享总结）
+
+`POST /api/teams/{id}/share`
+- 请求：`{ title, video_url, summary_content, video_thumbnail?, transcript?, mindmap?, tags? }`
+
+`POST /api/teams/{id}/comments`
+- 请求：`{ team_summary_id, content, parent_id? }`
+
+`GET /api/teams/{id}/summaries/{team_summary_id}/comments`
+- 返回：评论列表
+
+---
+
 ## 错误响应格式
 ```json
 {
@@ -91,3 +184,4 @@ HTTP 状态码：
 - `404` - 资源不存在
 - `429` - 请求过于频繁（限流）
 - `500` - 服务器错误
+

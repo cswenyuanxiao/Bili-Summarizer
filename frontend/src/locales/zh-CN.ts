@@ -24,6 +24,7 @@ export default {
         success: '成功',
         error: '错误',
         warning: '警告',
+        language: '语言',
     },
 
     // 导航

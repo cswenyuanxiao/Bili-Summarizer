@@ -19,6 +19,34 @@
 
 **项目中使用**：`web_app/summarizer_gemini.py`
 
+### edge-tts
+**用途**：文本转语音（TTS）生成，支持多种流式加载
+| 资源 | 链接 |
+|------|------|
+| GitHub | https://github.com/rany2/edge-tts |
+| 文档 | https://github.com/rany2/edge-tts#usage |
+
+**项目中使用**：`web_app/tts.py`
+
+### APScheduler
+**用途**：定时任务调度（每日视频检查）
+| 资源 | 链接 |
+|------|------|
+| 官方文档 | https://apscheduler.readthedocs.io/ |
+| GitHub | https://github.com/agronholm/apscheduler |
+
+**项目中使用**：`web_app/scheduler.py`
+
+### PyWebPush
+**用途**：发送浏览器 Web Push 通知
+| 资源 | 链接 |
+|------|------|
+| GitHub | https://github.com/web-push-libs/pywebpush |
+| VAPID 指南 | https://blog.mozilla.org/services/2016/04/04/using-vapid-with-webpush/ |
+
+**项目中使用**：`web_app/notifications.py`
+
+
 ---
 
 ## 🔐 身份认证与数据库

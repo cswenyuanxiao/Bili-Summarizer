@@ -21,11 +21,19 @@
       <span class="text-lg group-hover:scale-110 transition-transform">📕</span>
       <span>PDF</span>
     </button>
+    <button
+      @click="$emit('share')"
+      class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl btn-primary shadow-sm hover:shadow-md transition-all text-sm group"
+    >
+      <span class="text-lg group-hover:scale-110 transition-transform">🎨</span>
+      <span>分享卡片</span>
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
 defineEmits<{
   export: [format: 'md' | 'txt' | 'pdf']
+  share: []
 }>()
 </script>

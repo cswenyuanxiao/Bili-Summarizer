@@ -13,6 +13,14 @@
           📋 复制
         </button>
         <button
+          @click="$emit('tts')"
+          :disabled="loading"
+          class="px-3 py-1.5 text-xs sm:text-sm btn-ghost hover:bg-white/80 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="语音播报"
+        >
+          🔊 语音播报
+        </button>
+        <button
           @click="$emit('refresh')"
           :disabled="loading"
           class="px-3 py-1.5 text-xs sm:text-sm btn-ghost hover:bg-white/80 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -45,6 +53,7 @@ const props = defineProps<{
 defineEmits<{
   copy: []
   refresh: []
+  tts: []
 }>()
 
 const renderedContent = computed(() => {

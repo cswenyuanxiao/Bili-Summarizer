@@ -4,6 +4,7 @@ export interface SummarizeRequest {
     mode: 'smart' | 'video';
     focus: 'default' | 'study' | 'gossip' | 'business';
     skip_cache?: boolean;
+    template_id?: string | null;
 }
 
 // SSE Event Types

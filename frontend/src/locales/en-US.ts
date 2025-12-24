@@ -24,6 +24,7 @@ export default {
         success: 'Success',
         error: 'Error',
         warning: 'Warning',
+        language: 'Language',
     },
 
     // Navigation

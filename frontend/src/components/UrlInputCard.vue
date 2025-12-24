@@ -20,6 +20,13 @@
             >
               <span>✨</span> 生成总结
             </button>
+            <button
+              type="button"
+              class="px-5 py-3.5 btn-ghost border border-gray-200 dark:border-gray-700/50 rounded-xl text-sm font-medium hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors"
+              @click="$emit('bulk')"
+            >
+              <span>📦</span> 批量导入
+            </button>
           </div>
 
           <!-- Options Row -->
@@ -39,18 +46,18 @@
             </div>
 
             <div class="option-group flex flex-col md:flex-row md:items-center gap-2 md:gap-3 w-full md:w-auto">
-              <label for="analysis-focus" class="text-sm font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                视角
+              <label for="summary-template" class="text-sm font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                模板
               </label>
               <select
-                v-model="formData.focus"
-                id="analysis-focus"
-                class="px-4 py-2 border border-gray-300/80 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 cursor-pointer w-full md:w-auto"
+                v-model="formData.template_id"
+                id="summary-template"
+                class="px-4 py-2 border border-gray-300/80 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 cursor-pointer w-full md:w-auto min-w-[120px]"
               >
-                <option value="default">综合总结</option>
-                <option value="study">深度学习</option>
-                <option value="gossip">趣味互动</option>
-                <option value="business">商业洞察</option>
+                <option :value="null">默认总结</option>
+                <option v-for="t in templates" :key="t.id" :value="t.id">
+                  {{ t.name }}
+                </option>
               </select>
             </div>
           </div>
@@ -61,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, onMounted, ref } from 'vue'
 import type { SummarizeRequest } from '../types/api'
 
 defineProps<{
@@ -70,15 +77,34 @@ defineProps<{
 
 const emit = defineEmits<{
   submit: [request: SummarizeRequest]
+  bulk: []
 }>()
 
-const formData = reactive<SummarizeRequest>({
+const templates = ref<any[]>([])
+
+const formData = reactive<SummarizeRequest & { template_id?: string | null }>({
   url: '',
   mode: 'smart',
   focus: 'default',
+  template_id: null
+})
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/templates', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('supabase_token') || ''}`
+      }
+    })
+    if (res.ok) {
+      templates.value = await res.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch templates:', err)
+  }
 })
 
 const handleSubmit = () => {
-  emit('submit', { ...formData })
+  emit('submit', { ...formData } as any)
 }
 </script>
