@@ -450,12 +450,14 @@ async def run_summarization(
                         return
                     await queue.put({'type': 'error', 'data': str(e), 'source': name})
 
-            def extract_transcript_with_retry():
-                transcript_text = extract_ai_transcript(video_path, progress_callback, remote_file)
-                if transcript_text:
-                    return transcript_text
-                progress_callback("Transcript empty, retrying...")
-                return extract_ai_transcript(video_path, progress_callback, remote_file)
+            def extract_transcript_wrapper():
+                \"\"\"包装转录函数，内置重试已在 extract_ai_transcript 中实现\"\"\"
+                logger.info(\"Starting AI transcript extraction...\")\n                result = extract_ai_transcript(video_path, progress_callback, remote_file)
+                if result:
+                    logger.info(f\"Transcript extracted successfully ({len(result)} chars)\")
+                else:
+                    logger.warning(\"Transcript extraction returned empty result after all retries\")
+                return result
 
             # 1. Download Content
             # ... (download logic) ...
@@ -499,7 +501,7 @@ async def run_summarization(
             need_transcript = (not transcript and media_type in ['audio', 'video'])
             transcript_task_started = False
             if need_transcript:
-                 transcript_coro = loop.run_in_executor(None, extract_transcript_with_retry)
+                 transcript_coro = loop.run_in_executor(None, extract_transcript_wrapper)
                  asyncio.create_task(task_wrapper('transcript', transcript_coro))
                  active_tasks += 1
                  transcript_task_started = True

@@ -74,14 +74,18 @@ import logging
 logger = logging.getLogger("summarizer_gemini")
 
 
-def extract_ai_transcript(file_path: Path, progress_callback=None, uploaded_file=None) -> str:
+def extract_ai_transcript(file_path: Path, progress_callback=None, uploaded_file=None, retry_count=0) -> str:
     """
     使用 Gemini AI 从视频/音频中提取语音转录。
     支持传入已上传的 file 对象 (uploaded_file) 以避免重复上传。
+    
+    内置重试机制，最多重试 2 次。
     """
+    MAX_RETRIES = 2
     load_dotenv()
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
+        logger.error("GOOGLE_API_KEY not found, cannot extract transcript")
         return ""
     
     try:
@@ -137,7 +141,17 @@ def extract_ai_transcript(file_path: Path, progress_callback=None, uploaded_file
         return ""
         
     except Exception as e:
-        logger.error(f"AI转录提取失败: {e}")
+        logger.error(f"AI转录提取失败 (尝试 {retry_count + 1}/{MAX_RETRIES + 1}): {e}")
+        
+        # 重试机制
+        if retry_count < MAX_RETRIES:
+            logger.info(f"正在重试转录... (第 {retry_count + 2} 次)")
+            if progress_callback:
+                progress_callback(f"Transcript failed, retrying... ({retry_count + 2}/{MAX_RETRIES + 1})")
+            time.sleep(2)  # 等待2秒再重试
+            return extract_ai_transcript(file_path, progress_callback, uploaded_file, retry_count + 1)
+        
+        logger.error(f"AI转录最终失败，已重试 {MAX_RETRIES} 次: {e}")
         return ""
 
 
