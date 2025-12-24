@@ -72,7 +72,9 @@ def create_alipay_payment(order_id: str, amount_cents: int, subject: str) -> Opt
     if not client:
         return None
     total_amount = f"{amount_cents / 100:.2f}"
-    order_string = client.api_alipay_trade_page_pay(
+    # 使用手机网站支付（wap_pay）替代电脑网站支付（page_pay）
+    # 沙箱环境下 wap_pay 无需企业资质，且 PC/移动端都能用
+    order_string = client.api_alipay_trade_wap_pay(
         out_trade_no=order_id,
         total_amount=total_amount,
         subject=subject,
