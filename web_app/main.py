@@ -2839,3 +2839,31 @@ async def list_comments(team_id: str, team_summary_id: str, request: Request):
     await verify_session_token(token)
     comments = get_summary_comments(team_summary_id)
     return {"comments": comments}
+
+
+# --- SPA Serving (Must be last) ---
+
+if FRONTEND_DIST.exists():
+    # Mount /assets explicitly since index.html references /assets/...
+    assets_dir = FRONTEND_DIST / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str):
+        # Exclude specific API/Docs paths to ensure 404s are returned for them
+        if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("openapi.json") or full_path.startswith("videos"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        
+        # Try to serve file directly (e.g. favicon.ico, robots.txt)
+        target_file = FRONTEND_DIST / full_path
+        if target_file.is_file():
+            return FileResponse(target_file)
+            
+        # Fallback to index.html for known frontend routes
+        return FileResponse(FRONTEND_DIST / "index.html")
+
+elif LEGACY_INDEX.exists():
+    @app.get("/", include_in_schema=False)
+    async def serve_legacy():
+        return FileResponse(LEGACY_INDEX)
