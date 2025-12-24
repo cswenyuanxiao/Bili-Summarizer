@@ -4,6 +4,8 @@ Routers registry - 集中管理所有 API 路由
 from fastapi import FastAPI
 
 from .health import router as health_router
+from .dashboard import router as dashboard_router
+from .share import router as share_router
 
 
 def register_routers(app: FastAPI):
@@ -11,7 +13,11 @@ def register_routers(app: FastAPI):
     # Health router 必须第一个注册，确保健康检查不依赖其他模块
     app.include_router(health_router)
     
+    # Dashboard router - 用户面板、订阅
+    app.include_router(dashboard_router)
+    
+    # Share router - 分享卡片
+    app.include_router(share_router)
+    
     # 后续可以添加更多路由:
-    # app.include_router(summarize_router, prefix="/api")
-    # app.include_router(dashboard_router, prefix="/api")
-    # app.include_router(history_router, prefix="/api")
+    # app.include_router(templates_router)
