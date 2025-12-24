@@ -230,19 +230,19 @@ bili-summarizer/
 
 ## 📎 维护上下文
 
-对话关键背景与近期修复总结见：`docs/conversation_context.md`。
+新开会话入口：`docs/START_HERE.md`。
 
 ---
 
 ## 🧭 系统分析与流程图
 
-详见 `docs/system-analysis.md`（包含 SSE 总结流程、认证流程与数据路径）。
+系统流程与数据路径见：`docs/ARCHITECTURE.md`。
 
 ---
 
 ## 🧩 项目上下文
 
-新开会话快速了解项目可看 `docs/project-context.md`。
+文档索引：`docs/README.md`。
 
 ---
 

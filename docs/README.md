@@ -1,97 +1,34 @@
-# 实现文档索引
+# 文档索引（精简版）
 
-本目录包含 Bili-Summarizer 各个功能模块的实现文档。
+Last updated: 2025-12-24
+Owner: Core Eng
 
-## 📚 文档列表
+## 适用对象
+- 产品/业务：`docs/OVERVIEW.md`
+- 工程实现：`docs/ARCHITECTURE.md`、`docs/API_CONTRACT.md`、`docs/DATA_MODEL.md`、`docs/SECURITY_AUTH.md`
+- 运维部署：`docs/RUNBOOK.md`、`docs/CONFIGURATION.md`、`docs/ENGINEERING_STANDARDS.md`
+- 设计与规范：`docs/PRODUCT_UI.md`
+- 商业化：`docs/COMMERCIAL.md`
+- 规划进度：`docs/ROADMAP.md`、`docs/CHANGELOG.md`
 
-### 总结报告
-- **[three_phases_summary.md](./implementation/three_phases_summary.md)** - 三个新功能的综合实现总结
-  - Phase 8.1: API Key 系统
-  - Phase 10.2: AI 追问功能
-  - Phase 9.2: 云端历史同步
-  - 包含技术架构、实现细节、数据库设计
+## 快速开始（最小闭环）
+1) 设置环境变量：`GOOGLE_API_KEY`（必需），生产建议加 `DATABASE_URL`。  
+2) 启动后端：`uvicorn web_app.main:app --reload --port 7860`  
+3) 启动前端：`cd frontend && npm install && npm run dev`  
+4) 访问：`http://localhost:5173`  
+5) 验证：输入 B 站 URL，确认 SSE 输出 `summary_complete` 与 UI 渲染。
 
-- **[code_review_guide.md](./implementation/code_review_guide.md)** - 代码审查快速指南
-  - 按优先级分类的审查清单
-  - 关键文件和行号范围
-  - 审查要点和检查清单
-
-- **[progress_summary.md](./progress_summary.md)** - 功能实现进度总结
-  - 已完成功能
-  - 待实现功能
-  - 优先级建议
-
-### 使用说明
-- **[usage-guide.md](./usage-guide.md)** - 本地/容器/云端启动与访问入口说明
-  - 前端/后端/Docker/Render 启动命令
-  - 推荐访问链接
-  - 历史记录显示规则
-
-### 详细实施文档
-- **[phase8_1_walkthrough.md](./implementation/phase8_1_walkthrough.md)** - API Key 系统实施记录
-- **[phase10_2_walkthrough.md](./implementation/phase10_2_walkthrough.md)** - AI 追问功能实施记录
-- **[phase9_2_walkthrough.md](./implementation/phase9_2_walkthrough.md)** - 云端历史同步实施记录
-
-### 测试报告
-- **[browser_test_report.md](./implementation/browser_test_report.md)** - 浏览器功能测试报告
-  - 功能测试结果
-  - 发现的问题
-  - 解决方案
-
-## 🔍 如何使用
-
-### 代码审查
-```bash
-# 查看代码审查指南
-cat docs/implementation/code_review_guide.md
-
-# 查看综合实现总结
-cat docs/implementation/three_phases_summary.md
-```
-
-### 查看特定功能实现
-```bash
-# API Key 系统
-cat docs/implementation/phase8_1_walkthrough.md
-
-# AI 追问功能
-cat docs/implementation/phase10_2_walkthrough.md
-
-# 云端历史同步
-cat docs/implementation/phase9_2_walkthrough.md
-```
-
-### 查看测试结果
-```bash
-# 浏览器测试报告
-cat docs/implementation/browser_test_report.md
-```
-
-## 📋 快速链接
-
-- [功能路线图](./feature-roadmap.md)
-- [系统架构分析](./system-analysis.md)
-- [使用说明](./usage-guide.md)
-- [README](../README.md)
-
-## 🗂️ 文档结构
-
-```
-docs/
-├── README.md                    # 本文件
-├── feature-roadmap.md           # 功能路线图
-├── system-analysis.md           # 系统架构分析
-├── usage-guide.md               # 使用说明
-├── progress_summary.md          # 进度总结
-└── implementation/              # 实施文档
-    ├── three_phases_summary.md      # 三个Phase综合总结 ⭐
-    ├── code_review_guide.md         # 代码审查指南 ⭐
-    ├── browser_test_report.md       # 浏览器测试报告
-    ├── phase8_1_walkthrough.md      # API Key 实施记录
-    ├── phase10_2_walkthrough.md     # AI 追问实施记录
-    └── phase9_2_walkthrough.md      # 云端同步实施记录
-```
-
----
-
-**最后更新**: 2025-12-24
+## 核心文档
+1) `docs/START_HERE.md`（入口与硬约束）  
+2) `docs/OVERVIEW.md`（项目概览、边界、用户背景）  
+3) `docs/ARCHITECTURE.md`（系统架构、数据流、鉴权）  
+4) `docs/API_CONTRACT.md`（API 契约与 SSE 事件）  
+5) `docs/CONFIGURATION.md`（单一配置来源）  
+6) `docs/DATA_MODEL.md`（数据模型与索引）  
+7) `docs/SECURITY_AUTH.md`（安全与鉴权）  
+8) `docs/ENGINEERING_STANDARDS.md`（工程验收条款）  
+9) `docs/RUNBOOK.md`（部署与运维手册）  
+10) `docs/PRODUCT_UI.md`（UI/交互规范）  
+11) `docs/COMMERCIAL.md`（定价与支付）  
+12) `docs/ROADMAP.md`（路线图与验收）  
+13) `docs/CHANGELOG.md`（变更记录）  

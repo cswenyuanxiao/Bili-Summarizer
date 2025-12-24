@@ -17,9 +17,10 @@ export function useAuth() {
             return
         }
 
+        const client = supabase
         const resetAuthState = async () => {
             try {
-                await supabase.auth.signOut({ scope: 'local' })
+                await client.auth.signOut({ scope: 'local' })
             } catch {
                 // ignore sign out failures
             }
@@ -29,7 +30,7 @@ export function useAuth() {
 
         // Get initial session
         try {
-            const { data, error } = await supabase.auth.getSession()
+            const { data, error } = await client.auth.getSession()
             if (error) {
                 await resetAuthState()
                 return
@@ -42,8 +43,9 @@ export function useAuth() {
         }
 
         // Listen for auth changes
-        supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'TOKEN_REFRESH_FAILED' || event === 'USER_DELETED') {
+        client.auth.onAuthStateChange((event, session) => {
+            const eventName = String(event)
+            if (eventName === 'TOKEN_REFRESH_FAILED' || eventName === 'USER_DELETED') {
                 void resetAuthState()
                 return
             }
