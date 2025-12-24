@@ -16,3 +16,5 @@ qrcode
 pillow
 psycopg2-binary
 edge-tts
+apscheduler
+pywebpush
