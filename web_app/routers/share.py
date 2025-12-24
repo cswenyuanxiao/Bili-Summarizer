@@ -9,6 +9,7 @@ import asyncio
 import logging
 
 from ..dependencies import get_optional_user
+from ..auth import verify_session_token
 from ..share_card import generate_share_card, get_card_image
 
 logger = logging.getLogger(__name__)

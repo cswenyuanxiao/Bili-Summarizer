@@ -8,6 +8,7 @@ import json
 import logging
 
 from ..dependencies import get_current_user, get_db
+from ..auth import verify_session_token
 from ..db import get_connection
 from ..payments import (
     create_payment_order,
