@@ -127,6 +127,17 @@ async def init_database():
         )
     """)
     
+    # API Key 使用统计（按天）
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS api_key_usage_daily (
+            key_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            date TEXT NOT NULL,
+            count INTEGER DEFAULT 0,
+            PRIMARY KEY (key_id, date)
+        )
+    """)
+
     # 创建使用配额表
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS usage_daily (
@@ -147,33 +158,7 @@ async def init_database():
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    if using_postgres():
-        cursor.execute("""
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_name = 'subscriptions'
-        """)
-        existing_columns = {row[0] for row in cursor.fetchall()}
-        required_columns = {
-            "user_id",
-            "plan",
-            "status",
-            "current_period_end",
-            "updated_at"
-        }
-        missing = required_columns - existing_columns
-        for column in missing:
-            if column == "user_id":
-                cursor.execute("ALTER TABLE subscriptions ADD COLUMN user_id TEXT")
-            elif column == "plan":
-                cursor.execute("ALTER TABLE subscriptions ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'")
-            elif column == "status":
-                cursor.execute("ALTER TABLE subscriptions ADD COLUMN status TEXT NOT NULL DEFAULT 'inactive'")
-            elif column == "current_period_end":
-                cursor.execute("ALTER TABLE subscriptions ADD COLUMN current_period_end TEXT")
-            elif column == "updated_at":
-                cursor.execute("ALTER TABLE subscriptions ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP")
-
+    
     # 账单记录表
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS billing_events (
@@ -189,16 +174,37 @@ async def init_database():
         )
     """)
 
-    # API Key 使用统计（按天）
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS api_key_usage_daily (
-            key_id TEXT NOT NULL,
-            user_id TEXT NOT NULL,
-            date TEXT NOT NULL,
-            count INTEGER DEFAULT 0,
-            PRIMARY KEY (key_id, date)
-        )
-    """)
+    # 执行迁移逻辑（包裹在 try-except 中以防止阻塞其他表创建）
+    try:
+        if using_postgres():
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'subscriptions'
+            """)
+            existing_columns = {row[0] for row in cursor.fetchall()}
+            required_columns = {
+                "user_id",
+                "plan",
+                "status",
+                "current_period_end",
+                "updated_at"
+            }
+            missing = required_columns - existing_columns
+            for column in missing:
+                if column == "user_id":
+                    cursor.execute("ALTER TABLE subscriptions ADD COLUMN user_id TEXT")
+                elif column == "plan":
+                    cursor.execute("ALTER TABLE subscriptions ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'")
+                elif column == "status":
+                    cursor.execute("ALTER TABLE subscriptions ADD COLUMN status TEXT NOT NULL DEFAULT 'inactive'")
+                elif column == "current_period_end":
+                    cursor.execute("ALTER TABLE subscriptions ADD COLUMN current_period_end TEXT")
+                elif column == "updated_at":
+                    cursor.execute("ALTER TABLE subscriptions ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP")
+    except Exception as e:
+        logger.error(f"Migration failed: {e}")
+
 
     # 支付订单
     cursor.execute("""
