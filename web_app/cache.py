@@ -15,23 +15,40 @@ def init_cache_db():
     """初始化缓存数据库"""
     conn = get_connection()
     cursor = conn.cursor()
-    id_type = "SERIAL PRIMARY KEY" if using_postgres() else "INTEGER PRIMARY KEY AUTOINCREMENT"
-    cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS video_cache (
-            id {id_type},
-            video_id TEXT NOT NULL,
-            url TEXT NOT NULL,
-            mode TEXT NOT NULL,
-            focus TEXT NOT NULL,
-            cache_key TEXT UNIQUE NOT NULL,
-            summary TEXT,
-            transcript TEXT,
-            mindmap TEXT,
-            usage_data TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+    if using_postgres():
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS video_cache (
+                id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                video_id TEXT NOT NULL,
+                url TEXT NOT NULL,
+                mode TEXT NOT NULL,
+                focus TEXT NOT NULL,
+                cache_key TEXT UNIQUE NOT NULL,
+                summary TEXT,
+                transcript TEXT,
+                mindmap TEXT,
+                usage_data TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+    else:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS video_cache (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                video_id TEXT NOT NULL,
+                url TEXT NOT NULL,
+                mode TEXT NOT NULL,
+                focus TEXT NOT NULL,
+                cache_key TEXT UNIQUE NOT NULL,
+                summary TEXT,
+                transcript TEXT,
+                mindmap TEXT,
+                usage_data TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
     
     # 创建索引
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_cache_key ON video_cache(cache_key)")
@@ -178,7 +195,7 @@ def clear_old_cache(days: int = 30):
 
 def get_cache_stats() -> Dict[str, Any]:
     """获取缓存统计信息"""
-    conn = _get_connection()
+    conn = get_connection()
     cursor = conn.cursor()
     
     cursor.execute("SELECT COUNT(*) as count FROM video_cache")

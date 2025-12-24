@@ -10,17 +10,27 @@ def _get_connection():
 def init_telemetry_db():
     conn = _get_connection()
     cursor = conn.cursor()
-    id_type = "SERIAL PRIMARY KEY" if using_postgres() else "INTEGER PRIMARY KEY AUTOINCREMENT"
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS failure_events (
-            id %s,
-            user_id TEXT,
-            code TEXT NOT NULL,
-            stage TEXT NOT NULL,
-            detail TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """ % id_type)
+    if using_postgres():
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS failure_events (
+                id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                user_id TEXT,
+                code TEXT NOT NULL,
+                stage TEXT NOT NULL,
+                detail TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)\n    else:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS failure_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT,
+                code TEXT NOT NULL,
+                stage TEXT NOT NULL,
+                detail TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
     conn.commit()
     conn.close()
 
