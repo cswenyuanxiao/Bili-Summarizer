@@ -41,6 +41,7 @@ class HistoryItem(BaseModel):
 from .downloader import download_content
 from .summarizer_gemini import summarize_content, extract_ai_transcript, upload_to_gemini, delete_gemini_file
 from .cache import get_cached_result, save_to_cache, get_cache_stats
+from .queue_manager import task_queue
 from .auth import get_current_user, verify_session_token
 from .credits import ensure_user_credits, get_user_credits, charge_user_credits, get_daily_usage, grant_credits
 from .payments import (
@@ -324,6 +325,38 @@ async def init_database():
     conn.close()
     logger.info("Database tables initialized successfully")
 
+@app.on_event("startup")
+async def start_queue():
+    """启动后台任务队列并注册处理器"""
+    async def summarize_handler(payload):
+        """总结任务处理器"""
+        # 注意：这里我们调用已有的同步函数，worker 会并发执行它们
+        return summarize_content(
+            payload['file_path'],
+            payload['media_type'],
+            payload.get('progress_callback'),
+            payload.get('focus', 'default'),
+            payload.get('uploaded_file')
+        )
+    
+    task_queue.register_handler('summarize', summarize_handler)
+    
+    async def transcript_handler(payload):
+        """转录任务处理器"""
+        return extract_ai_transcript(
+            payload['file_path'],
+            payload.get('progress_callback'),
+            payload.get('uploaded_file')
+        )
+    task_queue.register_handler('transcript', transcript_handler)
+
+    await task_queue.start()
+
+@app.on_event("shutdown")
+async def shutdown_queue():
+    """停止后台任务队列"""
+    await task_queue.stop()
+
 # --- CORS 配置（允许 Vue 前端访问）---
 app.add_middleware(
     CORSMiddleware,
@@ -450,14 +483,6 @@ async def run_summarization(
                         return
                     await queue.put({'type': 'error', 'data': str(e), 'source': name})
 
-            def extract_transcript_wrapper():
-                \"\"\"包装转录函数，内置重试已在 extract_ai_transcript 中实现\"\"\"
-                logger.info(\"Starting AI transcript extraction...\")\n                result = extract_ai_transcript(video_path, progress_callback, remote_file)
-                if result:
-                    logger.info(f\"Transcript extracted successfully ({len(result)} chars)\")
-                else:
-                    logger.warning(\"Transcript extraction returned empty result after all retries\")
-                return result
 
             # 1. Download Content
             # ... (download logic) ...
@@ -485,26 +510,51 @@ async def run_summarization(
             active_tasks = 0
 
             # Task A: Summary
-            summary_coro = loop.run_in_executor(
-                None,
-                summarize_content,
-                video_path,
-                media_type,
-                progress_callback,
-                focus,
-                remote_file
-            )
-            asyncio.create_task(task_wrapper('summary', summary_coro))
+            async def summary_via_queue():
+                task_id = await task_queue.submit('summarize', {
+                    'file_path': video_path,
+                    'media_type': media_type,
+                    'progress_callback': progress_callback,
+                    'focus': focus,
+                    'uploaded_file': remote_file
+                })
+                # 轮询任务状态 (或者可以使用更复杂的事件通知机制)
+                from .queue_manager import TaskStatus
+                while True:
+                    task = task_queue.get_task_status(task_id)
+                    if not task: raise Exception("Task disappeared")
+                    if task.status == TaskStatus.COMPLETED:
+                        return task.result
+                    if task.status == TaskStatus.FAILED:
+                        raise Exception(task.error)
+                    await asyncio.sleep(0.5)
+
+            asyncio.create_task(task_wrapper('summary', summary_via_queue()))
             active_tasks += 1
 
             # Task B: Transcript (if needed)
             need_transcript = (not transcript and media_type in ['audio', 'video'])
             transcript_task_started = False
             if need_transcript:
-                 transcript_coro = loop.run_in_executor(None, extract_transcript_wrapper)
-                 asyncio.create_task(task_wrapper('transcript', transcript_coro))
-                 active_tasks += 1
-                 transcript_task_started = True
+                async def transcript_via_queue():
+                    task_id = await task_queue.submit('transcript', {
+                        'file_path': video_path,
+                        'progress_callback': progress_callback,
+                        'uploaded_file': remote_file
+                    })
+                    from .queue_manager import TaskStatus
+                    while True:
+                        task = task_queue.get_task_status(task_id)
+                        if not task: raise Exception("Task disappeared")
+                        if task.status == TaskStatus.COMPLETED:
+                            return task.result
+                        if task.status == TaskStatus.FAILED:
+                            raise Exception(task.error)
+                        await asyncio.sleep(0.5)
+
+                asyncio.create_task(task_wrapper('transcript', transcript_via_queue()))
+                active_tasks += 1
+                transcript_task_started = True
 
             if active_tasks > 0:
                  logger.info(f"🚀 Started {active_tasks} parallel AI tasks...")
