@@ -558,30 +558,37 @@ async def get_dashboard(user: dict = Depends(get_current_user)):
 
 
 def fetch_subscription(user_id: str) -> dict:
-    conn = get_connection()
-    cursor = conn.cursor()
+    """获取用户订阅状态，如果表结构不匹配或查询失败则返回默认值"""
+    default_subscription = {
+        "plan": "free",
+        "status": "inactive",
+        "current_period_end": None,
+        "updated_at": None
+    }
     try:
-        cursor.execute("""
-            SELECT plan, status, current_period_end, updated_at
-            FROM subscriptions
-            WHERE user_id = ?
-        """, (user_id,))
-        row = cursor.fetchone()
-        if not row:
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT plan, status, current_period_end, updated_at
+                FROM subscriptions
+                WHERE user_id = ?
+            """, (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return default_subscription
             return {
-                "plan": "free",
-                "status": "inactive",
-                "current_period_end": None,
-                "updated_at": None
+                "plan": row[0],
+                "status": row[1],
+                "current_period_end": row[2],
+                "updated_at": row[3]
             }
-        return {
-            "plan": row[0],
-            "status": row[1],
-            "current_period_end": row[2],
-            "updated_at": row[3]
-        }
-    finally:
-        conn.close()
+        finally:
+            conn.close()
+    except Exception as e:
+        # 表结构不匹配或其他数据库错误时，返回默认值而不是崩溃
+        logger.warning(f"fetch_subscription failed for {user_id}: {e}")
+        return default_subscription
 
 
 def is_subscription_active(user_id: str) -> bool:
