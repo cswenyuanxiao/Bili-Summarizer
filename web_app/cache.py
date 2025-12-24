@@ -3,32 +3,22 @@
 避免重复分析相同视频，节省 API 费用
 """
 
-import sqlite3
 import hashlib
 import json
-from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-# 数据库路径
-DB_PATH = Path(__file__).resolve().parent.parent / "cache.db"
-
-
-def _get_connection():
-    """获取数据库连接"""
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
+from .db import get_connection, using_postgres
 
 
 def init_cache_db():
     """初始化缓存数据库"""
-    conn = _get_connection()
+    conn = get_connection()
     cursor = conn.cursor()
-    
-    cursor.execute("""
+    id_type = "SERIAL PRIMARY KEY" if using_postgres() else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS video_cache (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {id_type},
             video_id TEXT NOT NULL,
             url TEXT NOT NULL,
             mode TEXT NOT NULL,
@@ -72,7 +62,7 @@ def get_cached_result(url: str, mode: str, focus: str) -> Optional[Dict[str, Any
     """
     cache_key = generate_cache_key(url, mode, focus)
     
-    conn = _get_connection()
+    conn = get_connection()
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -114,24 +104,46 @@ def save_to_cache(url: str, mode: str, focus: str, summary: str, transcript: str
     video_id = bv_match.group(0) if bv_match else "unknown"
     cache_key = generate_cache_key(url, mode, focus)
     
-    conn = _get_connection()
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
-        cursor.execute("""
-            INSERT OR REPLACE INTO video_cache 
-            (video_id, url, mode, focus, cache_key, summary, transcript, usage_data)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            video_id,
-            url,
-            mode,
-            focus,
-            cache_key,
-            summary,
-            transcript,
-            json.dumps(usage)
-        ))
+        if using_postgres():
+            cursor.execute("""
+                INSERT INTO video_cache 
+                (video_id, url, mode, focus, cache_key, summary, transcript, usage_data)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (cache_key)
+                DO UPDATE SET
+                    summary = EXCLUDED.summary,
+                    transcript = EXCLUDED.transcript,
+                    usage_data = EXCLUDED.usage_data,
+                    last_accessed = CURRENT_TIMESTAMP
+            """, (
+                video_id,
+                url,
+                mode,
+                focus,
+                cache_key,
+                summary,
+                transcript,
+                json.dumps(usage)
+            ))
+        else:
+            cursor.execute("""
+                INSERT OR REPLACE INTO video_cache 
+                (video_id, url, mode, focus, cache_key, summary, transcript, usage_data)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                video_id,
+                url,
+                mode,
+                focus,
+                cache_key,
+                summary,
+                transcript,
+                json.dumps(usage)
+            ))
         conn.commit()
         conn.close()
         return True
@@ -143,13 +155,19 @@ def save_to_cache(url: str, mode: str, focus: str, summary: str, transcript: str
 
 def clear_old_cache(days: int = 30):
     """清理超过指定天数的缓存"""
-    conn = _get_connection()
+    conn = get_connection()
     cursor = conn.cursor()
     
-    cursor.execute("""
-        DELETE FROM video_cache 
-        WHERE last_accessed < datetime('now', ?)
-    """, (f'-{days} days',))
+    if using_postgres():
+        cursor.execute("""
+            DELETE FROM video_cache 
+            WHERE last_accessed < NOW() - (%s)::interval
+        """, (f"{days} days",))
+    else:
+        cursor.execute("""
+            DELETE FROM video_cache 
+            WHERE last_accessed < datetime('now', ?)
+        """, (f'-{days} days',))
     
     deleted = cursor.rowcount
     conn.commit()

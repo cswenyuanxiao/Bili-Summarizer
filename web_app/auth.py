@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import Request, Header, HTTPException
 from supabase import create_client
 import os
-import sqlite3
+from .db import get_connection, using_postgres
 
 # Supabase 客户端（如果配置）
 supabase_url = os.getenv("SUPABASE_URL")
@@ -29,15 +29,23 @@ async def verify_session_token(token: str) -> dict:
 
 def record_api_key_usage(key_id: str, user_id: str) -> None:
     """记录 API Key 使用次数（按天汇总）"""
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
-            INSERT INTO api_key_usage_daily (key_id, user_id, date, count)
-            VALUES (?, ?, DATE('now'), 1)
-            ON CONFLICT(key_id, date)
-            DO UPDATE SET count = count + 1
-        """, (key_id, user_id))
+        if using_postgres():
+            cursor.execute("""
+                INSERT INTO api_key_usage_daily (key_id, user_id, date, count)
+                VALUES (?, ?, CURRENT_DATE, 1)
+                ON CONFLICT(key_id, date)
+                DO UPDATE SET count = count + 1
+            """, (key_id, user_id))
+        else:
+            cursor.execute("""
+                INSERT INTO api_key_usage_daily (key_id, user_id, date, count)
+                VALUES (?, ?, DATE('now'), 1)
+                ON CONFLICT(key_id, date)
+                DO UPDATE SET count = count + 1
+            """, (key_id, user_id))
         conn.commit()
     except Exception:
         # Usage tracking should never block auth
@@ -53,7 +61,7 @@ async def verify_api_key(api_key: str) -> dict:
     key_hash = hashlib.sha256(api_key.encode()).hexdigest()
     
     # 从数据库查询
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:

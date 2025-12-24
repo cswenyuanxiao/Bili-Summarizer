@@ -1,29 +1,26 @@
-from pathlib import Path
-import sqlite3
 from typing import Optional
 
-DB_PATH = Path(__file__).resolve().parent.parent / "cache.db"
+from .db import get_connection, using_postgres
 
 
 def _get_connection():
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
+    return get_connection()
 
 
 def init_telemetry_db():
     conn = _get_connection()
     cursor = conn.cursor()
+    id_type = "SERIAL PRIMARY KEY" if using_postgres() else "INTEGER PRIMARY KEY AUTOINCREMENT"
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS failure_events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id %s,
             user_id TEXT,
             code TEXT NOT NULL,
             stage TEXT NOT NULL,
             detail TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
-    """)
+    """ % id_type)
     conn.commit()
     conn.close()
 

@@ -14,3 +14,4 @@ python-alipay-sdk
 cryptography
 qrcode
 pillow
+psycopg2-binary

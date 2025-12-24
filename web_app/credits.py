@@ -1,16 +1,12 @@
-from pathlib import Path
-import sqlite3
 from typing import Optional, Dict
 
-DB_PATH = Path(__file__).resolve().parent.parent / "cache.db"
+from .db import get_connection, using_postgres
 INITIAL_CREDITS = 30
 FIRST_SUMMARY_BONUS = 10
 
 
 def _get_connection():
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
+    return get_connection()
 
 
 def init_credits_db():
@@ -25,15 +21,16 @@ def init_credits_db():
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    id_type = "SERIAL PRIMARY KEY" if using_postgres() else "INTEGER PRIMARY KEY AUTOINCREMENT"
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS credit_events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id %s,
             user_id TEXT NOT NULL,
             event_type TEXT NOT NULL,
             cost INTEGER NOT NULL,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
-    """)
+    """ % id_type)
     conn.commit()
     conn.close()
 

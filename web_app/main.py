@@ -52,7 +52,7 @@ from .payments import (
 )
 from .telemetry import record_failure
 from typing import List
-import sqlite3
+from .db import get_connection
 from io import BytesIO
 import secrets
 import hashlib
@@ -116,7 +116,7 @@ app = FastAPI(title="Bili-Summarizer")
 @app.on_event("startup")
 async def init_database():
     """初始化 API Key 和配额管理表"""
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     
     # 创建 API Keys 表
@@ -558,7 +558,7 @@ async def get_dashboard(user: dict = Depends(get_current_user)):
 
 
 def fetch_subscription(user_id: str) -> dict:
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -652,7 +652,7 @@ async def create_subscription(request: SubscribeRequest, user: dict = Depends(ge
     invoice_id = secrets.token_urlsafe(12)
     invoice_url = f"/api/billing/{invoice_id}/invoice"
 
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -717,7 +717,7 @@ def create_payment_order(user_id: str, plan_id: str, plan: dict, provider: str) 
     order_id = secrets.token_urlsafe(16)
     billing_id = secrets.token_urlsafe(12)
     invoice_url = f"/api/billing/{billing_id}/invoice"
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         period_end = None
@@ -760,7 +760,7 @@ def create_payment_order(user_id: str, plan_id: str, plan: dict, provider: str) 
 
 
 def mark_payment_paid(order_id: str) -> dict:
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -872,7 +872,7 @@ async def payment_config():
 
 @app.get("/api/payments/status")
 async def payment_status(order_id: str, user: dict = Depends(get_current_user)):
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -968,7 +968,7 @@ async def wechat_notify(request: Request):
 
 @app.get("/api/billing/{billing_id}/invoice")
 async def download_invoice(billing_id: str, user: dict = Depends(get_current_user)):
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -1006,7 +1006,7 @@ async def download_invoice(billing_id: str, user: dict = Depends(get_current_use
 
 @app.get("/api/billing")
 async def get_billing_history(user: dict = Depends(get_current_user)):
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -1096,7 +1096,7 @@ async def create_api_key(request: CreateKeyRequest, user: dict = Depends(get_cur
     key_id = secrets.token_urlsafe(16)
     
     # 存储到数据库
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
@@ -1120,7 +1120,7 @@ async def create_api_key(request: CreateKeyRequest, user: dict = Depends(get_cur
 @app.get("/api/keys")
 async def list_api_keys(user: dict = Depends(get_current_user)):
     """列出用户的所有 API Key"""
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
@@ -1149,7 +1149,7 @@ async def list_api_keys(user: dict = Depends(get_current_user)):
 @app.delete("/api/keys/{key_id}")
 async def delete_api_key(key_id: str, user: dict = Depends(get_current_user)):
     """删除指定的 API Key"""
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     
     try:
@@ -1170,7 +1170,7 @@ async def delete_api_key(key_id: str, user: dict = Depends(get_current_user)):
 
 @app.get("/api/keys/usage")
 async def get_api_key_usage(user: dict = Depends(get_current_user)):
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -1215,7 +1215,7 @@ async def get_api_key_usage(user: dict = Depends(get_current_user)):
 
 @app.get("/api/invites")
 async def get_invite_info(user: dict = Depends(get_current_user)):
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -1241,7 +1241,7 @@ async def get_invite_info(user: dict = Depends(get_current_user)):
 
 @app.post("/api/invites")
 async def create_invite_code(user: dict = Depends(get_current_user)):
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -1267,7 +1267,7 @@ async def redeem_invite(request: RedeemInviteRequest, user: dict = Depends(get_c
     invite_code = request.code.strip()
     if not invite_code:
         raise HTTPException(400, "Invalid code")
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -1321,7 +1321,7 @@ async def redeem_invite(request: RedeemInviteRequest, user: dict = Depends(get_c
 @app.post("/api/share")
 async def create_share_link(request: ShareRequest, user: dict = Depends(get_current_user)):
     share_id = secrets.token_urlsafe(10)
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -1339,7 +1339,7 @@ async def create_share_link(request: ShareRequest, user: dict = Depends(get_curr
 
 @app.get("/api/share/{share_id}")
 async def get_share_link(share_id: str):
-    conn = sqlite3.connect("cache.db")
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
