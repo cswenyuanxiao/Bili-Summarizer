@@ -28,6 +28,9 @@
             </nav>
 
             <div class="flex items-center gap-3">
+              <!-- 语言切换 -->
+              <LocaleSwitcher />
+              
               <button
                 @click="toggleTheme"
                 class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-lg hover:scale-105 transition-transform"
@@ -186,6 +189,7 @@ import UsageGuideModal from './components/UsageGuideModal.vue'
 import FeedbackModal from './components/FeedbackModal.vue'
 import FeedbackButton from './components/FeedbackButton.vue'
 import PageFooter from './components/PageFooter.vue'
+import LocaleSwitcher from './components/LocaleSwitcher.vue'
 import { useTheme } from './composables/useTheme'
 import { useAuth } from './composables/useAuth'
 import { isSupabaseConfigured, supabase } from './supabase'
