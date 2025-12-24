@@ -329,27 +329,36 @@ async def init_database():
 @app.on_event("startup")
 async def start_queue():
     """启动后台任务队列并注册处理器"""
+    import functools
+    
     async def summarize_handler(payload):
-        """总结任务处理器"""
-        # 注意：这里我们调用已有的同步函数，worker 会并发执行它们
-        return summarize_content(
+        """总结任务处理器 - 在线程池中执行同步函数"""
+        loop = asyncio.get_event_loop()
+        func = functools.partial(
+            summarize_content,
             payload['file_path'],
             payload['media_type'],
             payload.get('progress_callback'),
             payload.get('focus', 'default'),
             payload.get('uploaded_file')
         )
+        return await loop.run_in_executor(None, func)
     
     task_queue.register_handler('summarize', summarize_handler)
     
     async def transcript_handler(payload):
-        """转录任务处理器"""
-        return extract_ai_transcript(
+        """转录任务处理器 - 在线程池中执行同步函数"""
+        loop = asyncio.get_event_loop()
+        func = functools.partial(
+            extract_ai_transcript,
             payload['file_path'],
             payload.get('progress_callback'),
             payload.get('uploaded_file')
         )
+        return await loop.run_in_executor(None, func)
+    
     task_queue.register_handler('transcript', transcript_handler)
+
 
     await task_queue.start()
 
