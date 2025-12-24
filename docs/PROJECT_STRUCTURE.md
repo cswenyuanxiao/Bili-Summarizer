@@ -33,6 +33,15 @@ mindmap
     Backend_FastAPI
       web_app
         main__py(Entry Point)
+        Routers
+          health__py
+          dashboard__py
+          templates__py
+          share__py
+          payments__py
+        Startup
+          db_init__py
+        dependencies__py
         Core
           auth__py
           db__py

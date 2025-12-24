@@ -3,6 +3,42 @@
 Last updated: 2025-12-25  
 Owner: Core Eng
 
+## [2.1.0] - 2025-12-25
+
+### Added
+- **Pro 无限使用功能**：Pro 订阅用户在订阅期内享受无限次总结，积分冻结
+  - 后端：`credits.py` 新增 `should_charge_credits()` 检查订阅状态
+  - API：Dashboard 返回 `is_pro_active` 标志
+  - 前端：显示 `∞` 符号和"Pro 无限使用"提示
+
+### Changed
+- **架构重构**：main.py 模块化 (2895 行 → 模块化)
+  - 新增 `web_app/routers/` 目录：health, dashboard, templates, share, payments
+  - 新增 `web_app/startup/` 目录：db_init.py 异步数据库初始化
+  - 新增 `web_app/dependencies.py`：集中管理 FastAPI 依赖注入
+  
+### Fixed
+- **CI/CD 修复**：
+  - 修复 CI preflight 健康检查失败（添加启动等待时间）
+  - 修复 `requirements.txt` guard 触发问题
+  - 修复 videos 目录不存在导致启动失败
+- **Render 部署修复**：
+  - 修复 502 Bad Gateway（healthCheckPath 路径错误）
+  - 修复前端 SPA serving 缺失 index.html 处理
+- **API 500 错误修复**：
+  - templates.py, payments.py, share.py: 添加缺失的 `verify_session_token` 导入
+  - startup/db_init.py: 添加缺失的数据库表（up_subscriptions, summary_templates 等）
+  - 修复 `/api/templates`, `/api/payments`, `/api/share`, `/api/subscriptions` 500 错误
+- **Supabase RLS 策略**：
+  - 更新 summaries 表 INSERT 策略，允许 service_role 和后端 API 插入
+- **前端订阅显示**：
+  - 修复 DashboardPage.vue 硬编码"免费版"问题，改为动态获取真实订阅状态
+
+### Database
+- 新增 5 张表到启动初始化：`up_subscriptions`, `summary_templates`, `idempotency_keys`, `notification_queue`, `push_subscriptions`
+
+---
+
 ## [2.0.0] - 2025-12-25
 
 ### Added - 阶段 1: 获客增长 (P0-P1)
