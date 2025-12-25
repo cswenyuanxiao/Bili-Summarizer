@@ -57,42 +57,81 @@ async def search_up(keyword: str, limit: int = 10) -> List[Dict[str, Any]]:
             return []
 
 
-async def get_up_latest_video(mid: str) -> Optional[Dict[str, Any]]:
-    """获取 UP 主最新视频"""
-    # 优先使用 wbi 签名接口，如果没有则回退
-    url = f"https://api.bilibili.com/x/space/wbi/arc/search"
-    params = {
-        "mid": mid,
-        "pn": 1,
-        "ps": 1,
-        "order": "pubdate"
-    }
+from .wbi import sign_wbi, parse_wbi_keys
+
+async def get_up_latest_video(
+    mid: str, 
+    client: Optional[httpx.AsyncClient] = None, 
+    wbi_keys: Optional[tuple[str, str]] = None
+) -> Optional[Dict[str, Any]]:
+    """获取 UP 主最新视频 (支持 WBI 签名)"""
     
-    async with httpx.AsyncClient(timeout=10) as client:
-        try:
-            response = await client.get(url, params=params)
-            data = response.json()
-            
-            if data.get("code") != 0:
-                logger.error(f"Get UP latest video failed: {data.get('message')}")
+    should_close = False
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://space.bilibili.com/"
+    }
+
+    if not client:
+        client = httpx.AsyncClient(headers=headers, timeout=10)
+        should_close = True
+    
+    try:
+        # 如果没有 key 或 是新创建的 client (没有 cookie)，都需要请求 nav
+        # 注意：WBI 接口强依赖 /nav 接口种下的 buvid3/buvid4 cookie
+        if not wbi_keys or should_close:
+            try:
+                nav_resp = await client.get("https://api.bilibili.com/x/web-interface/nav")
+                nav_data = nav_resp.json()
+                if not wbi_keys:
+                    wbi_keys = parse_wbi_keys(nav_data)
+            except Exception as e:
+                logger.error(f"Failed to fetch nav info: {e}")
                 return None
-            
-            videos = data.get("data", {}).get("list", {}).get("vlist", [])
-            if not videos:
-                return None
-            
-            v = videos[0]
-            return {
-                "bvid": v.get("bvid", ""),
-                "title": v.get("title", ""),
-                "cover": v.get("pic", ""),
-                "duration": v.get("length", ""),
-                "created": v.get("created", 0),
-                "url": f"https://www.bilibili.com/video/{v.get('bvid', '')}"
-            }
-        except Exception as e:
-            logger.error(f"Get UP latest video exception: {e}")
+
+        if not wbi_keys or not wbi_keys[0]:
+            logger.error("Failed to parse WBI keys")
             return None
+
+        img_key, sub_key = wbi_keys
+        
+        # 构造 WBI 请求
+        url = f"https://api.bilibili.com/x/space/wbi/arc/search"
+        params = {
+            "mid": mid,
+            "pn": 1,
+            "ps": 1,
+            "order": "pubdate"
+        }
+        
+        signed_params = sign_wbi(params, img_key, sub_key)
+        
+        response = await client.get(url, params=signed_params)
+        data = response.json()
+        
+        if data.get("code") != 0:
+            logger.error(f"Get UP latest video failed (mid={mid}): {data.get('message', '')} code={data.get('code')}")
+            return None
+        
+        videos = data.get("data", {}).get("list", {}).get("vlist", [])
+        if not videos:
+            return None
+        
+        v = videos[0]
+        return {
+            "bvid": v.get("bvid", ""),
+            "title": v.get("title", ""),
+            "cover": v.get("pic", ""),
+            "duration": v.get("length", ""),
+            "created": v.get("created", 0),
+            "url": f"https://www.bilibili.com/video/{v.get('bvid', '')}"
+        }
+    except Exception as e:
+        logger.error(f"Get UP latest video exception: {e}")
+        return None
+    finally:
+        if should_close:
+            await client.aclose()
 
 
 def subscribe_up(

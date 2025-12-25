@@ -134,7 +134,10 @@ async def on_startup():
     async def init_db_with_retry(name: str, init_fn):
         for attempt in range(1, 6):
             try:
-                init_fn()
+                if asyncio.iscoroutinefunction(init_fn):
+                    await init_fn()
+                else:
+                    init_fn()
                 logger.info(f"{name} initialized")
                 return
             except Exception as exc:
@@ -143,13 +146,12 @@ async def on_startup():
         logger.error(f"{name} init failed after retries; service may be degraded")
 
     # 表初始化（允许失败并重试，避免启动崩溃）
-    # 使用 startup 模块的 init_core_tables，包含所有最新的表
-    def sync_init_core_tables():
-        """Sync wrapper for async startup_init_core_tables"""
-        import asyncio
-        asyncio.run(startup_init_core_tables())
-    
-    asyncio.create_task(init_db_with_retry("Core DB", sync_init_core_tables))
+    from .startup.db_init import init_core_tables, init_all_databases
+    from .cache import init_cache_db
+    from .credits import init_credits_db
+    from .telemetry import init_telemetry_db
+
+    asyncio.create_task(init_db_with_retry("Core DB", init_core_tables))
     asyncio.create_task(init_db_with_retry("Cache DB", init_cache_db))
     asyncio.create_task(init_db_with_retry("Credits DB", init_credits_db))
     asyncio.create_task(init_db_with_retry("Telemetry DB", init_telemetry_db))
