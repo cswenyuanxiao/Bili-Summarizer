@@ -108,12 +108,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# --- 管理员配置 ---
-ADMIN_EMAILS = {
-    email.strip().lower()
-    for email in os.getenv("ADMIN_EMAILS", "admin@bili-summarizer.com").split(",")
-    if email.strip()
-}
+# 导入配置常量
+from .config import ADMIN_EMAILS, PRICING_PLANS, VOICES
 
 def is_unlimited_user(user: Optional[dict]) -> bool:
     if not user:
@@ -122,26 +118,7 @@ def is_unlimited_user(user: Optional[dict]) -> bool:
     return email in ADMIN_EMAILS
 
 
-PRICING_PLANS = {
-    "starter_pack": {
-        "plan": "credits_pack",
-        "type": "one_time",
-        "amount_cents": 100,
-        "credits": 30
-    },
-    "creator_pack": {
-        "plan": "credits_pack",
-        "type": "one_time",
-        "amount_cents": 300,
-        "credits": 120
-    },
-    "pro_monthly": {
-        "plan": "pro",
-        "type": "subscription",
-        "amount_cents": 2990,
-        "period_days": 30
-    }
-}
+
 
 # --- 初始化 ---
 app = FastAPI(title="Bili-Summarizer")
