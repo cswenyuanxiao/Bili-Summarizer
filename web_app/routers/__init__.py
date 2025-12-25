@@ -8,6 +8,10 @@ from .dashboard import router as dashboard_router
 from .share import router as share_router
 from .templates import router as templates_router
 from .payments import router as payments_router
+from .api_keys import router as api_keys_router
+from .invite import router as invite_router
+from .history import router as history_router
+from .feedback import router as feedback_router
 
 
 def register_routers(app: FastAPI):
@@ -26,3 +30,16 @@ def register_routers(app: FastAPI):
     
     # Payments router - 支付相关
     app.include_router(payments_router)
+    
+    # API Keys router - API 密钥管理
+    app.include_router(api_keys_router)
+    
+    # Invite router - 邀请码
+    app.include_router(invite_router)
+    
+    # History router - 历史同步
+    app.include_router(history_router)
+    
+    # Feedback router - 用户反馈
+    app.include_router(feedback_router)
+
