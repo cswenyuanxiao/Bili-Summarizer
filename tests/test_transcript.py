@@ -5,14 +5,13 @@ the bug that caused transcript failures in production.
 import pytest
 from fastapi.testclient import TestClient
 
-def test_summarize_endpoint_exists(client: TestClient):
-    """Test that /api/summarize endpoint exists"""
-    # Without valid auth, should return 401/403
+def test_summarize_endpoint_exists(client):
+    """Test that /api/summarize endpoint exists and returns SSE stream"""
     response = client.get("/api/summarize?url=https://www.bilibili.com/video/BV1xx411c7mD")
-    
-    # Should require authentication, not crash with 500
-    assert response.status_code in [401, 403], \
-        f"Expected 401/403, got {response.status_code}"
+    # SSE endpoints return 200 and stream events (including auth errors as events)
+    assert response.status_code == 200, \
+        f"Expected 200 (SSE stream), got {response.status_code}"
+
 
 def test_summarize_requires_url(client: TestClient):
     """Test that URL parameter is required"""

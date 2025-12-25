@@ -20,75 +20,41 @@ load_dotenv()
 # Import startup initialization
 from .startup import init_core_tables as startup_init_core_tables
 
-# --- 数据模型 ---
-class ChatMessage(BaseModel):
-    role: str  # "user" | "assistant"
-    content: str
-
-class ChatRequest(BaseModel):
-    summary: str
-    transcript: Optional[str] = ""
-    question: str
-    history: List[ChatMessage] = []
-
-class HistoryItem(BaseModel):
-    id: Optional[str] = None
-    video_url: str
-    video_title: Optional[str] = None
-    video_thumbnail: Optional[str] = None
-    mode: str
-    focus: str
-    summary: str
-    transcript: Optional[str] = None
-    mindmap: Optional[str] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-
-class BatchSummarizeRequest(BaseModel):
-    urls: List[str]
-    mode: str = "smart"
-    focus: str = "default"
-
-class ShareCardRequest(BaseModel):
-    title: str
-    summary: str
-    thumbnail_url: Optional[str] = None
-    template: str = "default"
-
-class FavoritesImportRequest(BaseModel):
-    favorites_url: str
-    mode: str = "smart"
-    focus: str = "default"
-    limit: int = 50
-    selected_bvids: Optional[List[str]] = None
-
-class TemplateCreateRequest(BaseModel):
-    name: str
-    description: Optional[str] = ""
-    prompt_template: str
-    output_format: Optional[str] = "markdown"
-    sections: Optional[List[str]] = []
-
-class TemplateUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    prompt_template: Optional[str] = None
-    output_format: Optional[str] = None
-    sections: Optional[List[str]] = None
-
-class TTSRequest(BaseModel):
-    text: str
-    voice: Optional[str] = "zh-CN-XiaoxiaoNeural"
-
-class UPSubscribeRequest(BaseModel):
-    up_mid: str
-    up_name: str
-    up_avatar: Optional[str] = ""
-    notify_methods: Optional[List[str]] = ["browser"]
-
-class PushSubscriptionRequest(BaseModel):
-    endpoint: str
-    keys: Dict[str, str]
+# --- 数据模型（已迁移到 schemas/）---
+from .schemas import (
+    # Summarize
+    SummarizeRequest,
+    BatchSummarizeRequest,
+    HistoryItem,
+    # Chat
+    ChatMessage,
+    ChatRequest,
+    ChatSimpleRequest,
+    # Payment
+    PaymentRequest,
+    PlanSubscribeRequest,
+    RedeemInviteRequest,
+    # Share
+    ShareRequest,
+    ShareCardRequest,
+    # Video
+    VideoInfoRequest,
+    PPTRequest,
+    # Feedback
+    FeedbackRequest,
+    # V2
+    FavoritesImportRequest,
+    TemplateCreateRequest,
+    TemplateUpdateRequest,
+    TTSRequest,
+    UPSubscribeRequest,
+    PushSubscriptionRequest,
+    CompareRequest,
+    CompareDirectRequest,
+    TeamCreateRequest,
+    TeamShareRequest,
+    CommentCreateRequest,
+)
 
 # --- web_app 内部模块导入 ---
 from .downloader import download_content
@@ -549,16 +515,7 @@ async def frontend_config():
 
 # --- 核心业务路由 ---
 
-class SummarizeRequest(BaseModel):
-    url: str
-    mode: str = "smart" # "smart" or "video"
-    focus: str = "default" # "default", "study", "gossip", "business"
-    skip_cache: bool = False  # 是否跳过缓存
-
-class BatchSummarizeRequest(BaseModel):
-    urls: List[str]
-    mode: str = "smart"
-    focus: str = "default"
+# 模型已迁移到 schemas/summarize.py
 
 @app.get("/summarize")
 async def run_summarization(
@@ -1046,24 +1003,7 @@ async def get_plans():
     }
 
 
-class PlanSubscribeRequest(BaseModel):
-    plan_id: str
-
-
-class PaymentRequest(BaseModel):
-    plan_id: str
-    provider: str
-
-
-class RedeemInviteRequest(BaseModel):
-    code: str
-
-
-class ShareRequest(BaseModel):
-    title: Optional[str] = None
-    summary: str
-    transcript: Optional[str] = None
-    mindmap: Optional[str] = None
+# 模型已迁移到 schemas/payment.py 和 schemas/share.py
 
 
 @app.post("/api/subscribe")
@@ -1839,10 +1779,7 @@ async def get_share_link(share_id: str):
         conn.close()
 
 
-class FeedbackRequest(BaseModel):
-    feedback_type: str
-    content: str
-    contact: Optional[str] = None
+# 模型已迁移到 schemas/feedback.py
 
 
 @app.post("/api/feedback")
@@ -1955,8 +1892,7 @@ async def render_share_link(share_id: str):
 
 
 # --- Video Info Endpoint ---
-class VideoInfoRequest(BaseModel):
-    url: str
+# 模型已迁移到 schemas/video.py
 
 @app.post("/video-info")
 async def get_video_info(request: VideoInfoRequest):
@@ -2043,9 +1979,7 @@ async def proxy_image_api(url: str):
 
 
 # --- AI Chat / Follow-up Endpoint (Legacy) ---
-class ChatSimpleRequest(BaseModel):
-    question: str
-    context: str  # The summary text to use as context
+# 模型已迁移到 schemas/chat.py
 
 @app.post("/chat")
 async def chat_with_ai(request: ChatSimpleRequest):
@@ -2096,8 +2030,7 @@ from .ppt_generator import PPTGenerator
 from .summarizer_gemini import generate_ppt_structure
 from urllib.parse import quote
 
-class PPTRequest(BaseModel):
-    summary: str
+# 模型已迁移到 schemas/video.py
 
 @app.post("/generate-ppt")
 async def generate_ppt_endpoint(request: PPTRequest):
@@ -2729,13 +2662,7 @@ async def get_vapid_public_key():
 
 # === 总结对比相关 (P5) ===
 
-class CompareRequest(BaseModel):
-    summary_ids: List[str]           # 要对比的总结 ID 列表
-    aspects: Optional[List[str]] = None  # 可选：自定义对比维度
-
-class CompareDirectRequest(BaseModel):
-    summaries: List[Dict[str, Any]]  # 直接传入总结内容
-    aspects: Optional[List[str]] = None
+# 模型已迁移到 schemas/v2.py
 
 @app.post("/api/compare")
 async def compare_videos(request: Request, body: CompareRequest):
@@ -2795,23 +2722,7 @@ async def compare_videos_direct(request: Request, body: CompareDirectRequest):
 
 # === 团队协作相关 (P6) ===
 
-class TeamCreateRequest(BaseModel):
-    name: str
-    description: Optional[str] = ""
-
-class TeamShareRequest(BaseModel):
-    title: str
-    video_url: str
-    summary_content: str
-    video_thumbnail: Optional[str] = ""
-    transcript: Optional[str] = ""
-    mindmap: Optional[str] = ""
-    tags: Optional[str] = ""
-
-class CommentCreateRequest(BaseModel):
-    team_summary_id: str
-    content: str
-    parent_id: Optional[str] = None
+# 模型已迁移到 schemas/v2.py
 
 @app.get("/api/teams")
 async def list_teams(request: Request):
