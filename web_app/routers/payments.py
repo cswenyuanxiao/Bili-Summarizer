@@ -218,3 +218,92 @@ async def get_plans():
             for plan_id, plan in PRICING_PLANS.items()
         ]
     }
+
+
+@router.get("/config")
+async def payment_config():
+    """获取支付配置（是否开启 Mock 模式）"""
+    import os
+    return {
+        "mock_enabled": os.getenv("PAYMENT_MOCK", "0") == "1"
+    }
+
+
+@router.post("/mock-complete")
+async def mock_payment_complete(order_id: str):
+    """Mock 支付完成（仅开发环境）"""
+    import os
+    from ..payments import mark_payment_paid
+    
+    if os.getenv("PAYMENT_MOCK", "0") != "1":
+        raise HTTPException(403, "Mock payment disabled")
+    return mark_payment_paid(order_id)
+
+
+@router.get("/qr")
+async def get_payment_qr(order_id: str):
+    """获取支付二维码（实际应返回二维码图片或链接）"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT qr_code_url FROM payment_orders WHERE id = ?
+        """, (order_id,))
+        row = cursor.fetchone()
+        if not row or not row[0]:
+            raise HTTPException(404, "QR code not found")
+        return {"qr_url": row[0]}
+    finally:
+        conn.close()
+
+
+@router.post("/notify/alipay")
+async def alipay_notify(request: Request):
+    """支付宝异步通知回调"""
+    form_data = await request.form()
+    data = dict(form_data)
+    
+    # 验证签名
+    if not verify_alipay_notify(data):
+        logger.warning("Invalid Alipay notification signature")
+        return {"code": "fail", "msg": "Invalid signature"}
+    
+    # 处理订单
+    order_id = data.get("out_trade_no")
+    trade_status = data.get("trade_status")
+    
+    if trade_status == "TRADE_SUCCESS":
+        try:
+            deliver_order(order_id)
+            return {"code": "success"}
+        except Exception as e:
+            logger.error(f"Failed to deliver order {order_id}: {e}")
+            return {"code": "fail", "msg": str(e)}
+    
+    return {"code": "success"}
+
+
+@router.post("/notify/wechat")
+async def wechat_notify(request: Request):
+    """微信支付异步通知回调"""
+    body = await request.body()
+    headers = dict(request.headers)
+    
+    # 验证签名
+    if not verify_wechat_signature(headers, body):
+        logger.warning("Invalid WeChat payment signature")
+        return {"code": "FAIL", "message": "Invalid signature"}
+    
+    # 解析通知
+    try:
+        notification = parse_wechat_notification(body)
+        order_id = notification.get("out_trade_no")
+        
+        if notification.get("trade_state") == "SUCCESS":
+            deliver_order(order_id)
+            return {"code": "SUCCESS", "message": "OK"}
+        
+        return {"code": "SUCCESS", "message": "OK"}
+    except Exception as e:
+        logger.error(f"WeChat notify error: {e}")
+        return {"code": "FAIL", "message": str(e)}
