@@ -156,6 +156,87 @@ async def init_core_tables():
             )
         """)
         
+        
+        # 账单记录表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS billing_events (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                amount_cents INTEGER NOT NULL DEFAULT 0,
+                currency TEXT NOT NULL DEFAULT 'CNY',
+                status TEXT NOT NULL DEFAULT 'pending',
+                period_start TEXT,
+                period_end TEXT,
+                invoice_url TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # 支付订单表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS payment_orders (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                plan TEXT NOT NULL,
+                amount_cents INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                billing_id TEXT NOT NULL,
+                transaction_id TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # 邀请码表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS invite_codes (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                code TEXT NOT NULL UNIQUE,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # 邀请兑换表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS invite_redemptions (
+                id TEXT PRIMARY KEY,
+                invite_id TEXT NOT NULL,
+                inviter_id TEXT NOT NULL,
+                invitee_id TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(invitee_id)
+            )
+        """)
+        
+        # 分享链接表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS share_links (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                title TEXT,
+                summary TEXT NOT NULL,
+                transcript TEXT,
+                mindmap TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                expires_at TEXT
+            )
+        """)
+        
+        # 反馈表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS feedbacks (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                feedback_type TEXT NOT NULL,
+                content TEXT NOT NULL,
+                contact TEXT,
+                status TEXT DEFAULT 'pending',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         # 浏览器推送订阅表
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS push_subscriptions (
@@ -168,6 +249,19 @@ async def init_core_tables():
                 UNIQUE(user_id, endpoint)
             )
         """)
+        
+        
+        # 创建索引以优化查询性能
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_daily_user ON usage_daily(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_billing_user ON billing_events(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_api_key_usage_user ON api_key_usage_daily(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_payment_user ON payment_orders(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_invite_user ON invite_codes(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_share_user ON share_links(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedbacks(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedbacks(status)")
         
         conn.commit()
         conn.close()
