@@ -7,7 +7,7 @@ from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from .subscriptions import get_all_subscriptions, get_up_latest_video, update_subscription_check
+from .subscriptions import get_all_subscriptions, get_up_latest_videos, update_subscription_check
 from .notifications import queue_notification, process_notification_queue
 from .wbi import parse_wbi_keys
 import httpx
@@ -40,17 +40,26 @@ async def check_new_videos():
             nav_resp = await client.get("https://api.bilibili.com/x/web-interface/nav")
             nav_data = nav_resp.json()
             wbi_keys = parse_wbi_keys(nav_data)
+            # /nav 会返回 buvid3/buvid4 等关键 cookie，必须同步给后续请求
+            client.cookies.update(nav_resp.cookies)
         except Exception as e:
             logger.error(f"Failed to fetch nav info for scheduler: {e}")
             return # 无法继续
             
         for sub in subscriptions:
             try:
-                # 传入共享的 client 和 keys
-                latest = await get_up_latest_video(sub["up_mid"], client=client, wbi_keys=wbi_keys)
+                # 传入共享的 client 和 keys（使用更完整的 WBI 参数集合）
+                latest_list = await get_up_latest_videos(
+                    sub["up_mid"],
+                    count=1,
+                    client=client,
+                    wbi_keys=wbi_keys
+                )
                 
-                if not latest:
+                if not latest_list:
                     continue
+                
+                latest = latest_list[0]
                 
                 # 检查是否是新视频
                 if sub["last_video_bvid"] != latest["bvid"]:

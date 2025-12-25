@@ -43,10 +43,20 @@
             
             <template v-if="cardUrl">
               <button class="btn-secondary" @click="download">
-                💾 下载图片
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="icon-chip-inline text-gray-500">
+                    <ArrowDownTrayIcon class="h-3.5 w-3.5" />
+                  </span>
+                  下载图片
+                </span>
               </button>
               <button class="btn-secondary" @click="copyLink">
-                🔗 复制链接
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="icon-chip-inline text-gray-500">
+                    <LinkIcon class="h-3.5 w-3.5" />
+                  </span>
+                  复制链接
+                </span>
               </button>
             </template>
           </div>
@@ -58,6 +68,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { ArrowDownTrayIcon, LinkIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps<{
   show: boolean

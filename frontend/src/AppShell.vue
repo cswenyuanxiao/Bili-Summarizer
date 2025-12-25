@@ -21,31 +21,77 @@
               <RouterLink to="/product" class="hover:text-gray-900 dark:hover:text-white transition-colors">产品</RouterLink>
               <RouterLink to="/pricing" class="hover:text-gray-900 dark:hover:text-white transition-colors">方案</RouterLink>
               <RouterLink to="/docs" class="hover:text-gray-900 dark:hover:text-white transition-colors">使用文档</RouterLink>
-              
-              <button @click="requireAuth(() => $router.push('/subscriptions'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
-                我的订阅
-                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
-              </button>
-              <button @click="requireAuth(() => $router.push('/dashboard'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
-                仪表盘
-                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
-              </button>
-              <button @click="requireAuth(() => $router.push('/billing'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
-                账单
-                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
-              </button>
-              <button @click="requireAuth(() => $router.push('/invite'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
-                邀请好友
-                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
-              </button>
-              <button @click="requireAuth(() => $router.push('/templates'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
-                总结模板
-                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
-              </button>
-              <button @click="requireAuth(() => $router.push('/developer'))" class="group flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
-                开发者 API
-                <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
-              </button>
+
+              <div class="relative group">
+                <button class="hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-1">
+                  工具集
+                  <span class="text-xs">▾</span>
+                </button>
+                <div class="absolute left-0 top-full mt-4 w-64 rounded-2xl border border-gray-200/70 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[70]">
+                  <div class="p-3 space-y-1">
+                    <button @click="requireAuth(() => $router.push('/subscriptions'))" class="group w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-primary/80">
+                        <BellIcon class="h-4 w-4" />
+                      </span>
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">我的订阅</div>
+                        <div class="text-xs text-gray-500">UP 主新视频推送</div>
+                      </div>
+                      <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+                    </button>
+                    <button @click="requireAuth(() => $router.push('/dashboard'))" class="group w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-sky-500/80">
+                        <ChartBarIcon class="h-4 w-4" />
+                      </span>
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">仪表盘</div>
+                        <div class="text-xs text-gray-500">使用概览与统计</div>
+                      </div>
+                      <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+                    </button>
+                    <button @click="requireAuth(() => $router.push('/billing'))" class="group w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-amber-500/80">
+                        <ReceiptPercentIcon class="h-4 w-4" />
+                      </span>
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">账单</div>
+                        <div class="text-xs text-gray-500">发票与订阅记录</div>
+                      </div>
+                      <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+                    </button>
+                    <button @click="requireAuth(() => $router.push('/invite'))" class="group w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-rose-500/80">
+                        <GiftIcon class="h-4 w-4" />
+                      </span>
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">邀请好友</div>
+                        <div class="text-xs text-gray-500">共享奖励与权益</div>
+                      </div>
+                      <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+                    </button>
+                    <button @click="requireAuth(() => $router.push('/templates'))" class="group w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-indigo-500/80">
+                        <DocumentTextIcon class="h-4 w-4" />
+                      </span>
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">总结模板</div>
+                        <div class="text-xs text-gray-500">自定义总结风格</div>
+                      </div>
+                      <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+                    </button>
+                    <button @click="requireAuth(() => $router.push('/developer'))" class="group w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-emerald-500/80">
+                        <CodeBracketIcon class="h-4 w-4" />
+                      </span>
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">开发者 API</div>
+                        <div class="text-xs text-gray-500">API Key 与集成</div>
+                      </div>
+                      <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </nav>
 
             <div class="flex items-center gap-3">
@@ -54,10 +100,11 @@
               
               <button
                 @click="toggleTheme"
-                class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-lg hover:scale-105 transition-transform"
+                class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 hover:scale-105 transition-transform"
                 title="切换主题"
               >
-                {{ isDark ? '☀️' : '🌙' }}
+                <SunIcon v-if="isDark" class="h-4 w-4 text-amber-500" />
+                <MoonIcon v-else class="h-4 w-4 text-slate-600 dark:text-slate-300" />
               </button>
 
               <div v-if="user" ref="userMenuRef" class="relative">
@@ -169,15 +216,10 @@
               <RouterLink class="w-full text-left py-1" to="/product" @click="showMobileMenu = false">产品</RouterLink>
               <RouterLink class="w-full text-left py-1" to="/pricing" @click="showMobileMenu = false">方案</RouterLink>
               <RouterLink class="w-full text-left py-1" to="/docs" @click="showMobileMenu = false">使用文档</RouterLink>
-              
+
+              <div class="w-full pt-2 text-xs font-semibold uppercase tracking-wider text-gray-400">工具集</div>
               <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/subscriptions'); showMobileMenu = false })">
                 我的订阅 <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
-              </button>
-              <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/compare'); showMobileMenu = false })">
-                总结对比 <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
-              </button>
-              <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/teams'); showMobileMenu = false })">
-                我的团队 <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
               </button>
               <button class="w-full text-left py-1 flex items-center gap-2" @click="requireAuth(() => { $router.push('/dashboard'); showMobileMenu = false })">
                 仪表盘 <LockClosedIcon v-if="!user" class="w-3 h-3 text-gray-400" />
@@ -238,7 +280,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, provide } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
-import { LockClosedIcon } from '@heroicons/vue/24/outline'
+import {
+  BellIcon,
+  ChartBarIcon,
+  CodeBracketIcon,
+  DocumentTextIcon,
+  GiftIcon,
+  LockClosedIcon,
+  MoonIcon,
+  ReceiptPercentIcon,
+  SunIcon,
+} from '@heroicons/vue/24/outline'
 import LoginModal from './components/LoginModal.vue'
 import PricingModal from './components/PricingModal.vue'
 import ApiKeyModal from './components/ApiKeyModal.vue'

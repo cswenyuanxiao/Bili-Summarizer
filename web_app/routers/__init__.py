@@ -12,6 +12,9 @@ from .api_keys import router as api_keys_router
 from .invite import router as invite_router
 from .history import router as history_router
 from .feedback import router as feedback_router
+from .subscriptions import router as subscriptions_router
+from .trending import router as trending_router
+from .favorites import router as favorites_router
 
 
 def register_routers(app: FastAPI):
@@ -42,4 +45,13 @@ def register_routers(app: FastAPI):
     
     # Feedback router - 用户反馈
     app.include_router(feedback_router)
+    
+    # Subscriptions router - UP主订阅
+    app.include_router(subscriptions_router)
+    
+    # Trending router - 热门视频推荐
+    app.include_router(trending_router)
+    
+    # Favorites router - 收藏夹
+    app.include_router(favorites_router)
 

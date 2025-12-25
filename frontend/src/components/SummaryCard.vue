@@ -2,7 +2,10 @@
   <div class="summary-card glass-card card-hover-elevate rounded-3xl overflow-hidden">
     <div class="card-header flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 px-4 sm:px-6 py-4 border-b border-gray-200/70 dark:border-gray-700/70 bg-white/60 dark:bg-slate-900/50">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-        📝 智能总结
+        <span class="icon-chip-sm text-primary/80">
+          <DocumentTextIcon class="h-4 w-4" />
+        </span>
+        智能总结
       </h3>
       <div class="flex flex-wrap gap-2">
         <button
@@ -10,7 +13,12 @@
           class="px-3 py-1.5 text-xs sm:text-sm btn-ghost hover:bg-white/70 dark:hover:bg-slate-800/70 transition-colors"
           title="复制总结"
         >
-          📋 复制
+          <span class="inline-flex items-center gap-1.5">
+            <span class="icon-chip-inline text-gray-500">
+              <ClipboardDocumentIcon class="h-3.5 w-3.5" />
+            </span>
+            复制
+          </span>
         </button>
         <button
           @click="$emit('tts')"
@@ -18,7 +26,12 @@
           class="px-3 py-1.5 text-xs sm:text-sm btn-ghost hover:bg-white/80 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="语音播报"
         >
-          🔊 语音播报
+          <span class="inline-flex items-center gap-1.5">
+            <span class="icon-chip-inline text-gray-500">
+              <SpeakerWaveIcon class="h-3.5 w-3.5" />
+            </span>
+            语音播报
+          </span>
         </button>
         <button
           @click="$emit('refresh')"
@@ -26,7 +39,12 @@
           class="px-3 py-1.5 text-xs sm:text-sm btn-ghost hover:bg-white/80 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="重新总结"
         >
-          ♻️ 重新总结
+          <span class="inline-flex items-center gap-1.5">
+            <span class="icon-chip-inline text-gray-500">
+              <ArrowPathIcon class="h-3.5 w-3.5" />
+            </span>
+            重新总结
+          </span>
         </button>
       </div>
     </div>
@@ -43,6 +61,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import {
+  ArrowPathIcon,
+  ClipboardDocumentIcon,
+  DocumentTextIcon,
+  SpeakerWaveIcon,
+} from '@heroicons/vue/24/outline'
 import { marked } from 'marked'
 
 const props = defineProps<{

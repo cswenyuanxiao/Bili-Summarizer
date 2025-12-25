@@ -24,8 +24,16 @@
             {{ tmpl.is_preset ? '预设' : '自定义' }}
           </span>
           <div v-if="!tmpl.is_preset" class="actions flex gap-2">
-            <button class="icon-btn" @click="editTemplate(tmpl)">✎</button>
-            <button class="icon-btn text-red-500" @click="deleteTmpl(tmpl.id)">🗑</button>
+            <button class="icon-btn" @click="editTemplate(tmpl)">
+              <span class="icon-chip-inline text-gray-500">
+                <PencilSquareIcon class="h-3.5 w-3.5" />
+              </span>
+            </button>
+            <button class="icon-btn text-red-500" @click="deleteTmpl(tmpl.id)">
+              <span class="icon-chip-inline text-red-500/80">
+                <TrashIcon class="h-3.5 w-3.5" />
+              </span>
+            </button>
           </div>
         </div>
         
@@ -92,6 +100,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
+import { PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
 const templates = ref<any[]>([])
 const showModal = ref(false)

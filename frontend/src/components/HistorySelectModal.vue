@@ -10,7 +10,9 @@
 
       <div class="flex-1 overflow-y-auto p-6">
         <div v-if="loading" class="flex flex-col items-center justify-center py-20 grayscale opacity-50">
-           <div class="animate-spin text-4xl mb-4">🌀</div>
+          <span class="icon-chip text-gray-400 mb-4">
+            <ArrowPathIcon class="h-5 w-5 animate-spin" />
+          </span>
            <p>正在拉取历史记录...</p>
         </div>
 
@@ -48,6 +50,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { ArrowPathIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps<{
   excludeIds: string[]

@@ -11,7 +11,10 @@
         <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8 shadow-sm">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-lg font-semibold flex items-center gap-2">
-              <span>📹</span> 选择对比视频
+              <span class="icon-chip-sm text-primary/80">
+                <VideoCameraIcon class="h-4 w-4" />
+              </span>
+              选择对比视频
             </h2>
             <span class="text-xs text-gray-400">最多可选 4 个</span>
           </div>
@@ -52,7 +55,10 @@
         <!-- 对比维度 -->
         <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8 shadow-sm">
           <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
-            <span>⚙️</span> 对比维度
+            <span class="icon-chip-sm text-primary/80">
+              <AdjustmentsHorizontalIcon class="h-4 w-4" />
+            </span>
+            对比维度
           </h2>
           <div class="flex flex-wrap gap-3">
             <button 
@@ -89,7 +95,11 @@
         <div class="relative w-24 h-24 mb-6">
           <div class="absolute inset-0 border-4 border-gray-100 dark:border-slate-800 rounded-full"></div>
           <div class="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <div class="absolute inset-0 flex items-center justify-center text-2xl">🤖</div>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span class="icon-chip text-primary/80">
+              <CpuChipIcon class="h-5 w-5" />
+            </span>
+          </div>
         </div>
         <h3 class="text-xl font-bold mb-2">AI 正在深度分析中</h3>
         <p class="text-gray-500 text-sm">正在提炼多个视频的观点差异，请稍候...</p>
@@ -143,7 +153,10 @@
           <!-- 关键差异 -->
           <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8">
             <h3 class="text-lg font-bold mb-6 flex items-center gap-2 text-orange-500">
-              <span>🔍</span> 关键差异点
+              <span class="icon-chip-sm text-orange-500/80">
+                <MagnifyingGlassIcon class="h-4 w-4" />
+              </span>
+              关键差异点
             </h3>
             <div class="space-y-6">
               <div 
@@ -169,7 +182,10 @@
           <!-- 共识点 -->
           <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8">
             <h3 class="text-lg font-bold mb-6 flex items-center gap-2 text-green-500">
-              <span>✅</span> 核心共识
+              <span class="icon-chip-sm text-green-500/80">
+                <CheckCircleIcon class="h-4 w-4" />
+              </span>
+              核心共识
             </h3>
             <div class="space-y-6">
               <div 
@@ -177,7 +193,9 @@
                 :key="index"
                 class="flex gap-4"
               >
-                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center text-xs">✓</div>
+                <div class="icon-chip-inline bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center">
+                  <CheckIcon class="h-3 w-3" />
+                </div>
                 <div>
                   <div class="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1">{{ point.topic }}</div>
                   <p class="text-xs text-gray-500">{{ point.description }}</p>
@@ -190,7 +208,10 @@
         <!-- 专家建议 -->
         <div v-if="result.recommendations?.length" class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl p-8 border-l-8 border-primary">
           <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-            <span>💡</span> 推荐建议
+            <span class="icon-chip-sm text-primary/80">
+              <LightBulbIcon class="h-4 w-4" />
+            </span>
+            推荐建议
           </h3>
           <ul class="space-y-3">
             <li v-for="(rec, i) in result.recommendations" :key="i" class="flex items-start gap-3 text-gray-700 dark:text-gray-300">
@@ -214,6 +235,15 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import {
+  AdjustmentsHorizontalIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  CpuChipIcon,
+  LightBulbIcon,
+  MagnifyingGlassIcon,
+  VideoCameraIcon,
+} from '@heroicons/vue/24/outline'
 import HistorySelectModal from '../components/HistorySelectModal.vue'
 
 interface VideoItem {

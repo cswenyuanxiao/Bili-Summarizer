@@ -1,35 +1,128 @@
-# 文档索引（精简版）
+# 📚 文档索引
 
-Last updated: 2025-12-25
-Owner: Core Eng
+> **快速入口**: 第一次接触项目？从 [START_HERE.md](START_HERE.md) 开始！  
+> **最后更新**: 2025-12-26
 
-## 适用对象
-- 产品/业务：`docs/OVERVIEW.md`
-- 工程实现：`docs/ARCHITECTURE.md`、`docs/API_CONTRACT.md`、`docs/DATA_MODEL.md`、`docs/SECURITY_AUTH.md`
-- 运维部署：`docs/RUNBOOK.md`、`docs/CONFIGURATION.md`、`docs/ENGINEERING_STANDARDS.md`
-- 设计与规范：`docs/PRODUCT_UI.md`
-- 商业化：`docs/COMMERCIAL.md`
-- 规划进度：`docs/ROADMAP.md`、`docs/CHANGELOG.md`
+---
 
-## 快速开始（最小闭环）
-1) 设置环境变量：`GOOGLE_API_KEY`（必需），生产建议加 `DATABASE_URL`。  
-2) 启动后端：`uvicorn web_app.main:app --reload --port 7860`  
-3) 启动前端：`cd frontend && npm install && npm run dev`  
-4) 访问：`http://localhost:5173`  
-5) 验证：输入 B 站 URL，确认 SSE 输出 `summary_complete` 与 UI 渲染。
+## 🚀 核心文档
 
-## 核心文档
-1) `docs/START_HERE.md`（入口与硬约束）  
-2) `docs/OVERVIEW.md`（项目概览、边界、用户背景）  
-3) `docs/ARCHITECTURE.md`（系统架构、数据流、鉴权）  
-4) `docs/API_CONTRACT.md`（API 契约与 SSE 事件）  
-5) `docs/CONFIGURATION.md`（单一配置来源）  
-6) `docs/DATA_MODEL.md`（数据模型与索引）  
-7) `docs/SECURITY_AUTH.md`（安全与鉴权）  
-8) `docs/ENGINEERING_STANDARDS.md`（工程验收条款）  
-9) `docs/RUNBOOK.md`（部署与运维手册）  
-10) `docs/PRODUCT_UI.md`（UI/交互规范）  
-11) `docs/COMMERCIAL.md`（定价与支付）  
-12) `docs/ROADMAP.md`（路线图与验收）  
-13) `docs/CHANGELOG.md`（变更记录）  
-14) `docs/EXTERNAL_DEPENDENCIES.md`（外部依赖与 API 文档链接）
+### 新手必读
+- **[START_HERE.md](START_HERE.md)** - 快速开始指南，5分钟上手
+- **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** - 完整开发者指南（架构+结构+模型）
+
+### 开发参考
+- **[API_REFERENCE.md](API_REFERENCE.md)** - API文档（后端+外部依赖）
+- **[CONFIGURATION.md](CONFIGURATION.md)** - 环境变量配置
+- **[ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md)** - 代码规范
+
+### 部署运维
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - 部署指南（本地+生产+Docker+安全）
+- **[CHANGELOG.md](CHANGELOG.md)** - 版本变更记录
+
+---
+
+## 🗂️ 文档结构
+
+```
+docs/
+├── README.md                  # 本文档（索引）
+├── START_HERE.md              # 快速开始
+├── DEVELOPER_GUIDE.md         # 开发者指南 ⭐
+├── API_REFERENCE.md           # API参考 ⭐
+├── CONFIGURATION.md           # 配置参考
+├── DEPLOYMENT.md              # 部署指南 ⭐
+├── ENGINEERING_STANDARDS.md   # 工程规范
+├── CHANGELOG.md               # 变更日志
+└── archived/                  # 历史文档（归档）
+    ├── ARCHITECTURE.md        # 已合并到DEVELOPER_GUIDE
+    ├── DATA_MODEL.md          # 已合并到DEVELOPER_GUIDE
+    ├── API_CONTRACT.md        # 已合并到API_REFERENCE
+    └── ...
+```
+
+---
+
+## 📖 按角色查看
+
+### 👨‍💻 我是开发者
+1. 先读 **[START_HERE.md](START_HERE.md)**
+2. 熟悉 **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)**
+3. 查阅 **[API_REFERENCE.md](API_REFERENCE.md)**
+4. 遵循 **[ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md)**
+
+### 🚀 我是运维/部署
+1. 先读 **[CONFIGURATION.md](CONFIGURATION.md)**
+2. 执行 **[DEPLOYMENT.md](DEPLOYMENT.md)**
+3. 关注 **[CHANGELOG.md](CHANGELOG.md)**
+
+### 🆕 我是新人
+1. **必读**: [START_HERE.md](START_HERE.md)
+2. **了解**: [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) 的"项目概览"部分
+3. **动手**: 按照START_HERE跑起来项目
+4. **深入**: 根据任务查阅对应文档
+
+---
+
+## 🔍 按需查找
+
+### 我想知道...
+
+**"如何启动项目？"**  
+→ [START_HERE.md](START_HERE.md)
+
+**"项目架构是什么样的？"**  
+→ [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md#系统架构)
+
+**"API怎么调用？"**  
+→ [API_REFERENCE.md](API_REFERENCE.md)
+
+**"环境变量怎么配置？"**  
+→ [CONFIGURATION.md](CONFIGURATION.md)
+
+**"如何部署到生产环境？"**  
+→ [DEPLOYMENT.md](DEPLOYMENT.md#部署到生产环境)
+
+**"数据库表结构是什么？"**  
+→ [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md#数据模型)
+
+**"B站API老是报错-352怎么办？"**  
+→ [DEPLOYMENT.md](DEPLOYMENT.md#故障排查) + [CONFIGURATION.md](CONFIGURATION.md) (添加SESSDATA)
+
+**"代码规范是什么？"**  
+→ [ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md)
+
+**"最近更新了什么？"**  
+→ [CHANGELOG.md](CHANGELOG.md)
+
+---
+
+## 📝 文档维护
+
+### 更新原则
+- ✅ 功能变更 → 更新CHANGELOG.md
+- ✅ API变更 → 更新API_REFERENCE.md
+- ✅ 架构调整 → 更新DEVELOPER_GUIDE.md
+- ✅ 部署流程 → 更新DEPLOYMENT.md
+- ✅ 配置新增 → 更新CONFIGURATION.md
+
+### 归档策略
+过时或已合并的文档移至 `archived/` 目录，保留历史参考。
+
+---
+
+## 🎯 快速链接
+
+- **GitHub仓库**: (你的repo链接)
+- **在线演示**: (如果部署了)
+- **问题反馈**: GitHub Issues
+- **项目交接包**: `../.gemini/handoff_package.md`
+
+---
+
+## 版本信息
+
+- **项目名称**: Bili-Summarizer
+- **当前版本**: Phase 2 - 功能扩展
+- **文档版本**: v2.0 (2025-12-26 整合)
+- **维护者**: Core Engineering Team

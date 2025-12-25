@@ -2,7 +2,10 @@
   <div class="mindmap-viewer glass-card card-hover-elevate rounded-3xl overflow-hidden">
     <div class="card-header flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 px-4 sm:px-6 py-4 border-b border-gray-200/70 dark:border-gray-700/70 bg-white/60 dark:bg-slate-900/50">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-        🧠 思维导图
+        <span class="icon-chip-sm text-primary/80">
+          <MapIcon class="h-4 w-4" />
+        </span>
+        思维导图
       </h3>
       <div class="flex flex-wrap gap-2">
         <button
@@ -34,6 +37,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { MapIcon } from '@heroicons/vue/24/outline'
 import { renderMermaid } from '../utils/mermaidRenderer'
 
 const props = defineProps<{

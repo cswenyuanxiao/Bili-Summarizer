@@ -2,7 +2,10 @@
   <section class="history-section fade-up delay-2">
     <div class="section-header flex justify-between items-center mb-6 px-2">
       <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-        📚 历史记录
+        <span class="icon-chip-sm text-primary/80">
+          <ArchiveBoxIcon class="h-4 w-4" />
+        </span>
+        历史记录
       </h2>
       <button
         v-if="items.length > 0"
@@ -14,7 +17,9 @@
     </div>
 
     <div v-if="items.length === 0" class="rounded-2xl glass-card card-hover-elevate p-6 sm:p-8 text-center">
-      <div class="text-4xl mb-3">🧭</div>
+      <div class="mx-auto mb-3 icon-chip text-primary/80">
+        <InboxIcon class="h-5 w-5" />
+      </div>
       <p class="text-sm text-gray-500 dark:text-gray-400">完成一次总结后，历史记录会出现在这里。</p>
       <button
         @click="$emit('guide')"
@@ -54,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+import { ArchiveBoxIcon, InboxIcon } from '@heroicons/vue/24/outline'
 interface HistoryItem {
   id: string
   title: string

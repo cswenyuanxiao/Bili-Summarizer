@@ -62,17 +62,23 @@
         <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">适用场景</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div class="page-card text-center">
-            <div class="text-3xl mb-3">🎓</div>
+            <div class="mx-auto mb-3 icon-chip bg-blue-100/70 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300">
+              <AcademicCapIcon class="h-5 w-5" />
+            </div>
             <div class="text-base font-semibold text-gray-900 dark:text-gray-100">学生学习</div>
             <div class="mt-2 text-xs text-gray-500">快速提取课程重点，生成复习笔记</div>
           </div>
           <div class="page-card text-center page-card--accent">
-            <div class="text-3xl mb-3">✍️</div>
+            <div class="mx-auto mb-3 icon-chip bg-purple-100/70 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300">
+              <PencilSquareIcon class="h-5 w-5" />
+            </div>
             <div class="text-base font-semibold text-gray-900 dark:text-gray-100">创作者研究</div>
             <div class="mt-2 text-xs text-gray-500">分析爆款视频，挖掘内容灵感</div>
           </div>
           <div class="page-card text-center">
-            <div class="text-3xl mb-3">💻</div>
+            <div class="mx-auto mb-3 icon-chip bg-emerald-100/70 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300">
+              <CodeBracketIcon class="h-5 w-5" />
+            </div>
             <div class="text-base font-semibold text-gray-900 dark:text-gray-100">开发者学习</div>
             <div class="mt-2 text-xs text-gray-500">快速学习技术教程，整理知识点</div>
           </div>
@@ -84,19 +90,34 @@
         <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">技术优势</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div class="page-card">
-            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">⚡ SSE 实时推送</div>
+            <div class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+              <span class="icon-chip-sm text-primary/80">
+                <BoltIcon class="h-4 w-4" />
+              </span>
+              SSE 实时推送
+            </div>
             <div class="mt-2 text-xs text-gray-500 leading-relaxed">
               Server-Sent Events 技术，实时展示 AI 思考过程，告别漫长等待
             </div>
           </div>
           <div class="page-card">
-            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">🧠 智能思维导图</div>
+            <div class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+              <span class="icon-chip-sm text-primary/80">
+                <MapIcon class="h-4 w-4" />
+              </span>
+              智能思维导图
+            </div>
             <div class="mt-2 text-xs text-gray-500 leading-relaxed">
               基于 Mermaid.js 自动生成知识结构，支持 SVG/PNG 多格式导出
             </div>
           </div>
           <div class="page-card">
-            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">💬 AI 追问功能</div>
+            <div class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+              <span class="icon-chip-sm text-primary/80">
+                <ChatBubbleLeftRightIcon class="h-4 w-4" />
+              </span>
+              AI 追问功能
+            </div>
             <div class="mt-2 text-xs text-gray-500 leading-relaxed">
               基于视频内容深度对话，挖掘细节与延伸知识
             </div>
@@ -115,6 +136,14 @@
 </template>
 
 <script setup lang="ts">
+import {
+  AcademicCapIcon,
+  BoltIcon,
+  ChatBubbleLeftRightIcon,
+  CodeBracketIcon,
+  MapIcon,
+  PencilSquareIcon,
+} from '@heroicons/vue/24/outline'
 import { useRouter } from 'vue-router'
 import { useReveal } from '../composables/useReveal'
 

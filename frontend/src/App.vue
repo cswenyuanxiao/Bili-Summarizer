@@ -13,7 +13,9 @@
         <div class="container mx-auto max-w-6xl px-4 sm:px-6">
           <div class="flex items-center justify-between h-14 sm:h-16">
             <div class="flex items-center gap-3">
-              <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-cyan-400 text-white font-semibold">✨</div>
+              <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-cyan-400 text-white font-semibold">
+                <SparklesIcon class="h-4 w-4" />
+              </div>
               <div class="text-base sm:text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">Bili-Summarizer</div>
             </div>
 
@@ -28,25 +30,84 @@
                   </div>
                 </div>
               </div>
+              
+              <!-- 工具集下拉菜单 -->
+              <div class="relative group">
+                <button class="hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-1">
+                  工具集 <span class="text-xs">▾</span>
+                </button>
+                <div class="absolute left-0 top-full mt-4 w-64 rounded-2xl border border-gray-200/70 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                  <div class="p-3 space-y-1">
+                    <button @click="$router.push('/trending')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-rose-500/80">
+                        <FireIcon class="h-4 w-4" />
+                      </span>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">热门推荐</div>
+                        <div class="text-xs text-gray-500">B站当前最热视频</div>
+                      </div>
+                    </button>
+                    <button @click="requireAuth(() => $router.push('/subscriptions'))" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-primary/80">
+                        <BellIcon class="h-4 w-4" />
+                      </span>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">每日推送</div>
+                        <div class="text-xs text-gray-500">订阅UP主新视频</div>
+                      </div>
+                    </button>
+                    <button @click="requireAuth(() => $router.push('/favorites'))" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-amber-500/80">
+                        <StarIcon class="h-4 w-4" />
+                      </span>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">我的收藏</div>
+                        <div class="text-xs text-gray-500">保存的总结内容</div>
+                      </div>
+                    </button>
+                    <button @click="requireAuth(() => $router.push('/batch'))" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-primary/80">
+                        <BoltIcon class="h-4 w-4" />
+                      </span>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">批量处理</div>
+                        <div class="text-xs text-gray-500">多视频同时总结</div>
+                      </div>
+                    </button>
+                    <button @click="requireAuth(() => $router.push('/compare'))" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-sky-500/80">
+                        <ChartBarIcon class="h-4 w-4" />
+                      </span>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">总结对比</div>
+                        <div class="text-xs text-gray-500">对比多个总结</div>
+                      </div>
+                    </button>
+                    <button @click="requireAuth(() => $router.push('/templates'))" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                      <span class="icon-chip text-indigo-500/80">
+                        <DocumentTextIcon class="h-4 w-4" />
+                      </span>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">总结模板</div>
+                        <div class="text-xs text-gray-500">自定义总结风格</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
               <button @click="scrollToSection('pricing')" class="hover:text-gray-900 dark:hover:text-white transition-colors">方案</button>
-              <button @click="scrollToSection('docs')" class="hover:text-gray-900 dark:hover:text-white transition-colors">使用文档</button>
-              <button @click="requireAuth(() => scrollToSection('dashboard'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">仪表盘</button>
-              <button @click="requireAuth(() => scrollToSection('billing'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">账单</button>
-              <button @click="requireAuth(() => scrollToSection('invite'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">邀请好友</button>
-              <button @click="requireAuth(() => $router.push('/templates'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">总结模板</button>
-              <button @click="requireAuth(() => $router.push('/subscriptions'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">每日推送</button>
-              <button @click="requireAuth(() => $router.push('/compare'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">总结对比</button>
-              <button @click="requireAuth(() => $router.push('/teams'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">团队协作</button>
-              <button @click="requireAuth(() => scrollToSection('developer'))" class="hover:text-gray-900 dark:hover:text-white transition-colors">开发者 API</button>
+              <button @click="scrollToSection('docs')" class="hover:text-gray-900 dark:hover:text-white transition-colors">文档</button>
             </nav>
 
             <div class="flex items-center gap-3">
               <button
                 @click="toggleTheme"
-                class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-lg hover:scale-105 transition-transform"
+                class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 hover:scale-105 transition-transform"
                 title="切换主题"
               >
-                {{ isDark ? '☀️' : '🌙' }}
+                <SunIcon v-if="isDark" class="h-4 w-4 text-amber-500" />
+                <MoonIcon v-else class="h-4 w-4 text-slate-600 dark:text-slate-300" />
               </button>
 
               <div v-if="user" ref="userMenuRef" class="relative">
@@ -206,8 +267,18 @@
             </div>
             <div class="fade-up delay-3 flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
               <span class="badge-pill">⚡ 平均 1 分钟出结果</span>
-              <span class="badge-pill">🧠 思维导图自动生成</span>
-              <span class="badge-pill">📄 支持 PDF/PNG 导出</span>
+              <span class="badge-pill inline-flex items-center gap-1">
+                <span class="icon-chip-inline text-primary/80">
+                  <MapIcon class="h-3.5 w-3.5" />
+                </span>
+                思维导图自动生成
+              </span>
+              <span class="badge-pill inline-flex items-center gap-1">
+                <span class="icon-chip-inline text-primary/80">
+                  <DocumentArrowDownIcon class="h-3.5 w-3.5" />
+                </span>
+                支持 PDF/PNG 导出
+              </span>
             </div>
           </div>
           <div class="relative fade-up delay-2">
@@ -518,6 +589,19 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import {
+  BellIcon,
+  BoltIcon,
+  ChartBarIcon,
+  DocumentArrowDownIcon,
+  DocumentTextIcon,
+  FireIcon,
+  MapIcon,
+  MoonIcon,
+  SparklesIcon,
+  StarIcon,
+  SunIcon,
+} from '@heroicons/vue/24/outline'
 import { marked } from 'marked'
 import html2pdf from 'html2pdf.js'
 import UrlInputCard from './components/UrlInputCard.vue'

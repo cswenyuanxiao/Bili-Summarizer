@@ -10,7 +10,10 @@
       <section class="mb-12">
         <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 shadow-xl rounded-2xl p-6 shadow-sm">
           <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-            <span>🔍</span> 发现 UP 主
+            <span class="icon-chip-sm text-primary/80">
+              <MagnifyingGlassIcon class="h-4 w-4" />
+            </span>
+            发现 UP 主
           </h2>
           <div class="flex gap-3">
             <input 
@@ -67,23 +70,35 @@
       <section>
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <span>📂</span> 我的关注 ({{ subscriptions.length }})
+            <span class="icon-chip-sm text-primary/80">
+              <FolderIcon class="h-4 w-4" />
+            </span>
+            我的关注 ({{ subscriptions.length }})
           </h2>
           <button 
             class="text-sm text-primary hover:underline font-medium"
             @click="enablePushNotifications"
           >
-             🔔 开启推送权限
+            <span class="inline-flex items-center gap-1">
+              <span class="icon-chip-inline text-primary/80">
+                <BellAlertIcon class="h-3.5 w-3.5" />
+              </span>
+              开启推送权限
+            </span>
           </button>
         </div>
 
         <div v-if="loading" class="flex flex-col items-center justify-center py-20 grayscale opacity-50">
-           <div class="animate-spin text-4xl mb-4">🌀</div>
+          <span class="icon-chip text-gray-400 mb-4">
+            <ArrowPathIcon class="h-5 w-5 animate-spin" />
+          </span>
            <p>正在拉取列表...</p>
         </div>
 
         <div v-else-if="subscriptions.length === 0" class="text-center py-20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 shadow-xl rounded-2xl">
-          <div class="text-4xl mb-4">💨</div>
+          <div class="mx-auto mb-4 icon-chip text-primary/80">
+            <CloudIcon class="h-5 w-5" />
+          </div>
           <p class="text-gray-500">你还没有订阅任何 UP 主</p>
           <p class="text-xs text-gray-400 mt-2">快在上方搜索并开启你的每日总结之旅吧</p>
         </div>
@@ -113,11 +128,13 @@
                 title="取消订阅"
                 @click="confirmUnsubscribe(sub)"
               >
-                🗑️
+                <span class="icon-chip-inline text-red-500/80">
+                  <TrashIcon class="h-3.5 w-3.5" />
+                </span>
               </button>
             </div>
 
-            <div class="flex items-center justify-between pt-4 border-t border-gray-50 dark:border-slate-800">
+            <div class="flex items-center justify-between pt-4 border-t border-gray-50 dark:border-slate-800 mb-3">
                <div class="flex gap-2">
                  <span 
                    v-for="method in sub.notify_methods" 
@@ -131,6 +148,43 @@
                  {{ sub.last_video_bvid ? '已更' : '等待更新' }}
                </div>
             </div>
+
+            <!-- 视频展示区域 (默认展开) -->
+            <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800">
+              <div v-if="sub.videosLoading" class="flex items-center justify-center py-8">
+                <span class="icon-chip-inline text-gray-400">
+                  <ArrowPathIcon class="h-3.5 w-3.5 animate-spin" />
+                </span>
+              </div>
+              <div v-else-if="sub.videos && sub.videos.length > 0" class="space-y-3">
+                <a 
+                  v-for="video in sub.videos" 
+                  :key="video.bvid"
+                  :href="video.url"
+                  target="_blank"
+                  class="flex gap-3 p-3 rounded-lg bg-gray-50/50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition group/video"
+                >
+                  <img 
+                    :src="getProxyUrl(video.cover)" 
+                    class="w-24 h-16 rounded-lg object-cover flex-shrink-0"
+                    alt="视频封面"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 group-hover/video:text-primary transition">
+                      {{ video.title }}
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1 flex items-center gap-2">
+                      <span>{{ video.duration }}</span>
+                      <span>·</span>
+                      <span>{{ formatTimestamp(video.created) }}</span>
+                    </div>
+                  </div>
+                </a>
+              </div>
+              <div v-else-if="!sub.videosLoading" class="text-center py-4 text-sm text-gray-400">
+                该UP主暂无视频
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -140,6 +194,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import {
+  ArrowPathIcon,
+  BellAlertIcon,
+  CloudIcon,
+  FolderIcon,
+  MagnifyingGlassIcon,
+  TrashIcon,
+} from '@heroicons/vue/24/outline'
 import { supabase } from '../supabase'
 import { subscribeToPush } from '../utils/push'
 
@@ -152,6 +214,15 @@ interface UPInfo {
   sign?: string
 }
 
+interface Video {
+  bvid: string
+  title: string
+  cover: string
+  duration: string
+  created: number
+  url: string
+}
+
 interface Subscription {
   id: string
   up_mid: string
@@ -160,6 +231,9 @@ interface Subscription {
   notify_methods: string[]
   last_video_bvid: string
   created_at: string
+  // 新增字段用于视频展示
+  videos?: Video[]
+  videosLoading?: boolean
 }
 
 const searchQuery = ref('')
@@ -195,11 +269,42 @@ async function fetchSubscriptions() {
     })
     const data = await res.json()
     subscriptions.value = data.subscriptions || []
+    
+    // 自动加载所有UP主的视频
+    if (subscriptions.value.length > 0) {
+      await loadAllUpVideos(token || '')
+    }
   } catch (err) {
     console.error('Fetch subscriptions failed:', err)
   } finally {
     loading.value = false
   }
+}
+
+async function loadAllUpVideos(token: string) {
+  // 并发加载所有UP主的视频
+  const loadPromises = subscriptions.value.map(async (sub) => {
+    sub.videosLoading = true
+    try {
+      const res = await fetch(`/api/subscriptions/videos?up_mid=${sub.up_mid}&count=2`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        sub.videos = data.videos || []
+      } else {
+        sub.videos = []
+      }
+    } catch (err) {
+      console.error(`Load videos for UP ${sub.up_name} failed:`, err)
+      sub.videos = []
+    } finally {
+      sub.videosLoading = false
+    }
+  })
+  
+  await Promise.all(loadPromises)
 }
 
 async function handleSubscribe(up: UPInfo) {
@@ -276,6 +381,19 @@ function formatDate(dateStr: string) {
   return `${date.getMonth() + 1}月${date.getDate()}日`
 }
 
+function formatTimestamp(timestamp: number) {
+  const date = new Date(timestamp * 1000)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 0) return '今天'
+  if (diffDays === 1) return '昨天'
+  if (diffDays < 7) return `${diffDays}天前`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`
+  return `${date.getMonth() + 1}月${date.getDate()}日`
+}
+
 function getProxyUrl(url: string) {
   if (!url) return ''
   // Bilibili 图片通常以 http: 开头，weserv 需要清理
@@ -287,5 +405,3 @@ onMounted(() => {
   fetchSubscriptions()
 })
 </script>
-
-

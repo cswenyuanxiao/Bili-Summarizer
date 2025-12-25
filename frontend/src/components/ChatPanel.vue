@@ -1,7 +1,9 @@
 <template>
   <div class="chat-panel bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-6 border border-gray-200 dark:border-gray-700">
     <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
-      <span class="text-2xl">💬</span>
+      <span class="icon-chip-sm text-primary/80">
+        <ChatBubbleLeftRightIcon class="h-4 w-4" />
+      </span>
       AI 追问
     </h3>
     
@@ -73,6 +75,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
+import { ChatBubbleLeftRightIcon } from '@heroicons/vue/24/outline'
 import { marked } from 'marked'
 
 const props = defineProps<{

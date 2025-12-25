@@ -165,6 +165,13 @@ async def on_startup():
             
     asyncio.create_task(schedule_cleanups())
     
+    # 初始化收藏夹表
+    try:
+        from .init_favorites_table import init_favorites_table
+        init_favorites_table()
+    except Exception as e:
+        logger.error(f"Failed to initialize favorites table: {e}")
+    
     # 启动定时任务调度器 (P4 每日推送到订阅)
     start_scheduler()
 
@@ -1280,55 +1287,7 @@ async def tts_generate(request: Request, body: TTSRequest):
         raise HTTPException(status_code=500, detail="Voice generation failed")
 
 # === 订阅与推送相关 (P4) ===
-
-@app.get("/api/subscriptions/search")
-async def search_up_users(keyword: str):
-    """搜索 UP 主"""
-    if not keyword or len(keyword) < 2:
-        return {"users": []}
-    
-    users = await search_up(keyword)
-    return {"users": users}
-
-@app.get("/api/subscriptions")
-async def list_subscriptions(request: Request):
-    """获取用户订阅列表"""
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    user = await verify_session_token(token)
-    
-    subscriptions = get_user_subscriptions(user["user_id"])
-    return {"subscriptions": subscriptions}
-
-@app.post("/api/subscriptions")
-async def handle_up_subscribe(request: Request, body: UPSubscribeRequest):
-    """订阅 UP 主"""
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    user = await verify_session_token(token)
-    
-    try:
-        result = subscribe_up(
-            user_id=user["user_id"],
-            up_mid=body.up_mid,
-            up_name=body.up_name,
-            up_avatar=body.up_avatar,
-            notify_methods=body.notify_methods
-        )
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.delete("/api/subscriptions/{subscription_id}")
-async def cancel_subscription(subscription_id: str, request: Request):
-    """取消订阅"""
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    user = await verify_session_token(token)
-    
-    success = unsubscribe_up(user["user_id"], subscription_id)
-    
-    if not success:
-        raise HTTPException(status_code=404, detail="Subscription not found")
-    
-    return {"message": "Unsubscribed"}
+# 订阅管理路由已迁移至 routers/subscriptions.py
 
 @app.post("/api/push/subscribe")
 async def register_push_subscription(request: Request, body: PushSubscriptionRequest):

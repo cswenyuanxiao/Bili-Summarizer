@@ -40,7 +40,9 @@
         <!-- 团队主内容 -->
         <main class="lg:col-span-9">
           <div v-if="!activeTeamId" class="flex flex-col items-center justify-center py-40 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl opacity-50">
-            <div class="text-6xl mb-6">🤝</div>
+            <div class="mb-6 icon-chip text-primary/80">
+              <UserGroupIcon class="h-5 w-5" />
+            </div>
             <p class="text-gray-500">请在左侧选择一个团队以查看详情</p>
           </div>
           
@@ -66,13 +68,20 @@
                   <button class="text-xs text-primary font-bold hover:underline">邀请成员</button>
                 </div>
               </div>
-              <div class="absolute top-0 right-0 p-8 text-6xl opacity-10 select-none">✨</div>
+              <div class="absolute top-0 right-0 p-8 opacity-10 select-none">
+                <span class="icon-chip text-primary/80">
+                  <SparklesIcon class="h-5 w-5" />
+                </span>
+              </div>
             </div>
             
             <!-- 共享列表 -->
             <section>
               <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-                <span>📂</span> 共享总结
+                <span class="icon-chip-sm text-primary/80">
+                  <FolderIcon class="h-4 w-4" />
+                </span>
+                共享总结
               </h3>
               
               <div v-if="activeTeam.summaries.length === 0" class="py-20 text-center bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 rounded-3xl bg-gray-50/50 dark:bg-slate-900/30">
@@ -110,10 +119,16 @@
                       <div class="flex items-center justify-between pt-4 border-t border-gray-50 dark:border-slate-800">
                         <div class="flex gap-2 text-xs">
                           <button class="text-gray-400 hover:text-primary flex items-center gap-1" @click="showComments(item)">
-                            <span>💬</span> {{ getCommentCount(item.id) }} 评论
+                            <span class="icon-chip-inline text-primary/80">
+                              <ChatBubbleLeftRightIcon class="h-3.5 w-3.5" />
+                            </span>
+                            {{ getCommentCount(item.id) }} 评论
                           </button>
                           <button class="text-gray-400 hover:text-red-500 flex items-center gap-1">
-                            <span>❤️</span> 赞
+                            <span class="icon-chip-inline text-red-500/80">
+                              <HeartIcon class="h-3.5 w-3.5" />
+                            </span>
+                            赞
                           </button>
                         </div>
                         <button class="px-4 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-bold hover:bg-black transition">
@@ -168,6 +183,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import {
+  ChatBubbleLeftRightIcon,
+  FolderIcon,
+  HeartIcon,
+  SparklesIcon,
+  UserGroupIcon,
+} from '@heroicons/vue/24/outline'
 
 interface Team {
   id: string

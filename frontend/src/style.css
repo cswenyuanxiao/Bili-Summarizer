@@ -68,6 +68,40 @@ body {
   overflow-x: hidden;
 }
 
+.icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.icon-chip-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.icon-chip-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.dark .icon-chip {
+  background: rgba(30, 41, 59, 0.6);
+}
+
+.dark .icon-chip-inline {
+  background: rgba(30, 41, 59, 0.6);
+}
+
 /* View Transitions: theme ripple */
 ::view-transition-old(root),
 ::view-transition-new(root) {

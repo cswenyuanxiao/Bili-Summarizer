@@ -40,7 +40,12 @@
                   value="bug"
                   class="w-4 h-4 text-primary focus:ring-primary"
                 />
-                <span class="text-sm text-gray-700 dark:text-gray-300">🐛 问题反馈</span>
+                <span class="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span class="icon-chip-inline text-rose-500/80">
+                    <BugAntIcon class="h-3.5 w-3.5" />
+                  </span>
+                  问题反馈
+                </span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
@@ -49,7 +54,12 @@
                   value="feature"
                   class="w-4 h-4 text-primary focus:ring-primary"
                 />
-                <span class="text-sm text-gray-700 dark:text-gray-300">💡 功能建议</span>
+                <span class="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span class="icon-chip-inline text-amber-500/80">
+                    <LightBulbIcon class="h-3.5 w-3.5" />
+                  </span>
+                  功能建议
+                </span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
@@ -58,7 +68,12 @@
                   value="other"
                   class="w-4 h-4 text-primary focus:ring-primary"
                 />
-                <span class="text-sm text-gray-700 dark:text-gray-300">💬 其他</span>
+                <span class="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span class="icon-chip-inline text-sky-500/80">
+                    <ChatBubbleOvalLeftEllipsisIcon class="h-3.5 w-3.5" />
+                  </span>
+                  其他
+                </span>
               </label>
             </div>
           </div>
@@ -126,6 +141,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import {
+  BugAntIcon,
+  ChatBubbleOvalLeftEllipsisIcon,
+  LightBulbIcon,
+} from '@heroicons/vue/24/outline'
 import { isSupabaseConfigured, supabase } from '../supabase'
 
 const props = defineProps<{

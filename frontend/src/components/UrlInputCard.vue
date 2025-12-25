@@ -18,14 +18,20 @@
               :disabled="isLoading"
               class="px-6 sm:px-8 py-3.5 sm:py-4 btn-primary transition-all flex items-center justify-center gap-2 w-full md:w-auto min-h-[44px]"
             >
-              <span>✨</span> 生成总结
+              <span class="icon-chip-inline text-white/90">
+                <SparklesIcon class="h-3.5 w-3.5" />
+              </span>
+              生成总结
             </button>
             <button
               type="button"
               class="px-5 py-3.5 btn-ghost border border-gray-200 dark:border-gray-700/50 rounded-xl text-sm font-medium hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors"
               @click="$emit('bulk')"
             >
-              <span>📦</span> 批量导入
+              <span class="icon-chip-inline text-gray-500 mr-1">
+                <Squares2X2Icon class="h-3.5 w-3.5" />
+              </span>
+              批量导入
             </button>
           </div>
 
@@ -69,6 +75,7 @@
 
 <script setup lang="ts">
 import { reactive, onMounted, ref } from 'vue'
+import { SparklesIcon, Squares2X2Icon } from '@heroicons/vue/24/outline'
 import type { SummarizeRequest } from '../types/api'
 
 defineProps<{

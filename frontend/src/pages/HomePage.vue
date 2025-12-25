@@ -151,19 +151,25 @@
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
             <button class="page-card card-action hover:translate-y-[-4px] transition-transform duration-300" type="button" @click="scrollToStart">
-              <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-xl mb-4">⚡️</div>
+              <div class="icon-chip bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 mb-4">
+                <BoltIcon class="h-4 w-4" />
+              </div>
               <div class="text-base font-semibold text-gray-900 dark:text-gray-100">结构化总结</div>
               <div class="mt-2 text-sm text-gray-500 leading-relaxed">AI 智能提取视频核心观点，生成层级分明的笔记，通过大纲快速把握重点。</div>
               <div class="mt-4 text-xs text-primary font-semibold">开始总结 →</div>
             </button>
             <button class="page-card card-action hover:translate-y-[-4px] transition-transform duration-300" type="button" @click="scrollToStart">
-              <div class="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-xl mb-4">📝</div>
+              <div class="icon-chip bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300 mb-4">
+                <DocumentTextIcon class="h-4 w-4" />
+              </div>
               <div class="text-base font-semibold text-gray-900 dark:text-gray-100">自动转录</div>
               <div class="mt-2 text-sm text-gray-500 leading-relaxed">提供精准的逐字稿与时间戳，支持一键定位播放，不错过任何细节。</div>
               <div class="mt-4 text-xs text-primary font-semibold">立即试用 →</div>
             </button>
             <button class="page-card card-action hover:translate-y-[-4px] transition-transform duration-300 page-card--accent" type="button" @click="scrollToStart">
-              <div class="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-xl mb-4">🧠</div>
+              <div class="icon-chip bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 mb-4">
+                <MapIcon class="h-4 w-4" />
+              </div>
               <div class="text-base font-semibold text-gray-900 dark:text-gray-100">思维导图</div>
               <div class="mt-2 text-sm text-gray-500 leading-relaxed">自动分析逻辑脉络，生成可视化思维导图，支持导出 SVG/PNG，便于复习与分享。</div>
               <div class="mt-4 text-xs text-primary font-semibold">立即生成 →</div>
@@ -233,7 +239,9 @@
         <section id="user-management" class="grid grid-cols-1 md:grid-cols-3 gap-5 pt-6 pb-6 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
           <div class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex flex-col gap-4">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📊</div>
+              <div class="icon-chip bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 group-hover:scale-110 transition-transform">
+                <ChartBarIcon class="h-5 w-5" />
+              </div>
               <div>
                 <div class="text-base font-semibold text-gray-900 dark:text-gray-100">仪表盘</div>
                 <div class="mt-1 text-sm text-gray-500">查看使用趋势与剩余积分</div>
@@ -244,7 +252,9 @@
           
           <div class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex flex-col gap-4">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">💳</div>
+              <div class="icon-chip bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300 group-hover:scale-110 transition-transform">
+                <ReceiptPercentIcon class="h-5 w-5" />
+              </div>
               <div>
                 <div class="text-base font-semibold text-gray-900 dark:text-gray-100">账单与发票</div>
                 <div class="mt-1 text-sm text-gray-500">管理订阅记录与查看发票</div>
@@ -255,7 +265,9 @@
 
           <div class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex flex-col gap-4">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">🎁</div>
+              <div class="icon-chip bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-300 group-hover:scale-110 transition-transform">
+                <GiftIcon class="h-5 w-5" />
+              </div>
               <div>
                 <div class="text-base font-semibold text-gray-900 dark:text-gray-100">邀请好友</div>
                 <div class="mt-1 text-sm text-gray-500">分享邀请码，赢取积分奖励</div>
@@ -268,7 +280,9 @@
         <!-- Section: Developer & Resources -->
         <section id="resources" class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-6 pb-10 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
           <button @click="requireAuth(() => $router.push('/developer'))" class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center gap-4 text-left">
-            <div class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">🛠️</div>
+            <div class="icon-chip bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 group-hover:scale-110 transition-transform">
+              <WrenchScrewdriverIcon class="h-5 w-5" />
+            </div>
             <div>
               <div class="text-base font-semibold text-gray-900 dark:text-gray-100">开发者 API</div>
               <div class="mt-1 text-sm text-gray-500">将总结能力集成到你的应用中</div>
@@ -276,7 +290,9 @@
             <div class="ml-auto text-gray-400 group-hover:translate-x-1 transition-transform">→</div>
           </button>
           <RouterLink to="/docs" class="page-card group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📖</div>
+            <div class="icon-chip bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 group-hover:scale-110 transition-transform">
+              <BookOpenIcon class="h-5 w-5" />
+            </div>
             <div>
               <div class="text-base font-semibold text-gray-900 dark:text-gray-100">使用文档</div>
               <div class="mt-1 text-sm text-gray-500">查看详细功能介绍与常见问题</div>
@@ -290,6 +306,16 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, inject } from 'vue'
+import {
+  BookOpenIcon,
+  BoltIcon,
+  ChartBarIcon,
+  DocumentTextIcon,
+  GiftIcon,
+  MapIcon,
+  ReceiptPercentIcon,
+  WrenchScrewdriverIcon,
+} from '@heroicons/vue/24/outline'
 import { exportToPdf } from '../utils/pdfExporter'
 import UrlInputCard from '../components/UrlInputCard.vue'
 import LoadingOverlay from '../components/LoadingOverlay.vue'

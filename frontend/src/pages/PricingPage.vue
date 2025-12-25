@@ -49,7 +49,12 @@
       <!-- 信任保障 -->
       <section class="mt-12 text-center" data-reveal>
         <div class="page-card max-w-2xl mx-auto">
-          <div class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">💳 安全支付保障</div>
+          <div class="flex items-center justify-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <span class="icon-chip-sm text-primary/80">
+              <ShieldCheckIcon class="h-4 w-4" />
+            </span>
+            安全支付保障
+          </div>
           <div class="text-xs text-gray-500 leading-relaxed">
             支持支付宝、微信支付等主流支付方式。所有交易经过加密处理，保障您的资金安全。
           </div>
@@ -61,6 +66,7 @@
 
 <script setup lang="ts">
 import { inject } from 'vue'
+import { ShieldCheckIcon } from '@heroicons/vue/24/outline'
 import { useReveal } from '../composables/useReveal'
 import FeatureCompareTable from '../components/FeatureCompareTable.vue'
 import FaqSection from '../components/FaqSection.vue'

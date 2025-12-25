@@ -36,19 +36,34 @@
         <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">功能详解</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div class="page-card">
-            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">📝 视频总结</div>
+            <div class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+              <span class="icon-chip-sm text-primary/80">
+                <DocumentTextIcon class="h-4 w-4" />
+              </span>
+              视频总结
+            </div>
             <div class="mt-2 text-xs text-gray-500 leading-relaxed">
               支持智能模式（优先字幕）和视频模式（AI 分析画面），提供结构化总结和关键观点提取
             </div>
           </div>
           <div class="page-card">
-            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">🧠 思维导图</div>
+            <div class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+              <span class="icon-chip-sm text-primary/80">
+                <MapIcon class="h-4 w-4" />
+              </span>
+              思维导图
+            </div>
             <div class="mt-2 text-xs text-gray-500 leading-relaxed">
               自动生成 Mermaid 格式思维导图，支持导出 SVG/PNG，可在其他工具中继续编辑
             </div>
           </div>
           <div class="page-card">
-            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">💬 AI 追问</div>
+            <div class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+              <span class="icon-chip-sm text-primary/80">
+                <ChatBubbleLeftRightIcon class="h-4 w-4" />
+              </span>
+              AI 追问
+            </div>
             <div class="mt-2 text-xs text-gray-500 leading-relaxed">
               基于视频内容进行深度对话，挖掘细节、解答疑问、探索延伸知识
             </div>
@@ -61,14 +76,24 @@
         <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">开发者文档</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
           <button class="page-card card-hover-elevate card-action" type="button" @click="goToDeveloper">
-            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">🔑 API 接入</div>
+            <div class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+              <span class="icon-chip-sm text-primary/80">
+                <KeyIcon class="h-4 w-4" />
+              </span>
+              API 接入
+            </div>
             <div class="mt-2 text-xs text-gray-500 leading-relaxed">
               获取 API Key，通过 RESTful API 调用总结功能，集成到您的应用中
             </div>
             <div class="mt-4 text-xs text-primary font-semibold">查看 API 文档 →</div>
           </button>
           <div class="page-card">
-            <div class="text-base font-semibold text-gray-900 dark:text-gray-100">⚠️ 错误码说明</div>
+            <div class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+              <span class="icon-chip-sm text-amber-500/80">
+                <ExclamationTriangleIcon class="h-4 w-4" />
+              </span>
+              错误码说明
+            </div>
             <div class="mt-2 text-xs text-gray-500 space-y-1">
               <div>• 403: 积分不足</div>
               <div>• 429: 请求频率过高</div>
@@ -87,7 +112,12 @@
       <!-- 贡献指南 -->
       <section class="mt-12 text-center" data-reveal>
         <div class="page-card max-w-2xl mx-auto">
-          <div class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">🤝 开源贡献</div>
+          <div class="flex items-center justify-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <span class="icon-chip-sm text-primary/80">
+              <CodeBracketSquareIcon class="h-4 w-4" />
+            </span>
+            开源贡献
+          </div>
           <div class="text-xs text-gray-500 leading-relaxed mb-4">
             Bili-Summarizer 是开源项目，欢迎提交 Issue 和 Pull Request
           </div>
@@ -107,6 +137,14 @@
 
 <script setup lang="ts">
 import { inject } from 'vue'
+import {
+  ChatBubbleLeftRightIcon,
+  CodeBracketSquareIcon,
+  DocumentTextIcon,
+  ExclamationTriangleIcon,
+  KeyIcon,
+  MapIcon,
+} from '@heroicons/vue/24/outline'
 import { useRouter } from 'vue-router'
 import { useReveal } from '../composables/useReveal'
 import FaqSection from '../components/FaqSection.vue'

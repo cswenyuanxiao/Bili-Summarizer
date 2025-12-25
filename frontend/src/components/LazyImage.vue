@@ -29,13 +29,16 @@
       v-if="isError" 
       class="lazy-image-error absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400"
     >
-      <span class="text-2xl">🖼️</span>
+      <span class="icon-chip text-gray-400">
+        <PhotoIcon class="h-4 w-4" />
+      </span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { PhotoIcon } from '@heroicons/vue/24/outline'
 
 const props = withDefaults(defineProps<{
   src: string
