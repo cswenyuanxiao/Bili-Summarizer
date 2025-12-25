@@ -22,3 +22,28 @@ Owner: Core Eng
 ## CI 基线（必过）
 - Backend 依赖安装 + `pip check`
 - Frontend `npm run build` 成功
+
+---
+
+## 🛡️ 模块化与解耦最佳实践
+
+### 原则 1: 单一职责 (SRP)
+- main.py 仅负责应用初始化 (~150行)
+- 业务逻辑放到 routers/ 和 services/
+- 配置常量统一在 config.py
+
+### 原则 2: "超过100行就拆分"
+- 单个文件 >300行 → 立即拆分
+- 单个router >100行 → 按功能分解
+
+### 原则 3: 依赖注入
+- 使用 FastAPI Depends 避免全局导入
+- 避免循环依赖
+
+### 原则 4: 定期审查
+```bash
+# 每月检查最大文件
+find web_app -name "*.py" -exec wc -l {} \; | sort -rn | head -10
+```
+
+**详细指南**: 见 [REFACTORING_CLEANUP_GUIDE.md](./REFACTORING_CLEANUP_GUIDE.md)
