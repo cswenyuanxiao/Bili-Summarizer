@@ -178,6 +178,10 @@
                       <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">API 文档</span>
                     </RouterLink>
                     
+                    <RouterLink to="/settings" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">设置</span>
+                    </RouterLink>
+                    
                     <RouterLink to="/docs" class="flex items-center px-4 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-all duration-200 group" @click="showUserMenu = false">
                       <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white group-hover:translate-x-1 transition-transform">使用文档</span>
                     </RouterLink>
@@ -247,28 +251,13 @@
     <LoginModal :show="showLoginModal" @close="showLoginModal = false" />
     <PricingModal :show="showPricingModal" @close="showPricingModal = false" />
     <ApiKeyModal :show="showApiKeyModal" @close="showApiKeyModal = false" />
-    <DashboardModal
-      :show="showDashboard"
-      :loading="dashboardLoading"
-      :error="dashboardError"
-      :data="dashboardData"
-      :subscription="subscriptionData"
-      @close="showDashboard = false"
-      @refresh="fetchDashboard"
-      @upgrade="openPricing"
-    />
+    <!-- DashboardModal removed in favor of /dashboard page -->
+
     <InviteModal
       :show="showInviteModal"
       @close="showInviteModal = false"
-      @refreshed="fetchDashboard"
     />
-    <BillingModal
-      :show="showBillingModal"
-      :loading="billingLoading"
-      :error="billingError"
-      :items="billingItems"
-      @close="showBillingModal = false"
-    />
+    <!-- BillingModal removed - use /billing page instead -->
     <UsageGuideModal :show="showUsageGuide" @close="showUsageGuide = false" />
     <FeedbackModal :show="showFeedbackModal" @close="showFeedbackModal = false" />
 
@@ -279,7 +268,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, provide } from 'vue'
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
+
 import {
   BellIcon,
   ChartBarIcon,
@@ -294,8 +284,9 @@ import {
 import LoginModal from './components/LoginModal.vue'
 import PricingModal from './components/PricingModal.vue'
 import ApiKeyModal from './components/ApiKeyModal.vue'
-import DashboardModal from './components/DashboardModal.vue'
-import BillingModal from './components/BillingModal.vue'
+// DashboardModal removed
+
+// BillingModal removed - use /billing page instead
 import InviteModal from './components/InviteModal.vue'
 import UsageGuideModal from './components/UsageGuideModal.vue'
 import FeedbackModal from './components/FeedbackModal.vue'
@@ -315,8 +306,7 @@ const { user, logout } = useAuth()
 const showLoginModal = ref(false)
 const showPricingModal = ref(false)
 const showApiKeyModal = ref(false)
-const showDashboard = ref(false)
-const showBillingModal = ref(false)
+// showBillingModal removed - use /billing page instead
 const showInviteModal = ref(false)
 const showUsageGuide = ref(false)
 const showFeedbackModal = ref(false)
@@ -334,32 +324,14 @@ const requireAuth = (action: () => any) => {
   action()
 }
 
-const dashboardLoading = ref(false)
-const dashboardError = ref('')
-const dashboardData = ref<{
-  credits: number
-  total_used: number
-  cost_per_summary: number
-  daily_usage?: { day: string; count: number }[]
-  email?: string | null
-} | null>(null)
+// dashboardData removed since Dashboard is now a page
+
 const subscriptionData = ref<{
   plan: string
   status: string
   current_period_end?: string | null
 } | null>(null)
-const billingLoading = ref(false)
-const billingError = ref('')
-const billingItems = ref<Array<{
-  id: string
-  amount_cents: number
-  currency: string
-  status: string
-  period_start?: string | null
-  period_end?: string | null
-  invoice_url?: string | null
-  created_at?: string | null
-}>>([])
+// Billing state removed - logic is now in BillingPage.vue
 
 const getSupabaseToken = async () => {
   if (!isSupabaseConfigured || !supabase) return null
@@ -375,18 +347,18 @@ const openPricing = () => {
   showPricingModal.value = true
 }
 
+const router = useRouter()
+
 const openDashboard = async () => {
   showUserMenu.value = false
   showMobileMenu.value = false
-  showDashboard.value = true
-  await fetchDashboard()
+  router.push('/dashboard')
 }
 
-const openBilling = async () => {
+const openBilling = () => {
   showUserMenu.value = false
   showMobileMenu.value = false
-  showBillingModal.value = true
-  await fetchBilling()
+  router.push('/billing')
 }
 
 const openInvite = () => {
@@ -415,8 +387,7 @@ const handleLogout = async () => {
     showUserMenu.value = false
     showPricingModal.value = false
     showApiKeyModal.value = false
-    showDashboard.value = false
-    showBillingModal.value = false
+    // showBillingModal removed
     showInviteModal.value = false
     showUsageGuide.value = false
     showLoginModal.value = false
@@ -425,40 +396,6 @@ const handleLogout = async () => {
   }
 }
 
-const fetchDashboard = async () => {
-  if (!user.value) {
-    dashboardData.value = null
-    return
-  }
-  if (!isSupabaseConfigured) {
-    dashboardError.value = '登录服务未配置'
-    dashboardData.value = null
-    return
-  }
-  dashboardLoading.value = true
-  dashboardError.value = ''
-  try {
-    const token = await getSupabaseToken()
-    if (!token) throw new Error('未获取到登录凭证')
-    const response = await fetch('/api/dashboard', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    if (!response.ok) {
-      const text = await response.text()
-      try {
-        const error = JSON.parse(text)
-        throw new Error(error.detail || '获取仪表盘失败')
-      } catch {
-        throw new Error(`请求失败 (${response.status})`)
-      }
-    }
-    dashboardData.value = await response.json()
-  } catch (error: any) {
-    dashboardError.value = error?.message || '获取仪表盘失败'
-  } finally {
-    dashboardLoading.value = false
-  }
-}
 
 const fetchSubscription = async () => {
   if (!user.value || !isSupabaseConfigured) {
@@ -486,40 +423,7 @@ const fetchSubscription = async () => {
   }
 }
 
-const fetchBilling = async () => {
-  if (!user.value) {
-    billingItems.value = []
-    return
-  }
-  if (!isSupabaseConfigured) {
-    billingError.value = '登录服务未配置'
-    billingItems.value = []
-    return
-  }
-  billingLoading.value = true
-  billingError.value = ''
-  try {
-    const token = await getSupabaseToken()
-    if (!token) throw new Error('未获取到登录凭证')
-    const response = await fetch('/api/billing', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    if (!response.ok) {
-      const text = await response.text()
-      try {
-        const error = JSON.parse(text)
-        throw new Error(error.detail || '获取账单失败')
-      } catch {
-        throw new Error(`请求失败 (${response.status})`)
-      }
-    }
-    billingItems.value = await response.json()
-  } catch (error: any) {
-    billingError.value = error?.message || '获取账单失败'
-  } finally {
-    billingLoading.value = false
-  }
-}
+// fetchBilling removed - logic is now in BillingPage.vue
 
 const planLabel = computed(() => {
   if (subscriptionData.value?.plan === 'pro' && subscriptionData.value?.status === 'active') {
@@ -530,14 +434,16 @@ const planLabel = computed(() => {
 
 watch(user, (nextUser) => {
   if (nextUser) {
-    fetchDashboard().catch(() => undefined)
+    // fetchDashboard().catch(() => undefined) // Removed
+
     fetchSubscription().catch(() => undefined)
   } else {
     showUserMenu.value = false
     showPricingModal.value = false
     showApiKeyModal.value = false
-    showDashboard.value = false
-    showBillingModal.value = false
+    // showDashboard.value = false
+
+    // showBillingModal removed
     showInviteModal.value = false
     showUsageGuide.value = false
   }

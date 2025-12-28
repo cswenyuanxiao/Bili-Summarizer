@@ -15,6 +15,7 @@ from .feedback import router as feedback_router
 from .subscriptions import router as subscriptions_router
 from .trending import router as trending_router
 from .favorites import router as favorites_router
+from .teams import router as teams_router
 
 
 def register_routers(app: FastAPI):
@@ -54,4 +55,7 @@ def register_routers(app: FastAPI):
     
     # Favorites router - 收藏夹
     app.include_router(favorites_router)
+    
+    # Teams router - 团队协作
+    app.include_router(teams_router)
 

@@ -111,6 +111,7 @@ class BatchSummarizeService:
         # 为了避免循环依赖和冗余代码，我们直接调用底层的实现函数
         from .downloader import download_content
         from .summarizer_gemini import summarize_content, extract_ai_transcript, upload_to_gemini
+        from .cache import save_to_cache  # 添加缓存导入
         
         loop = asyncio.get_event_loop()
         
@@ -136,9 +137,20 @@ class BatchSummarizeService:
             transcript = await loop.run_in_executor(
                 None, extract_ai_transcript, video_path, None, remote_file
             )
+        
+        # 5. 保存到缓存/历史记录（关键！）
+        # 注意：summary 是元组 (summary_text, usage_dict)
+        if isinstance(summary, tuple):
+            summary_text, usage = summary
+        else:
+            summary_text = summary
+            usage = None
+        
+        # 保存到 cache 表（会自动成为历史记录）
+        save_to_cache(url, mode, focus, summary_text, transcript or '', usage)
             
         return {
-            "summary": summary,
+            "summary": summary_text,
             "transcript": transcript,
             "url": url
         }

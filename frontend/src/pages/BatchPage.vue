@@ -138,6 +138,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   ArrowPathIcon,
   BoltIcon,
@@ -147,6 +148,11 @@ import {
   ListBulletIcon,
 } from '@heroicons/vue/24/outline'
 import { supabase } from '../supabase'
+import { useHistorySync } from '../composables/useHistorySync'
+
+// 引入历史记录同步功能
+const { syncToCloud, getLocalHistory, saveLocalHistory } = useHistorySync()
+const router = useRouter()
 
 interface Task {
   url: string
@@ -160,6 +166,8 @@ interface Task {
 const urlsText = ref('')
 const processing = ref(false)
 const tasks = ref<Task[]>([])
+const batchMode: 'smart' | 'video' = 'smart'
+const batchFocus = 'default'
 
 const urlList = computed(() => {
   return urlsText.value
@@ -192,66 +200,221 @@ async function startBatch() {
     progress: 0
   }))
 
-  // 串行处理每个任务(避免API限流)
-  for (const task of tasks.value) {
-    await processTask(task)
-    // 任务间延迟2秒
-    await new Promise(resolve => setTimeout(resolve, 2000))
-  }
-
-  processing.value = false
-}
-
-async function processTask(task: Task) {
-  task.state = 'processing'
-  task.status = '正在总结...'
-  task.progress = 10
-
   try {
+    // 检查supabase是否可用
+    if (!supabase) {
+      throw new Error('认证服务未配置')
+    }
+    
     // 获取认证token
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session) {
       throw new Error('请先登录')
     }
-    
-    task.progress = 30
-    task.status = '调用AI总结接口...'
-    
-    // 调用真实的总结API
-    const response = await fetch('/api/summarize', {
+
+    // 调用批量总结API
+    const response = await fetch('/api/batch/summarize', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${session.access_token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        url: task.url,
-        mode: 'smart',
-        skip_cache: false
+        urls: urlList.value,
+        mode: batchMode,
+        focus: batchFocus
       })
     })
-    
-    task.progress = 70
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.detail || `HTTP ${response.status}`)
     }
-    
-    const result = await response.json()
-    
-    task.state = 'done'
-    task.status = '总结完成'
-    task.progress = 100
-    task.summary = result.summary || '总结成功'
-    
+
+    const { job_id } = await response.json()
+
+    // 轮询任务状态
+    await pollBatchStatus(job_id, session.access_token)
+
   } catch (err: any) {
-    task.state = 'error'
-    task.status = '总结失败'
-    task.error = err.message || String(err)
-    task.progress = 0
+    // 所有任务标记为失败
+    tasks.value.forEach(task => {
+      task.state = 'error'
+      task.status = '批量提交失败'
+      task.error = err.message || String(err)
+    })
+  } finally {
+    processing.value = false
   }
+}
+
+async function pollBatchStatus(jobId: string, token: string) {
+  const maxAttempts = 120 // 最多轮询2分钟
+  let attempts = 0
+  let latestResults: Record<string, { summary?: string; transcript?: string }> | null = null
+  let completed = false
+
+  while (attempts < maxAttempts) {
+    try {
+      const response = await fetch(`/api/batch/${jobId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`轮询失败: HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      if (data?.results && Object.keys(data.results).length > 0) {
+        latestResults = data.results
+      }
+      
+      // 更新任务进度
+      updateTasksFromBatchStatus(data)
+
+      // 检查是否完成
+      if (data.status === 'completed' || data.status === 'partial' || data.status === 'failed') {
+        completed = true
+        break
+      }
+
+      // 等待1秒后继续轮询
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      attempts++
+
+    } catch (err) {
+      console.error('轮询错误:', err)
+      break
+    }
+  }
+
+  if (attempts >= maxAttempts) {
+    tasks.value.forEach(task => {
+      if (task.state === 'processing' || task.state === 'pending') {
+        task.state = 'error'
+        task.status = '处理超时'
+        task.error = '任务处理时间过长，请稍后查看结果'
+      }
+    })
+  }
+
+  if (latestResults) {
+    const infoMap = await fetchVideoInfoForUrls(Object.keys(latestResults))
+    appendBatchResultsToHistory(latestResults, infoMap, batchMode, batchFocus)
+  }
+
+  // 批量总结完成后,刷新历史记录
+  try {
+    await syncToCloud()
+    console.log('批量总结完成,历史记录已刷新')
+  } catch (err) {
+    console.error('历史记录刷新失败:', err)
+  }
+
+  if (completed) {
+    try {
+      await router.push({ name: 'home', query: { from: 'batch', t: Date.now().toString() } })
+    } catch (err) {
+      console.error('跳转主页失败:', err)
+    }
+  }
+}
+
+function updateTasksFromBatchStatus(batchData: any) {
+  const { results, errors, progress } = batchData
+
+  tasks.value.forEach(task => {
+    // 检查是否有结果
+    if (results && results[task.url]) {
+      task.state = 'done'
+      task.status = '总结完成'
+      task.progress = 100
+      task.summary = results[task.url].summary || '总结成功'
+    } 
+    // 检查是否有错误
+    else if (errors && errors[task.url]) {
+      task.state = 'error'
+      task.status = '总结失败'
+      task.error = errors[task.url]
+      task.progress = 0
+    }
+    // 否则标记为处理中
+    else if (task.state === 'pending') {
+      task.state = 'processing'
+      task.status = 'AI分析中...'
+      task.progress = Math.min(progress || 0, 90)
+    }
+  })
+}
+
+async function fetchVideoInfoForUrls(urls: string[]) {
+  const infoMap: Record<string, { title?: string; thumbnail?: string }> = {}
+  await Promise.all(urls.map(async (url) => {
+    try {
+      const response = await fetch('/api/video-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      })
+      if (!response.ok) {
+        return
+      }
+      const data = await response.json()
+      infoMap[url] = {
+        title: data?.title || '',
+        thumbnail: data?.thumbnail || ''
+      }
+    } catch (err) {
+      console.error('批量获取视频信息失败:', err)
+    }
+  }))
+  return infoMap
+}
+
+function appendBatchResultsToHistory(
+  results: Record<string, { summary?: string; transcript?: string }>,
+  infoMap: Record<string, { title?: string; thumbnail?: string }>,
+  mode: 'smart' | 'video',
+  focus: string
+) {
+  const history = getLocalHistory()
+  const updatedMap = new Map<string, typeof history[number]>()
+
+  history.forEach(item => {
+    const key = `${item.video_url}|${item.mode}|${item.focus}`
+    updatedMap.set(key, item)
+  })
+
+  Object.entries(results).forEach(([url, result]) => {
+    const key = `${url}|${mode}|${focus}`
+    const existing = updatedMap.get(key)
+    const info = infoMap[url] || {}
+    const now = new Date().toISOString()
+    updatedMap.set(key, {
+      id: existing?.id,
+      video_url: url,
+      video_title: existing?.video_title || info.title || '',
+      video_thumbnail: existing?.video_thumbnail || info.thumbnail || '',
+      mode,
+      focus,
+      summary: result.summary || existing?.summary || '',
+      transcript: result.transcript || existing?.transcript || '',
+      mindmap: existing?.mindmap || '',
+      created_at: existing?.created_at || now,
+      updated_at: now
+    })
+  })
+
+  const merged = Array.from(updatedMap.values()).sort((a, b) => {
+    const timeA = new Date(a.created_at || 0).getTime()
+    const timeB = new Date(b.created_at || 0).getTime()
+    return timeB - timeA
+  })
+
+  saveLocalHistory(merged.slice(0, 50))
 }
 
 function viewSummary(task: Task) {

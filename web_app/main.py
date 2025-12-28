@@ -90,6 +90,7 @@ from .teams import (
     create_team, get_user_teams, get_team_details, 
     share_summary_to_team, add_comment, get_summary_comments
 )
+from .routers.dashboard import is_subscription_active
 from .telemetry import record_failure, init_telemetry_db
 from typing import List
 from .db import get_connection, get_backend_info, using_postgres
@@ -171,6 +172,13 @@ async def on_startup():
         init_favorites_table()
     except Exception as e:
         logger.error(f"Failed to initialize favorites table: {e}")
+    
+    # 初始化团队协作表
+    try:
+        from .init_teams_tables import init_teams_tables
+        init_teams_tables()
+    except Exception as e:
+        logger.error(f"Failed to initialize teams tables: {e}")
     
     # 启动定时任务调度器 (P4 每日推送到订阅)
     start_scheduler()
@@ -969,7 +977,10 @@ async def create_batch_summarize(
     required_credits = len(body.urls) * 10
     credits_data = get_user_credits(user["user_id"])
     
-    if not is_unlimited_user(user) and (not credits_data or credits_data["credits"] < required_credits):
+    # 检查是否为无限额度用户（管理员 或 Pro 订阅）
+    unlimited_user = is_unlimited_user(user) or is_subscription_active(user["user_id"])
+    
+    if not unlimited_user and (not credits_data or credits_data["credits"] < required_credits):
         raise HTTPException(
             status_code=402,
             detail=f"余额不足。此批次需要 {required_credits} 积分，当前余额为 {credits_data['credits'] if credits_data else 0}。"
@@ -983,14 +994,14 @@ async def create_batch_summarize(
             focus=body.focus
         )
         
-        # 预扣积分
-        if not is_unlimited_user(user):
+        # 预扣积分（仅针对非无限用户）
+        if not unlimited_user:
             charge_user_credits(user["user_id"], required_credits)
             
         return {
             "job_id": job_id,
             "count": len(body.urls),
-            "credits_charged": required_credits if not is_unlimited_user(user) else 0
+            "credits_charged": required_credits if not unlimited_user else 0
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1178,8 +1189,11 @@ async def import_favorites_api(request: Request, body: FavoritesImportRequest):
         cost_per = cost_info.get("cost_per_summary", 10)
         required_credits = len(urls) * cost_per
         
+        # 检查是否为无限额度用户（管理员 或 Pro 订阅）
+        unlimited_user = is_unlimited_user(user) or is_subscription_active(user["user_id"])
+        
         user_credits = await get_user_credits(user["user_id"])
-        if user_credits < required_credits and not is_unlimited_user(user):
+        if user_credits < required_credits and not unlimited_user:
             raise HTTPException(status_code=402, detail=f"积分不足，需要 {required_credits}，当前 {user_credits}")
             
         # 创建批量任务
@@ -1190,8 +1204,8 @@ async def import_favorites_api(request: Request, body: FavoritesImportRequest):
             focus=body.focus
         )
         
-        # 扣除积分
-        if not is_unlimited_user(user):
+        # 扣除积分（仅针对非无限用户）
+        if not unlimited_user:
             await charge_user_credits(user["user_id"], required_credits, f"批量导入收藏夹任务: {job_id}")
             
         return {

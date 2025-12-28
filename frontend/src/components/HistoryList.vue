@@ -20,13 +20,21 @@
       <div class="mx-auto mb-3 icon-chip text-primary/80">
         <InboxIcon class="h-5 w-5" />
       </div>
-      <p class="text-sm text-gray-500 dark:text-gray-400">完成一次总结后，历史记录会出现在这里。</p>
-      <button
-        @click="$emit('guide')"
-        class="mt-4 inline-flex items-center justify-center px-4 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
-      >
-        查看使用文档
-      </button>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">完成一次总结后，历史记录会出现在这里。</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-2 mt-4">
+        <button
+          @click="$emit('start')"
+          class="inline-flex items-center justify-center px-5 py-2.5 text-sm bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-medium"
+        >
+          开始总结
+        </button>
+        <button
+          @click="$emit('guide')"
+          class="inline-flex items-center justify-center px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
+        >
+          查看使用文档
+        </button>
+      </div>
     </div>
 
     <div v-else class="history-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -79,6 +87,7 @@ defineEmits<{
   select: [item: HistoryItem]
   clear: []
   guide: []
+  start: []
   share: [item: HistoryItem]
 }>()
 

@@ -32,7 +32,9 @@ const router = createRouter({
     { path: '/compare', name: 'compare', component: () => import('../pages/ComparePage.vue') },
     { path: '/teams', name: 'teams', component: () => import('../pages/TeamsPage.vue') },
     { path: '/terms', name: 'terms', component: TermsPage },
-    { path: '/privacy', name: 'privacy', component: PrivacyPage }
+    { path: '/privacy', name: 'privacy', component: PrivacyPage },
+    { path: '/settings', name: 'settings', component: () => import('../pages/SettingsPage.vue') },
+    { path: '/changelog', name: 'changelog', component: () => import('../pages/ChangelogPage.vue') }
   ],
   scrollBehavior() {
     return { top: 0 }

@@ -109,6 +109,14 @@ onMounted(async () => {
 async function fetchFavorites() {
   loading.value = true
   try {
+    // 检查supabase是否可用
+    if (!supabase) {
+      console.warn('Supabase未配置')
+      favorites.value = []
+      loading.value = false
+      return
+    }
+    
     // 获取认证token
     const { data: { session } } = await supabase.auth.getSession()
     
@@ -145,6 +153,12 @@ async function removeFavorite(id: string) {
   if (!confirm('确定要删除这个收藏吗?')) return
   
   try {
+    // 检查supabase是否可用
+    if (!supabase) {
+      alert('认证服务未配置')
+      return
+    }
+    
     // 获取认证token
     const { data: { session } } = await supabase.auth.getSession()
     

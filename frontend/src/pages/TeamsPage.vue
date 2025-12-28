@@ -122,7 +122,7 @@
                             <span class="icon-chip-inline text-primary/80">
                               <ChatBubbleLeftRightIcon class="h-3.5 w-3.5" />
                             </span>
-                            {{ getCommentCount(item.id) }} 评论
+                            {{ item.comment_count || 0 }} 评论
                           </button>
                           <button class="text-gray-400 hover:text-red-500 flex items-center gap-1">
                             <span class="icon-chip-inline text-red-500/80">
@@ -190,6 +190,7 @@ import {
   SparklesIcon,
   UserGroupIcon,
 } from '@heroicons/vue/24/outline'
+import { supabase } from '../supabase'
 
 interface Team {
   id: string
@@ -214,6 +215,7 @@ interface TeamSummary {
   video_thumbnail: string
   mode: string
   shared_at: string
+  comment_count?: number
 }
 
 interface TeamDetail extends Team {
@@ -231,9 +233,14 @@ const newTeam = ref({ name: '', description: '' })
 async function fetchTeams() {
   loading.value = true
   try {
-    const token = localStorage.getItem('supabase_token')
+    if (!supabase) {
+      console.warn('Supabase未配置')
+      loading.value = false
+      return
+    }
+    const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/teams', {
-      headers: { 'Authorization': `Bearer ${token || ''}` }
+      headers: { 'Authorization': `Bearer ${session?.access_token || ''}` }
     })
     const data = await res.json()
     teams.value = data.teams || []
@@ -247,9 +254,10 @@ async function fetchTeams() {
 async function selectTeam(teamId: string) {
   activeTeamId.value = teamId
   try {
-    const token = localStorage.getItem('supabase_token')
+    if (!supabase) return
+    const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch(`/api/teams/${teamId}`, {
-      headers: { 'Authorization': `Bearer ${token || ''}` }
+      headers: { 'Authorization': `Bearer ${session?.access_token || ''}` }
     })
     activeTeam.value = await res.json()
   } catch (err) {
@@ -259,12 +267,16 @@ async function selectTeam(teamId: string) {
 
 async function handleCreateTeam() {
   try {
-    const token = localStorage.getItem('supabase_token')
+    if (!supabase) {
+      alert('认证服务未配置')
+      return
+    }
+    const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/teams', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token || ''}` 
+        'Authorization': `Bearer ${session?.access_token || ''}` 
       },
       body: JSON.stringify(newTeam.value)
     })
@@ -286,10 +298,7 @@ function formatDate(dateStr: string) {
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`
 }
 
-function getCommentCount(_summaryId: string) {
-  // 模拟数据，实际应从 API 获取
-  return Math.floor(Math.random() * 5)
-}
+
 
 function showComments(item: TeamSummary) {
   alert(`查看 "${item.title}" 的评论列表 (功能开发中)`)

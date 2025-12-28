@@ -305,7 +305,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, inject } from 'vue'
+import { ref, computed, watch, nextTick, inject, onMounted, onBeforeUnmount } from 'vue'
 import {
   BookOpenIcon,
   BoltIcon,
@@ -388,15 +388,49 @@ const refreshHistory = async () => {
   rawHistory.value = getLocalHistory()
 }
 
-import { onMounted } from 'vue'
+// 添加定时刷新:每30秒从云端同步一次历史记录
+let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
+  // 立即刷新一次
   refreshHistory()
+  
+  // 设置定时刷新(仅当用户已登录时)
+  if (user.value) {
+    refreshInterval = setInterval(() => {
+      if (user.value) {
+        refreshHistory()
+      }
+    }, 30000) // 30秒刷新一次
+  }
 })
 
-watch(user, () => {
+// 监听用户登录状态变化
+watch(user, (newUser) => {
   fetchDashboard().catch(() => undefined)
   refreshHistory()
+  
+  // 如果用户登出,清除定时器
+  if (!newUser && refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = null
+  }
+  // 如果用户登录,启动定时器
+  else if (newUser && !refreshInterval) {
+    refreshInterval = setInterval(() => {
+      if (user.value) {
+        refreshHistory()
+      }
+    }, 30000)
+  }
+})
+
+// 组件卸载时清除定时器
+onBeforeUnmount(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = null
+  }
 })
 const displayHistory = computed(() => {
   return rawHistory.value.map(item => ({

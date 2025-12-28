@@ -92,7 +92,18 @@ def get_team_details(team_id: str, user_id: str) -> Optional[Dict[str, Any]]:
         WHERE team_id = ?
         ORDER BY created_at DESC
     """, (team_id,))
-    team['summaries'] = [dict(r) for r in cursor.fetchall()]
+    summaries = [dict(r) for r in cursor.fetchall()]
+    
+    # 5. 为每个总结添加评论计数
+    for summary in summaries:
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM comments
+            WHERE team_summary_id = ?
+        """, (summary['id'],))
+        count_row = cursor.fetchone()
+        summary['comment_count'] = count_row['count'] if count_row else 0
+    
+    team['summaries'] = summaries
     
     conn.close()
     return team

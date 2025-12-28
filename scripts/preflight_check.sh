@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${1:-http://localhost:7860}"
+BASE_URL="${1:-http://localhost:8000}"
 
 echo "Preflight check: ${BASE_URL}"
 

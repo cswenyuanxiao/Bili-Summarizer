@@ -40,7 +40,7 @@ COPY --from=frontend-builder /frontend/dist ./frontend/dist
 RUN mkdir -p videos
 
 # 网络端口 (Hugging Face / Render 默认使用 7860)
-EXPOSE 7860
+EXPOSE 8000
 
 # 启动命令 (增加 timeout 以支持长时间视频分析)
-CMD ["sh", "-c", "gunicorn web_app.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-7860} --timeout 1500"]
+CMD ["sh", "-c", "gunicorn web_app.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000} --timeout 1500"]

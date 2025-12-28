@@ -49,6 +49,13 @@
         >
           隐私政策
         </RouterLink>
+        
+        <RouterLink 
+          to="/changelog" 
+          class="hover:text-primary dark:hover:text-primary transition-colors"
+        >
+          更新日志
+        </RouterLink>
       </div>
 
       <!-- 版权信息 -->
