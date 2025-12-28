@@ -848,7 +848,7 @@ async def proxy_image_api(url: str):
 # --- AI Chat / Follow-up Endpoint (Legacy) ---
 # 模型已迁移到 schemas/chat.py
 
-@app.post("/chat")
+@app.post("/api/chat")
 async def chat_with_ai(request: ChatSimpleRequest):
     """Answer follow-up questions based on the video summary context."""
     import google.generativeai as genai
