@@ -91,7 +91,7 @@ def extract_ai_transcript(file_path: Path, progress_callback=None, uploaded_file
     
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name="models/gemini-3-flash-preview")
+        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
         
         # 如果 uploaded_file 存在，说明是并行模式，main.py 已经发送了统一的进度消息
         if progress_callback and not uploaded_file:
@@ -171,7 +171,7 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
     try:
         genai.configure(api_key=api_key)
         # 使用完整的模型名称
-        model = genai.GenerativeModel(model_name="models/gemini-3-flash-preview")
+        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
     except Exception as e:
         raise Exception(f"Google AI SDK 配置失败: {e}")
 
@@ -201,14 +201,17 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
             "1. 如果视频有视觉画面，请结合画面信息提供更丰富的描述。\n"
             "2. 摘要需要清晰、结构化且全面。\n"
             "3. 【重要】必须在总结的末尾提供一个 Mermaid 格式的思维导图。请严格使用 ```mermaid [换行] 代码 [换行] ``` 格式包裹，不要包含任何多余文字。\n"
+            "4. 思维导图必须使用 `mindmap` 语法（不要使用 graph/flowchart），格式如下：\n"
             "```mermaid\n"
-            "graph TD\n"
-            "    A[核心主题] --> B(关键分支1)\n"
-            "    B --> C(细分节点1)\n"
-            "    A --> D(关键分支2)\n"
-            "    E --> F(关键分支3)\n"
+            "mindmap\n"
+            "    root((核心主题))\n"
+            "        分支1\n"
+            "            子点1\n"
+            "            子点2\n"
+            "        分支2\n"
+            "        分支3\n"
             "```\n"
-            "4. 直接使用标准 Markdown 格式。严禁使用 LaTeX 格式，表示方向请直接使用 '→' 或 '->'。"
+            "5. 直接使用标准 Markdown 格式。严禁使用 LaTeX 格式，表示方向请直接使用 '→' 或 '->'。"
         )
 
     content_parts = [prompt_text]
@@ -300,7 +303,7 @@ def generate_ppt_structure(summary_text: str) -> dict:
     
     genai.configure(api_key=api_key)
     # 使用较快的模型处理简单的格式转换任务
-    model = genai.GenerativeModel("models/gemini-3-flash-preview")
+    model = genai.GenerativeModel("models/gemini-2.0-flash")
     
     prompt = """User wants to turn the following textual summary into a PowerPoint presentation.
     Please act as a Presentation Expert and structure the content into a JSON format suitable for generating slides.

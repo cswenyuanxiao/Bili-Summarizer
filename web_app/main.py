@@ -849,47 +849,61 @@ async def proxy_image_api(url: str):
 # 模型已迁移到 schemas/chat.py
 
 @app.post("/api/chat")
-async def chat_with_ai(request: ChatSimpleRequest):
-    """Answer follow-up questions based on the video summary context."""
+async def chat_with_ai(request: ChatRequest):
+    """Answer follow-up questions based on the video context with streaming support."""
     import google.generativeai as genai
-    from dotenv import load_dotenv
+    from fastapi.responses import StreamingResponse
     
-    load_dotenv()
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="API Key not configured")
     
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
-        
-        prompt = f"""你是一个视频内容助手。用户已经观看了一个视频，以下是该视频的总结内容：
+    async def chat_generator():
+        try:
+            genai.configure(api_key=api_key)
+            # Use gemini-2.0-flash for better follow-up questions
+            model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
+            
+            # Build conversation history
+            chat_history = [
+                {"role": "user" if m.role == "user" else "model", "parts": [m.content]}
+                for m in request.history
+            ]
+            
+            chat_session = model.start_chat(history=chat_history)
+            
+            # System instruction and context
+            context_prompt = f"""你是一个视频内容助手。用户已经观看了一个视频并获取了总结。
+以下是该视频的内容背景，请基于此回答用户的追问。
 
----
-{request.context}
----
+【总结内容】：
+{request.summary}
 
-现在用户有一个问题，请基于上述视频内容回答。如果问题超出了视频范围，请礼貌地说明。
+【完整转录】（如有）：
+{request.transcript}
 
-用户问题: {request.question}
+要求：
+1. 你的回答必须紧密围绕视频内容。
+2. 如果用户的提问超出了视频范围，请礼貌地说明，不要胡编乱造。
+3. 请用简洁、专业且友好的中文回答。
+"""
 
-请用简洁、友好的中文回答："""
-        
-        response = model.generate_content(prompt, request_options={"timeout": 60})
-        
-        if not response.parts:
-            raise HTTPException(status_code=500, detail="AI 未能生成回复")
-        
-        return {
-            "answer": response.text,
-            "usage": {
-                "prompt_tokens": response.usage_metadata.prompt_token_count,
-                "completion_tokens": response.usage_metadata.candidates_token_count,
-            }
-        }
-    except Exception as e:
-        logger.error(f"AI Chat 失败: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+            # Send the message with context
+            full_prompt = f"{context_prompt}\n\n当前问题: {request.question}"
+            
+            response = chat_session.send_message(full_prompt, stream=True)
+            
+            for chunk in response:
+                if chunk.text:
+                    yield f"data: {json.dumps({'content': chunk.text})}\n\n"
+            
+            yield f"data: {json.dumps({'done': True})}\n\n"
+            
+        except Exception as e:
+            logger.error(f"AI Chat 发生错误: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(chat_generator(), media_type="text/event-stream")
 
 
 # --- PPT Generation Endpoint ---
