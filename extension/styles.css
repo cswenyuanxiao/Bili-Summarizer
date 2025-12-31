@@ -1,0 +1,4 @@
+/* Prevent text selection on button */
+#bilisum-btn {
+  user-select: none;
+}

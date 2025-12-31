@@ -392,6 +392,31 @@ const refreshHistory = async () => {
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
+  // 检查 URL 参数（浏览器插件跳转支持）
+  const params = new URLSearchParams(window.location.search)
+  const urlParam = params.get('url')
+  const autoRun = params.get('auto_run')
+  
+  if (urlParam) {
+    // 移除参数，保持 URL 干净
+    window.history.replaceState({}, '', window.location.pathname)
+    
+    // 自动填充 URL
+    const decodedUrl = decodeURIComponent(urlParam)
+    currentVideoUrl.value = decodedUrl
+    
+    // 如果指定了 auto_run，延迟一点再触发
+    if (autoRun === 'true' && user.value) {
+      setTimeout(() => {
+        handleSummarize({
+          url: decodedUrl,
+          mode: 'smart',
+          focus: 'default'
+        })
+      }, 500) // 短暂延迟确保组件准备就绪
+    }
+  }
+
   // 立即刷新一次
   refreshHistory()
   
