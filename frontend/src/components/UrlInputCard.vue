@@ -74,26 +74,40 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted, ref } from 'vue'
+import { reactive, onMounted, ref, watch } from 'vue'
 import { SparklesIcon, Squares2X2Icon } from '@heroicons/vue/24/outline'
 import type { SummarizeRequest } from '../types/api'
 
-defineProps<{
+const props = defineProps<{
   isLoading?: boolean
+  modelValue?: string
 }>()
 
 const emit = defineEmits<{
   submit: [request: SummarizeRequest]
   bulk: []
+  'update:modelValue': [value: string]
 }>()
 
 const templates = ref<any[]>([])
 
 const formData = reactive<SummarizeRequest & { template_id?: string | null }>({
-  url: '',
+  url: props.modelValue || '',
   mode: 'smart',
   focus: 'default',
   template_id: null
+})
+
+// 同步外部传入的 modelValue
+watch(() => props.modelValue, (newVal) => {
+  if (newVal !== undefined) {
+    formData.url = newVal
+  }
+})
+
+// 当本地 url 改变时通知外部
+watch(() => formData.url, (newVal) => {
+  emit('update:modelValue', newVal)
 })
 
 onMounted(async () => {

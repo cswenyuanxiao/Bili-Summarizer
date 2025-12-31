@@ -1,14 +1,18 @@
 {
     "manifest_version": 3,
     "name": "Bili-Summarizer Helper",
-    "version": "1.0.0",
-    "description": "一键跳转 AI 总结",
+    "version": "1.1.0",
+    "description": "一键点击或在 B 站视频页快捷开启 AI 总结",
     "permissions": [
-        "activeTab"
+        "activeTab",
+        "tabs"
     ],
     "host_permissions": [
         "*://www.bilibili.com/video/*"
     ],
+    "background": {
+        "service_worker": "background.js"
+    },
     "content_scripts": [
         {
             "matches": [
@@ -26,7 +30,8 @@
     "action": {
         "default_icon": {
             "128": "icons/icon128.png"
-        }
+        },
+        "default_title": "点击总结当前视频"
     },
     "icons": {
         "128": "icons/icon128.png"

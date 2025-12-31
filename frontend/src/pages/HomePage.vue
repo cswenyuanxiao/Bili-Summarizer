@@ -14,6 +14,7 @@
             </div>
           </div>
           <UrlInputCard 
+            v-model="currentVideoUrl"
             :is-loading="isLoading" 
             @submit="handleSummarize" 
             @bulk="openFavoritesImport"
@@ -306,6 +307,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, inject, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   BookOpenIcon,
   BoltIcon,
@@ -361,6 +363,8 @@ const requireAuth = (action: () => any) => {
 
 const { refresh: refreshReveal } = useReveal()
 const { user } = useAuth()
+const route = useRoute()
+const router = useRouter()
 
 const { isLoading, status, hint, detail, progress, phase, elapsedSeconds, errorCode, result, summarize } = useSummarize()
 
@@ -391,30 +395,37 @@ const refreshHistory = async () => {
 // 添加定时刷新:每30秒从云端同步一次历史记录
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 
+const pendingAutoRun = ref(false)
+
 onMounted(() => {
   // 检查 URL 参数（浏览器插件跳转支持）
-  const params = new URLSearchParams(window.location.search)
-  const urlParam = params.get('url')
-  const autoRun = params.get('auto_run')
+  const urlParam = route.query.url as string
+  const autoRun = route.query.auto_run as string
   
   if (urlParam) {
-    // 移除参数，保持 URL 干净
-    window.history.replaceState({}, '', window.location.pathname)
-    
     // 自动填充 URL
     const decodedUrl = decodeURIComponent(urlParam)
     currentVideoUrl.value = decodedUrl
     
-    // 如果指定了 auto_run，延迟一点再触发
-    if (autoRun === 'true' && user.value) {
-      setTimeout(() => {
-        handleSummarize({
-          url: decodedUrl,
-          mode: 'smart',
-          focus: 'default'
-        })
-      }, 500) // 短暂延迟确保组件准备就绪
+    // 如果指定了 auto_run，标记为待运行
+    if (autoRun === 'true') {
+      pendingAutoRun.value = true
+      
+      // 如果用户已经登录，直接触发
+      if (user.value) {
+        pendingAutoRun.value = false
+        setTimeout(() => {
+          handleSummarize({
+            url: decodedUrl,
+            mode: 'smart',
+            focus: 'default'
+          })
+        }, 1000)
+      }
     }
+
+    // 移除 URL 参数，保持地址栏整洁
+    router.replace({ query: {} })
   }
 
   // 立即刷新一次
@@ -434,6 +445,18 @@ onMounted(() => {
 watch(user, (newUser) => {
   fetchDashboard().catch(() => undefined)
   refreshHistory()
+  
+  // 处理自动运行逻辑：仅在用户刚登录且有 pending 任务时触发
+  if (newUser && pendingAutoRun.value && currentVideoUrl.value) {
+    pendingAutoRun.value = false
+    setTimeout(() => {
+      handleSummarize({
+        url: currentVideoUrl.value,
+        mode: 'smart',
+        focus: 'default'
+      })
+    }, 800) // 略微增加延迟确保 Auth 系统完全就绪
+  }
   
   // 如果用户登出,清除定时器
   if (!newUser && refreshInterval) {
