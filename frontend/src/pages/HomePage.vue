@@ -72,7 +72,13 @@
         />
 
         <div v-if="result.summary || result.transcript" class="results-section flex flex-col gap-8" data-reveal>
-          <MindmapViewer
+          <CoTPanel
+            v-if="cotSteps && cotSteps.length > 0"
+            :steps="cotSteps"
+            @close="cotSteps = []"
+          />
+          
+          <MindmapViewerMarkmap
             v-if="extractedMindmap"
             ref="mindmapRef"
             :diagram="extractedMindmap"
@@ -110,8 +116,14 @@
               </div>
           </div>
           
+          <ChartPanel
+            v-if="chartData && chartData.length > 0"
+            :charts="chartData"
+          />
+          
           <ChatPanel
             v-if="result.summary"
+            :key="chatKey"
             :summary="result.summary"
             :transcript="result.transcript || ''"
           />
@@ -323,13 +335,15 @@ import UrlInputCard from '../components/UrlInputCard.vue'
 import LoadingOverlay from '../components/LoadingOverlay.vue'
 import SummaryCard from '../components/SummaryCard.vue'
 import TranscriptPanel from '../components/TranscriptPanel.vue'
-import MindmapViewer from '../components/MindmapViewer.vue'
+import MindmapViewerMarkmap from '../components/MindmapViewerMarkmap.vue'
 import ChatPanel from '../components/ChatPanel.vue'
 import ExportBar from '../components/ExportBar.vue'
 import AudioPlayer from '../components/AudioPlayer.vue'
 import ShareCardModal from '../components/ShareCardModal.vue'
 import FavoritesImportModal from '../components/FavoritesImportModal.vue'
 import HistoryList from '../components/HistoryList.vue'
+import CoTPanel from '../components/CoTPanel.vue'
+import ChartPanel from '../components/ChartPanel.vue'
 import { useSummarize } from '../composables/useSummarize'
 import { useAuth } from '../composables/useAuth'
 import { useHistorySync } from '../composables/useHistorySync'
@@ -367,6 +381,17 @@ const route = useRoute()
 const router = useRouter()
 
 const { isLoading, status, hint, detail, progress, phase, elapsedSeconds, errorCode, result, summarize } = useSummarize()
+
+const cotSteps = ref<any[]>([])
+const chartData = ref<any[]>([])
+
+// 监听 usage 变化，提取 CoT 和图表数据
+watch(() => result.value.usage, (newUsage) => {
+  if (newUsage) {
+    cotSteps.value = newUsage.cot_steps || []
+    chartData.value = newUsage.charts || []
+  }
+}, { deep: true })
 
 watch(() => result.value.summary, (newVal) => {
   if (newVal) {
@@ -489,7 +514,9 @@ const displayHistory = computed(() => {
     url: item.video_url,
     summary: item.summary,
     transcript: item.transcript || '',
-    mindmap: item.mindmap || ''
+    mindmap: item.mindmap || '',
+    thumbnail: item.video_thumbnail || '',
+    video_title: item.video_title || ''
   }))
 })
 
@@ -505,7 +532,7 @@ type VideoInfo = {
 }
 
 const videoInfo = ref<VideoInfo | null>(null)
-const mindmapRef = ref<InstanceType<typeof MindmapViewer> | null>(null)
+const mindmapRef = ref<InstanceType<typeof MindmapViewerMarkmap> | null>(null)
 const showShareCard = ref(false)
 const showTTS = ref(false)
 const showFavoritesImport = ref(false)
@@ -564,16 +591,32 @@ const creditsLabel = computed(() => {
   return `${dashboardData.value.credits} 积分`
 })
 
+const chatKey = ref(0)
+
 const handleSummarize = async (request: SummarizeRequest) => {
   if (!user.value) {
     openLogin()
     return
   }
+  
+  // 重置所有状态
   lastRequest.value = request
   currentVideoUrl.value = request.url
   videoInfo.value = null
+  showTTS.value = false
+  chatKey.value++ // 强制重建聊天窗口
+  
+  // 清空结果防止残留
+  result.value.summary = ''
+  result.value.transcript = ''
+  
   fetchVideoInfo(request.url)
-  await summarize(request)
+  
+  // 如果启用了 CoT，自动跳过缓存以确保生成新的思考过程
+  const finalRequest = request.enable_cot 
+    ? { ...request, skip_cache: true }
+    : request
+  await summarize(finalRequest)
   
   if (result.value.summary) {
     const currentInfo = videoInfo.value as VideoInfo | null
@@ -597,6 +640,7 @@ const handleSummarize = async (request: SummarizeRequest) => {
 
 const handleResummarize = async () => {
   if (!lastRequest.value || isLoading.value) return
+  chatKey.value++
   await summarize({ ...lastRequest.value, skip_cache: true })
 }
 
@@ -605,14 +649,114 @@ const extractTitle = (summary: string) => {
   return firstLine?.replace(/^#+ /, '').trim() || '未命名总结'
 }
 
-const extractedMindmap = computed(() => {
-  if (!result.value.summary) return ''
-  const standardMatch = result.value.summary.match(/```mermaid[\s\S]*?\n([\s\S]*?)\n```/)
-  if (standardMatch?.[1]) return standardMatch[1].trim()
-  const fallbackMatch = result.value.summary.match(/(graph\s+(?:TD|LR|TB|BT)[\s\S]*|mindmap[\s\S]*|pie[\s\S]*)/i)
-  if (fallbackMatch) return fallbackMatch[0].trim()
-  return ''
-})
+const cleanupMermaidLabel = (value: string) => {
+  const normalized = value.replace(/::.+$/, '').trim()
+  const match = normalized.match(/\(\((.+)\)\)|\[(.+)\]|\((.+)\)/)
+  return (match?.[1] || match?.[2] || match?.[3] || normalized).replace(/^[-*+\s]+/, '').trim()
+}
+
+const convertMermaidToMarkdown = (source: string) => {
+  const lines = source.split(/\r?\n/)
+  const output: string[] = []
+  lines.forEach((line) => {
+    if (!line.trim()) return
+    if (line.trim().startsWith('mindmap')) return
+    const indent = line.match(/^\s*/)?.[0]?.length || 0
+    const level = Math.max(0, Math.floor(indent / 4))
+    const label = cleanupMermaidLabel(line.trim())
+    if (!label) return
+    output.push(`${'  '.repeat(level)}- ${label}`)
+  })
+  return output.join('\n').trim()
+}
+
+const normalizeListLine = (line: string) => {
+  if (line.match(/^\s*\d+[.)]\s+/)) {
+    return line.replace(/^(\s*)\d+[.)]\s+/, '$1- ')
+  }
+  return line
+}
+
+const takeListLines = (block: string) => {
+  const lines = block.split(/\r?\n/)
+  const listLines: string[] = []
+  let started = false
+  for (const rawLine of lines) {
+    const line = normalizeListLine(rawLine)
+    if (line.match(/^\s*[-*+]\s+/)) {
+      started = true
+      listLines.push(line)
+      continue
+    }
+    if (started && line.match(/^\s{2,}\S/)) {
+      listLines.push(line)
+      continue
+    }
+    if (started && line.trim() === '') {
+      listLines.push(line)
+      continue
+    }
+    if (started) break
+  }
+  return listLines.join('\n').trim()
+}
+
+const extractSentencesForMindmap = (text: string) => {
+  const cleaned = text
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/【思维导图】[\s\S]*$/g, '')
+    .replace(/^\s*#+\s*思维导图[\s\S]*$/gm, '')
+    .replace(/\r\n/g, '\n')
+    .trim()
+
+  const lines = cleaned.split('\n').map(line => line.trim()).filter(Boolean)
+  const joined = lines.join(' ')
+  const segments = joined
+    .split(/(?<=[。！？!?])\s*/)
+    .map(segment => segment.trim())
+    .filter(Boolean)
+
+  const title = lines.find(line => line.length >= 4 && line.length <= 24) || '视频要点'
+  const uniqueSegments: string[] = []
+  for (const segment of segments) {
+    if (segment.length < 6) continue
+    if (uniqueSegments.includes(segment)) continue
+    uniqueSegments.push(segment)
+    if (uniqueSegments.length >= 8) break
+  }
+
+  const bullets = uniqueSegments.length ? uniqueSegments : lines.slice(0, 6)
+  if (!bullets.length) return ''
+
+  return [
+    `- ${title}`,
+    ...bullets.map(item => `  - ${item}`)
+  ].join('\n')
+}
+
+const extractMindmapList = (summary: string) => {
+  if (!summary) return ''
+  const normalized = summary.replace(/\r\n/g, '\n')
+  const markerMatch = normalized.match(/【思维导图】[:：]?\n+([\s\S]*)$/)
+  const headingMatch = normalized.match(/^\s*#+\s*思维导图.*\n([\s\S]*)$/m)
+  const inlineMatch = normalized.match(/思维导图[:：]\n+([\s\S]*)$/)
+  let listBlock = (markerMatch?.[1] || headingMatch?.[1] || inlineMatch?.[1] || '').trim()
+  if (listBlock.includes('```json')) {
+    listBlock = listBlock.split('```json')[0].trim()
+  }
+  if (!listBlock) {
+    const mermaidMatch = normalized.match(/```mermaid[\s\S]*?\n([\s\S]*?)\n```/)
+    if (mermaidMatch?.[1]) return convertMermaidToMarkdown(mermaidMatch[1])
+    return ''
+  }
+  const listLines = takeListLines(listBlock)
+  if (listLines) return listLines
+  const fallbackList = takeListLines(normalized.split('```json')[0])
+  if (fallbackList) return fallbackList
+  return extractSentencesForMindmap(normalized)
+}
+
+const extractedMindmap = computed(() => extractMindmapList(result.value.summary))
 
 const loadingSteps = ['连接', '下载/字幕', 'AI 分析', '整理结果']
 const activeStep = computed(() => {
@@ -669,14 +813,39 @@ const fetchVideoInfo = async (url: string) => {
   }
 }
 
-const loadFromHistory = async (item: { url: string }) => {
+const loadFromHistory = async (item: any) => {
   if (!item?.url) return
+  
+  // 1. 滚动到顶部
+  scrollToStart()
+  
+  // 2. 设置当前 URL
   currentVideoUrl.value = item.url
-  await summarize({
-    url: item.url,
-    mode: 'smart',
-    focus: 'default'
-  })
+  
+  // 3. 重置状态
+  chatKey.value++
+  showTTS.value = false
+  
+  // 4. 从历史记录恢复已有的总结结果（不重新请求 API）
+  result.value.summary = item.summary || ''
+  result.value.transcript = item.transcript || ''
+  result.value.usage = null // 历史记录通常不包含 usage
+  result.value.videoFile = null
+  
+  // 5. 恢复视频信息（用于封面显示）
+  if (item.thumbnail || item.video_title) {
+    videoInfo.value = {
+      title: item.video_title || item.title || '未知视频',
+      thumbnail: item.thumbnail || '',
+      duration: 0, // 历史记录暂未存时长，可用占位
+      uploader: '',
+      view_count: 0
+    }
+  } else {
+    videoInfo.value = null
+    // 仅在完全没信息时尝试重新获取
+    fetchVideoInfo(item.url)
+  }
 }
 
 const clearHistory = () => {

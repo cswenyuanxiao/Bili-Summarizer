@@ -207,7 +207,9 @@ async def start_queue():
             payload.get('progress_callback'),
             payload.get('focus', 'default'),
             payload.get('uploaded_file'),
-            custom_prompt
+            custom_prompt,
+            payload.get('output_language', 'zh'),
+            payload.get('enable_cot', False)
         )
         return await loop.run_in_executor(None, func)
     
@@ -291,7 +293,9 @@ async def run_summarization(
     focus: str = "default",
     skip_cache: bool = False,
     token: Optional[str] = None,
-    template_id: Optional[str] = None
+    template_id: Optional[str] = None,
+    output_language: str = "zh",
+    enable_cot: bool = False
 ):
     safe_url = url.split("?")[0]
     logger.info(f"收到总结请求: URL={safe_url}, Mode={mode}, Focus={focus}")
@@ -334,7 +338,7 @@ async def run_summarization(
                     yield f"data: {json.dumps({'type': 'status', 'status': 'Found in cache! Loading...'})}\n\n"
                     # Emit all events for cached content using the same payload shape as live SSE
                     yield f"data: {json.dumps({'type': 'transcript_complete', 'transcript': cached['transcript']})}\n\n"
-                    yield f"data: {json.dumps({'type': 'summary_complete', 'summary': cached['summary'], 'usage': cached['usage'], 'cached': True})}\n\n"
+                    yield f"data: {json.dumps({'type': 'summary_complete', 'summary': cached['summary'], 'usage': cached['usage'], 'transcript': cached['transcript'], 'cached': True})}\n\n"
                     # Finally emit completion
                     yield f"data: {json.dumps({'type': 'status', 'status': 'complete'})}\n\n"
                     return
@@ -402,7 +406,9 @@ async def run_summarization(
                     'progress_callback': progress_callback,
                     'focus': focus,
                     'uploaded_file': remote_file,
-                    'template_id': template_id
+                    'template_id': template_id,
+                    'output_language': output_language,
+                    'enable_cot': enable_cot
                 })
                 # 轮询任务状态 (或者可以使用更复杂的事件通知机制)
                 from .queue_manager import TaskStatus
@@ -421,12 +427,16 @@ async def run_summarization(
             # Task B: Transcript (if needed)
             need_transcript = (not transcript and media_type in ['audio', 'video'])
             transcript_task_started = False
+            transcript_audio_path = None
+            if need_transcript and media_type == 'video':
+                from .downloader import extract_audio_for_transcript
+                transcript_audio_path = await loop.run_in_executor(None, extract_audio_for_transcript, video_path)
             if need_transcript:
                 async def transcript_via_queue():
                     task_id = await task_queue.submit('transcript', {
-                        'file_path': video_path,
+                        'file_path': transcript_audio_path or video_path,
                         'progress_callback': progress_callback,
-                        'uploaded_file': remote_file
+                        'uploaded_file': None if transcript_audio_path else remote_file
                     })
                     from .queue_manager import TaskStatus
                     while True:
@@ -449,6 +459,9 @@ async def run_summarization(
             final_summary = None
             final_transcript = transcript or ''
             final_usage = None
+            summary_ready = False
+            transcript_ready = bool(transcript) or not transcript_task_started
+            summary_sent = False
 
             completed_tasks = 0
             while completed_tasks < active_tasks:
@@ -463,15 +476,17 @@ async def run_summarization(
                          yield f"data: {json.dumps({'type': 'video_downloaded', 'video_file': data['filename']})}\n\n"
                     elif msg_type == 'transcript_complete':
                          final_transcript = data or ''
+                         transcript_ready = True
                          yield f"data: {json.dumps({'type': 'transcript_complete', 'transcript': final_transcript})}\n\n"
                          if transcript_task_started and event.get('source') == 'transcript':
                              completed_tasks += 1
                     elif msg_type == 'summary_complete':
                          final_summary, final_usage = data
-                         yield f"data: {json.dumps({'type': 'summary_complete', 'summary': final_summary, 'usage': final_usage})}\n\n"
+                         summary_ready = True
                          completed_tasks += 1
                     elif msg_type == 'transcript_failed':
                          record_failure(user["user_id"] if user else None, "TRANSCRIPT_FAILED", "transcript", str(data))
+                         transcript_ready = True
                          yield f"data: {json.dumps({'type': 'status', 'status': '转录生成失败，已跳过'})}\n\n"
                          if transcript_task_started:
                              completed_tasks += 1
@@ -479,6 +494,10 @@ async def run_summarization(
                          record_failure(user["user_id"] if user else None, "SUMMARY_FAILED", "summary", str(data))
                          yield f"data: {json.dumps({'type': 'error', 'code': 'SUMMARY_FAILED', 'error': data})}\n\n"
                          completed_tasks += 1
+
+                    if summary_ready and transcript_ready and not summary_sent:
+                         summary_sent = True
+                         yield f"data: {json.dumps({'type': 'summary_complete', 'summary': final_summary, 'usage': final_usage, 'transcript': final_transcript})}\n\n"
                 except asyncio.TimeoutError:
                      yield f"data: {json.dumps({'type': 'status', 'status': 'AI analysis is taking longer than expected...'})}\n\n"
             
@@ -522,9 +541,11 @@ async def run_summarization_api(
     focus: str = "default",
     skip_cache: bool = False,
     token: Optional[str] = None,
-    template_id: Optional[str] = None
+    template_id: Optional[str] = None,
+    output_language: str = "zh",
+    enable_cot: bool = False
 ):
-    return await run_summarization(url, mode, focus, skip_cache, token, template_id)
+    return await run_summarization(url, mode, focus, skip_cache, token, template_id, output_language, enable_cot)
 
 
 @app.get("/api/dashboard")

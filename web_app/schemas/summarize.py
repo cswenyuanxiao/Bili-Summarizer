@@ -10,6 +10,8 @@ class SummarizeRequest(BaseModel):
     mode: str = "smart"  # "smart" or "video"
     focus: str = "default"  # "default", "study", "gossip", "business"
     skip_cache: bool = False
+    output_language: str = "zh"  # "zh", "en", "ja", "ko", "es", "fr"
+    enable_cot: bool = False  # Enable Chain of Thought display
 
 
 class BatchSummarizeRequest(BaseModel):

@@ -1,7 +1,7 @@
 # 📚 文档索引
 
 > **快速入口**: 第一次接触项目？从 [START_HERE.md](START_HERE.md) 开始！  
-> **最后更新**: 2025-12-26
+> **最后更新**: 2026-01-05
 
 ---
 
@@ -9,12 +9,15 @@
 
 ### 新手必读
 - **[START_HERE.md](START_HERE.md)** - 快速开始指南，5分钟上手
+- **[SESSION_ENTRYPOINT.md](SESSION_ENTRYPOINT.md)** - 新对话必读入口
+- **[AI_CONTEXT.md](AI_CONTEXT.md)** - AI/IDE/CLI 统一上下文入口
 - **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** - 完整开发者指南（架构+结构+模型）
 
 ### 开发参考
 - **[API_REFERENCE.md](API_REFERENCE.md)** - API文档（后端+外部依赖）
 - **[CONFIGURATION.md](CONFIGURATION.md)** - 环境变量配置
 - **[ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md)** - 代码规范
+- **[cot_design.md](cot_design.md)** - CoT 设计与提示词
 
 ### 部署运维
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** - 部署指南（本地+生产+Docker+安全）
@@ -28,12 +31,19 @@
 docs/
 ├── README.md                  # 本文档（索引）
 ├── START_HERE.md              # 快速开始
+├── SESSION_ENTRYPOINT.md      # 新对话必读入口
+├── AI_CONTEXT.md              # AI/IDE/CLI 统一入口
 ├── DEVELOPER_GUIDE.md         # 开发者指南 ⭐
 ├── API_REFERENCE.md           # API参考 ⭐
 ├── CONFIGURATION.md           # 配置参考
 ├── DEPLOYMENT.md              # 部署指南 ⭐
 ├── ENGINEERING_STANDARDS.md   # 工程规范
 ├── CHANGELOG.md               # 变更日志
+├── cot_design.md              # CoT 设计
+├── testing/                   # 测试与验证指南
+│   └── chart_testing_guide.md # 图表测试指南
+├── diagnostics/               # 问题排查与缺陷记录
+│   └── BUG_REPORT_COT.md       # CoT 缺陷记录
 └── archived/                  # 历史文档（归档）
     ├── ARCHITECTURE.md        # 已合并到DEVELOPER_GUIDE
     ├── DATA_MODEL.md          # 已合并到DEVELOPER_GUIDE
@@ -47,9 +57,10 @@ docs/
 
 ### 👨‍💻 我是开发者
 1. 先读 **[START_HERE.md](START_HERE.md)**
-2. 熟悉 **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)**
-3. 查阅 **[API_REFERENCE.md](API_REFERENCE.md)**
-4. 遵循 **[ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md)**
+2. 熟悉 **[AI_CONTEXT.md](AI_CONTEXT.md)** 的必读清单
+3. 熟悉 **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)**
+4. 查阅 **[API_REFERENCE.md](API_REFERENCE.md)**
+5. 遵循 **[ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md)**
 
 ### 🚀 我是运维/部署
 1. 先读 **[CONFIGURATION.md](CONFIGURATION.md)**
@@ -91,6 +102,12 @@ docs/
 
 **"代码规范是什么？"**  
 → [ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md)
+
+**"如何验证图表功能？"**  
+→ [testing/chart_testing_guide.md](testing/chart_testing_guide.md)
+
+**"CoT 设计和提示词在哪里？"**  
+→ [cot_design.md](cot_design.md)
 
 **"最近更新了什么？"**  
 → [CHANGELOG.md](CHANGELOG.md)

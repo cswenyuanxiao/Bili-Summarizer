@@ -4,19 +4,53 @@
  */
 import mermaid from 'mermaid'
 
-// 初始化默认配置
+// 现代化主题配置
 mermaid.initialize({
     startOnLoad: false,
-    theme: 'default',
+    theme: 'base',
     securityLevel: 'loose',
-    fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif',
+    fontFamily: '"Inter", "PingFang SC", "Microsoft YaHei", sans-serif',
+    themeVariables: {
+        // 主色调 - 优雅紫色系
+        primaryColor: '#6366f1',
+        primaryTextColor: '#ffffff',
+        primaryBorderColor: '#4f46e5',
+        // 次级色调
+        secondaryColor: '#f0abfc',
+        secondaryTextColor: '#1f2937',
+        secondaryBorderColor: '#e879f9',
+        // 第三色调
+        tertiaryColor: '#fde68a',
+        tertiaryTextColor: '#1f2937',
+        tertiaryBorderColor: '#fbbf24',
+        // 线条和背景
+        lineColor: '#94a3b8',
+        textColor: '#1f2937',
+        mainBkg: '#f8fafc',
+        nodeBorder: '#e2e8f0',
+        // 特殊节点
+        nodeTextColor: '#1f2937',
+        // 字体
+        fontSize: '14px',
+        // 思维导图专用
+        mindmapRootBg: '#6366f1',
+        mindmapRootColor: '#ffffff',
+        mindmapLevel1Bg: '#a78bfa',
+        mindmapLevel1Color: '#ffffff',
+        mindmapLevel2Bg: '#c4b5fd',
+        mindmapLevel2Color: '#1f2937'
+    },
     flowchart: {
         useMaxWidth: true,
         htmlLabels: true,
-        curve: 'basis'
+        curve: 'basis',
+        padding: 20,
+        nodeSpacing: 50,
+        rankSpacing: 60
     },
     mindmap: {
-        useMaxWidth: true
+        useMaxWidth: true,
+        padding: 16
     }
 })
 

@@ -3,12 +3,43 @@ import os
 import sys
 import re
 from pathlib import Path
+from typing import Optional
 import yt_dlp
+import subprocess
 import glob
 
 # 定义视频存储目录
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 VIDEOS_DIR = PROJECT_ROOT / "videos"
+
+def extract_audio_for_transcript(video_path: Path) -> Optional[Path]:
+    """
+    从视频中提取轻量音频用于转录（16kHz/mono）。
+    失败时返回 None。
+    """
+    try:
+        audio_path = video_path.with_suffix(".transcript.m4a")
+        command = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(video_path),
+            "-vn",
+            "-ac",
+            "1",
+            "-ar",
+            "16000",
+            "-b:a",
+            "64k",
+            str(audio_path)
+        ]
+        subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if audio_path.exists():
+            return audio_path
+        return None
+    except Exception as e:
+        print(f"音频提取失败: {e}", file=sys.stderr)
+        return None
 
 def download_content(url: str, mode: str = "smart", progress_callback=None) -> tuple[Path, str, str]:
     """
@@ -38,8 +69,8 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
 
     # --- Helper: Parse Subtitle ---
     def parse_transcript(file_path: Path) -> str:
+        content = ""
         try:
-            content = ""
             try:
                 content = file_path.read_text(encoding='utf-8')
             except UnicodeDecodeError:
@@ -111,8 +142,20 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
                     push_line(ts, text)
                 return "\n".join(cleaned_lines) or content.strip()
 
+            def fallback_clean(raw_text: str) -> str:
+                sanitized = re.sub(r'<[^>]+>', '', raw_text)
+                cleaned = []
+                for raw_line in sanitized.splitlines():
+                    line = raw_line.strip()
+                    if not line or line.isdigit() or '-->' in line:
+                        continue
+                    if line.startswith('WEBVTT') or line.startswith('X-TIMESTAMP') or line.startswith('NOTE'):
+                        continue
+                    cleaned.append(line)
+                return "\n".join(cleaned).strip()
+
             for line in lines:
-                line = line.strip()
+                line = re.sub(r'<[^>]+>', '', line).strip()
                 # Skip empty lines, numbered lines (SRT), and header info
                 if not line or line.isdigit() or line.startswith('WEBVTT') or line.startswith('X-TIMESTAMP') or line.startswith('NOTE'):
                     continue
@@ -126,11 +169,11 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
                 
                 push_line(current_timestamp, line)
             
-            return "\n".join(cleaned_lines) or content.strip()
+            return "\n".join(cleaned_lines) or fallback_clean(content) or content.strip()
             
         except Exception as e:
             print(f"Error parsing transcript: {e}")
-            return ""
+            return content.strip()
 
     transcript_text = ""
 
@@ -177,10 +220,12 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
                 print(f"发现字幕文件: {best_sub.name}")
                 transcript_text = parse_transcript(best_sub)
                 
-                if mode == "smart":
+                if mode == "smart" and transcript_text.strip():
                     if progress_callback:
                         progress_callback("Subtitles found! Using for analysis.")
                     return best_sub, 'subtitle', transcript_text
+                elif mode == "smart":
+                    print("字幕解析为空，继续下载视频以便转录补齐")
                 else:
                     # If mode is not smart (e.g. force video), we still keep the transcript but continue to download video
                      if progress_callback:

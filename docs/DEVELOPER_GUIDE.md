@@ -20,7 +20,7 @@
 **Bili-Summarizer** 是一个基于AI的B站视频总结工具，支持：
 - 视频智能总结（摘要+要点提取）
 - 自动字幕转录（带时间戳）
-- 思维导图生成（Mermaid格式）
+- 思维导图生成（Markdown 列表 + Markmap 渲染）
 - UP主订阅与推送
 - 批量处理与收藏管理
 
@@ -36,6 +36,7 @@
 - Vue 3 + TypeScript
 - Vue Router + Pinia
 - Vite (构建工具)
+- Markmap (思维导图渲染)
 
 **部署**:
 - Render (后端托管)

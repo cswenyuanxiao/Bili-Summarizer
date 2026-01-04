@@ -1,6 +1,6 @@
 # API Reference
 
-> **最后更新**: 2025-12-26
+> **最后更新**: 2026-01-05
 
 ---
 
@@ -32,7 +32,9 @@
   "url": "https://www.bilibili.com/video/BV1xx",
   "mode": "smart",  // "smart" | "video"
   "focus": "技术要点",  // 可选
-  "skip_cache": false  // 可选
+  "skip_cache": false,  // 可选
+  "output_language": "zh",  // "zh" | "en" | "ja" | "ko" | "es" | "fr"
+  "enable_cot": false  // 可选：启用思维链展示
 }
 ```
 
@@ -41,12 +43,24 @@
 {
   "summary": "# 视频总结\n...",
   "transcript": "00:00 开场...",
-  "mindmap": "```mermaid\nmindmap...",
+  "mindmap": "- 核心主题\n  - 分支 1\n  - 分支 2",
   "videoFile": "/videos/xxx.mp4"  // 可选
 }
 ```
 
 **需要认证**: ✅
+
+#### SSE 事件（GET `/api/summarize`）
+
+事件类型：
+- `transcript_complete`: `{ "type": "transcript_complete", "transcript": "..." }`
+- `summary_complete`: `{ "type": "summary_complete", "summary": "...", "usage": { ... }, "transcript": "..." }`
+- `status`: `{ "type": "status", "status": "..." }`
+- `error`: `{ "type": "error", "code": "...", "error": "..." }`
+
+`summary_complete.usage` 关键字段（可选）：
+- `cot_steps`: `[{ "step": 1, "title": "...", "thinking": "..." }]`
+- `charts`: `[{ "type": "bar", "title": "...", "data": { "labels": [], "values": [] } }]`
 
 ---
 

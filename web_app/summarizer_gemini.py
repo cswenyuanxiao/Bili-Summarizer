@@ -156,12 +156,25 @@ def extract_ai_transcript(file_path: Path, progress_callback=None, uploaded_file
         return ""
 
 
-def summarize_content(file_path: Path, media_type: str, progress_callback=None, focus: str = "default", uploaded_file=None, custom_prompt: Optional[str] = None) -> str:
+def summarize_content(file_path: Path, media_type: str, progress_callback=None, focus: str = "default", uploaded_file=None, custom_prompt: Optional[str] = None, output_language: str = "zh", enable_cot: bool = False) -> str:
     """
     使用 Google Gemini API 总结内容。
     支持传入 uploaded_file 以避免重复上传。
     支持传入 custom_prompt 使用自定义模板。
+    支持传入 output_language 设置输出语言。
+    支持传入 enable_cot 启用思维链展示。
     """
+    # 语言映射
+    lang_map = {
+        "zh": "中文（简体）",
+        "en": "English",
+        "ja": "日本語",
+        "ko": "한국어",
+        "es": "Español",
+        "fr": "Français"
+    }
+    
+    target_language = lang_map.get(output_language, "中文（简体）")
     # 1. 加载和配置 API 密钥
     load_dotenv()
     api_key = os.getenv("GOOGLE_API_KEY")
@@ -181,8 +194,12 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
             f"{custom_prompt}\n\n"
             "要求：\n"
             "1. 如果视频有视觉画面，请结合画面信息提供更丰富的描述。\n"
-            "2. 最终总结必须包含一个 Mermaid 格式的思维导图（除非你的模板明确要求不要）。请严格使用 ```mermaid [换行] 代码 [换行] ``` 格式包裹。\n"
-            "3. 直接使用标准 Markdown 格式。"
+            "2. 最终总结末尾必须包含一个思维导图（除非你的模板明确要求不要）。请使用标准 Markdown 无序列表，不要使用 Mermaid。\n"
+            "3. 思维导图请以【思维导图】为标题，后续只输出无序列表，不要额外解释。\n"
+            "4. 禁止使用客套开场（如“好的/当然/下面是/这是对视频的总结”）。\n"
+            "5. 先给 2-3 句概述，再用小标题组织内容（如“关键要点/结论/建议”）。\n"
+            "6. 直接使用标准 Markdown 格式。\n"
+            f"7. **重要**：请用 {target_language} 输出以下所有内容（包括总结、思维导图节点文本）。"
         )
     else:
         # 根据不同的视角调整 Prompt
@@ -195,23 +212,49 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
         
         selected_focus_desc = focus_prompts.get(focus, focus_prompts["default"])
 
+        # CoT Prompt (如果启用)
+        cot_instruction = ""
+        if enable_cot:
+            cot_instruction = (
+                "\n\n## 🧠 请先展示你的分析思路\n"
+                "在给出正式总结之前，请先按照以下格式输出你的思考过程：\n\n"
+                "[COT_START]\n"
+                "步骤 1: 内容识别\n"
+                "[思考]: (请在此描述你对视频类型和主题的判断)\n\n"
+                "步骤 2: 结构分析\n"
+                "[思考]: (请在此描述视频的逻辑结构)\n\n"
+                "步骤 3: 要点提取\n"
+                "[思考]: (请在此列出最重要的信息点)\n\n"
+                "步骤 4: 总结策略\n"
+                "[思考]: (请在此说明你将采用什么方式总结)\n"
+                "[COT_END]\n\n"
+                "---\n\n"
+                "完成上述思考后，请给出正式的视频总结：\n\n"
+            )
+
         prompt_text = (
             f"你是一个专业的视频分析助手。请按照以下视角进行总结：【{selected_focus_desc}】\n\n"
+            f"{cot_instruction}"
             "要求：\n"
             "1. 如果视频有视觉画面，请结合画面信息提供更丰富的描述。\n"
             "2. 摘要需要清晰、结构化且全面。\n"
-            "3. 【重要】必须在总结的末尾提供一个 Mermaid 格式的思维导图。请严格使用 ```mermaid [换行] 代码 [换行] ``` 格式包裹，不要包含任何多余文字。\n"
-            "4. 思维导图必须使用 `mindmap` 语法（不要使用 graph/flowchart），格式如下：\n"
-            "```mermaid\n"
-            "mindmap\n"
-            "    root((核心主题))\n"
-            "        分支1\n"
-            "            子点1\n"
-            "            子点2\n"
-            "        分支2\n"
-            "        分支3\n"
+            "3. 【重要】必须在总结的末尾提供一个思维导图，请使用标准 Markdown 无序列表，不要使用 Mermaid 或编号列表。\n"
+            "4. 思维导图请以【思维导图】为标题，后续只输出无序列表，不要额外解释。\n"
+            "5. 禁止使用客套开场（如“好的/当然/下面是/这是对视频的总结”）。\n"
+            "6. 先给 2-3 句概述，再用小标题组织内容（如“关键要点/结论/建议”）。\n"
+            "7. 无序列表示例：\n"
+            "- 核心主题\n"
+            "  - 分支1\n"
+            "    - 子点1\n"
+            "    - 子点2\n"
+            "  - 分支2\n"
+            "8. 直接使用标准 Markdown 格式。严禁使用 LaTeX 格式，表示方向请直接使用 '→' 或 '->'。\n"
+            f"9. **重要**：请用 {target_language} 输出以下所有内容（包括总结、思维导图节点文本）。\n"
+            "10. **数据可视化**（可选）：如果视频包含统计数据、对比或趋势，请在思维导图之后输出图表：\n"
+            "```json\n"
+            '{"charts": [{"type": "bar", "title": "标题", "data": {"labels": ["A"], "values": [10]}}]}\n'
             "```\n"
-            "5. 直接使用标准 Markdown 格式。严禁使用 LaTeX 格式，表示方向请直接使用 '→' 或 '->'。"
+            "type可选: bar/pie/line。"
         )
 
     content_parts = [prompt_text]
@@ -254,9 +297,15 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
         if progress_callback and not uploaded_file:
             progress_callback("AI is analyzing content...")
             
-        print(f"AI 正在使用 {model.model_name} 分析内容...")
+        logger.info(f"开始 AI 分析: Model={model.model_name}, EnableCoT={enable_cot}")
+        if enable_cot:
+            logger.info("CoT 指令已启用，等待思考过程...")
+            
         # 增加超时时间到 1200 秒
         response = model.generate_content(content_parts, request_options={"timeout": 1200})
+        
+        # 打印部分响应内容用于调试
+        logger.info(f"AI 响应前 500 字符: {response.text[:500]}")
         
         # 同理，完成消息也只在非并行模式下发送
         if progress_callback and not uploaded_file:
@@ -277,7 +326,61 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
             "total_tokens": response.usage_metadata.total_token_count
         }
 
-        return response.text, usage
+        # 解析 CoT 内容（如果启用）
+        response_text = response.text
+        if enable_cot:
+            logger.info(f"CoT 解析: [COT_START]={('[COT_START]' in response_text)}, [COT_END]={('[COT_END]' in response_text)}")
+            
+            if "[COT_START]" in response_text and "[COT_END]" in response_text:
+                try:
+                    cot_start = response_text.index("[COT_START]")
+                    cot_end = response_text.index("[COT_END]") + len("[COT_END]")
+                    cot_content = response_text[cot_start:cot_end]
+                    
+                    logger.info(f"CoT 前200字符: {cot_content[:200]}")
+                    
+                    import re
+                    # 更宽容的正则：兼容中英文冒号
+                    steps = re.findall(
+                        r'(?:###\s*)?步骤\s*(\d+)[:：]\s*(.+?)\n\s*\[思考\][:：]\s*(.+?)(?=\n\n|\n(?:###\s*)?步骤|\[COT_END\]|$)',
+                        cot_content, re.DOTALL
+                    )
+                    
+                    logger.info(f"正则匹配到 {len(steps)} 个步骤")
+                    
+                    if steps:
+                        cot_steps = [{"step": int(num), "title": title.strip(), "thinking": thinking.strip()} for num, title, thinking in steps]
+                        usage["cot_steps"] = cot_steps
+                    else:
+                        # 兜底：返回原始文本
+                        raw_cot = cot_content.replace("[COT_START]", "").replace("[COT_END]", "").strip()
+                        usage["cot_steps"] = [{"step": 0, "title": "AI 分析过程", "thinking": raw_cot}]
+                    
+                    response_text = response_text[:cot_start] + response_text[cot_end:]
+                    response_text = response_text.replace("---\n\n", "").strip()
+                except Exception as e:
+                    logger.warning(f"CoT 解析失败: {e}")
+            else:
+                logger.warning("CoT 启用但未检测到标记")
+
+        # 解析图表数据（如果存在）
+        if "```json" in response_text and "charts" in response_text:
+            try:
+                import json
+                import re
+                # 提取 JSON 代码块
+                json_match = re.search(r'```json\s*(\{.*?"charts".*?\})\s*```', response_text, re.DOTALL)
+                if json_match:
+                    chart_json = json_match.group(1)
+                    chart_data = json.loads(chart_json)
+                    if "charts" in chart_data and isinstance(chart_data["charts"], list):
+                        usage["charts"] = chart_data["charts"]
+                        # 移除 JSON 代码块
+                        response_text = response_text.replace(json_match.group(0), "").strip()
+            except Exception as e:
+                logger.warning(f"Failed to parse chart data: {e}")
+
+        return response_text, usage
 
     except Exception as e:
         logger.error(f"AI 总结最终失败: {e}")

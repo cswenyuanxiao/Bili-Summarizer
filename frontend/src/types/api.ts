@@ -5,6 +5,8 @@ export interface SummarizeRequest {
     focus: 'default' | 'study' | 'gossip' | 'business';
     skip_cache?: boolean;
     template_id?: string | null;
+    output_language?: string;
+    enable_cot?: boolean;
 }
 
 // SSE Event Types
@@ -23,6 +25,19 @@ export interface UsageInfo {
     input_tokens?: number;
     output_tokens?: number;
     total_tokens?: number;
+    cot_steps?: Array<{
+        step: number;
+        title: string;
+        thinking: string;
+    }>;
+    charts?: Array<{
+        type: 'bar' | 'pie' | 'line';
+        title: string;
+        data: {
+            labels: string[];
+            values: number[];
+        };
+    }>;
 }
 
 // Response Types

@@ -63,6 +63,8 @@ export function useSummarize() {
             setPhase('connecting', '正在连接服务器...', '准备请求并建立连接...', 3)
             detail.value = ''
             startTimer()
+            let summaryReceived = false
+            let transcriptFinalized = false
 
             const handleError = (code: string | undefined, message: string) => {
                 const map: Record<string, { status: string; hint: string }> = {
@@ -111,6 +113,12 @@ export function useSummarize() {
                 if (request.template_id) {
                     params.append('template_id', request.template_id)
                 }
+                if (request.output_language) {
+                    params.append('output_language', request.output_language)
+                }
+                if (request.enable_cot) {
+                    params.append('enable_cot', 'true')
+                }
 
                 eventSource = new EventSource(`${url}?${params}`)
 
@@ -136,6 +144,8 @@ export function useSummarize() {
 
                             if (statusText.includes('Found in cache')) {
                                 setPhase('finalizing', '命中缓存，快速加载', '正在整理结果...', 92)
+                            } else if (statusText.includes('转录生成失败')) {
+                                transcriptFinalized = true
                             } else if (statusText.includes('Checking for subtitles')) {
                                 setPhase('downloading', '解析字幕', '尝试获取字幕/转录...', 15)
                             } else if (statusText.includes('Downloading')) {
@@ -166,18 +176,27 @@ export function useSummarize() {
                             setPhase('downloading', '素材就绪', '准备生成字幕与总结...', 40)
                         } else if (data.type === 'transcript_complete') {
                             result.value.transcript = data.transcript || ''
-                            if (phase.value !== 'complete') {
+                            transcriptFinalized = true
+                            if (summaryReceived) {
+                                setPhase('complete', '完成！', '结果已准备好', 100)
+                            } else if (phase.value !== 'complete') {
                                 setPhase('transcript', '字幕完成', '正在生成总结...', 60)
                             }
                         } else if (data.type === 'summary_complete') {
                             result.value.summary = data.summary || ''
                             result.value.usage = data.usage || null
-                            setPhase('complete', '完成！', '结果已准备好', 100)
+                            if (data.transcript !== undefined) {
+                                result.value.transcript = data.transcript || ''
+                                transcriptFinalized = true
+                            }
+                            summaryReceived = true
                             isLoading.value = false
-                            eventSource?.close()
-                            eventSource = null
                             stopTimer()
-                            resolve(result.value)
+                            if (!transcriptFinalized) {
+                                setPhase('finalizing', '总结已生成', '等待转录完成...', 95)
+                            } else {
+                                setPhase('complete', '完成！', '结果已准备好', 100)
+                            }
                         } else if (data.type === 'error' || data.error) {
                             handleError(data.code, data.error || '未知错误')
                         }
@@ -188,7 +207,7 @@ export function useSummarize() {
 
                 eventSource.onerror = (err) => {
                     console.error('SSE error:', err)
-                    if (phase.value === 'complete' || result.value.summary) {
+                    if (summaryReceived && transcriptFinalized) {
                         eventSource?.close()
                         eventSource = null
                         resolve(result.value)

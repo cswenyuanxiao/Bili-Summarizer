@@ -1,7 +1,79 @@
 # Changelog
 
-Last updated: 2025-12-25  
+Last updated: 2026-01-05  
 Owner: Core Eng
+
+## [2.3.3] - 2026-01-05
+
+### Fixed
+- **思维导图首帧空白**：SVG 未挂载时的渲染时序问题已修复，避免首次渲染丢失。
+- **思维导图兜底生成**：当总结中缺失标准列表时，从正文拆句生成最小可渲染脑图。
+
+### Changed
+- **总结卡片视觉对齐**：按 notegpt 风格映射字体/颜色/圆角与引用样式。
+
+### Documentation
+- 更新 `docs/API_REFERENCE.md` 的请求参数与 mindmap 输出说明
+
+## [2.3.2] - 2026-01-05
+
+### Fixed
+- **转录显示偶发为空**：后端聚合 summary + transcript，`summary_complete` 仅在转录就绪后发送，避免前端提前关闭 SSE 丢包。
+- **字幕转录解析空**：字幕解析为空时不再提前返回 subtitle 模式，继续下载视频以补齐转录。
+- **转录提速**：视频场景下优先抽取轻量音频进行转录，减少上传与转录耗时。
+
+### Changed
+- **总结输出风格**：禁止客套开场，要求先给概述后分节输出
+- **总结展示样式**：优化排版密度与小标题视觉层级
+- **总结布局升级**：新增摘要卡片、要点标签、引用块分区
+- **总结卡片规范化**：按“卡片可扫读/层级清晰”原则重构布局
+
+### Documentation
+- 更新 `docs/API_REFERENCE.md` 的 SSE 事件说明
+
+## [2.3.1] - 2026-01-05
+
+### Added
+- **思维导图升级为 Markmap (✅ 已完成)**：
+  - 后端 Prompt 改为输出 Markdown 无序列表
+  - 前端使用 Markmap 渲染交互式脑图（缩放/拖拽）
+
+### Documentation
+- 整理 docs 目录结构（testing/、diagnostics/）
+- 更新文档索引与 CoT 设计链接
+- 新增 `docs/AI_CONTEXT.md` 作为统一上下文入口
+- 新增 `docs/SESSION_ENTRYPOINT.md` 作为新对话必读入口
+- `docs/START_HERE.md` 增加新对话必读硬性规则
+
+## [2.3.0] - 2026-01-04
+
+### Added - AI 能力增强
+- **多语言总结输出 (✅ 已完成)**：
+  - 后端：`summarizer_gemini.py` 添加语言映射和 Prompt 多语言指令
+  - 后端：`main.py` 和 `schemas/summarize.py` 添加 `output_language` 参数
+  - 前端：`UrlInputCard.vue` 新增语言选择器（支持中/英/日/韩/西/法）
+  - 支持思维导图节点自动翻译为目标语言
+  
+- **思维链 (CoT) 展示 (✅ 已完成)**：
+  - 后端：`summarizer_gemini.py` 添加 `[COT_START]` Prompt 指令和解析逻辑
+  - 后端：CoT 数据嵌入 `usage` 字典，保持 API 兼容性
+  - Schema：`SummarizeRequest` 添加 `enable_cot` 参数
+  - 前端：创建 `CoTPanel.vue` 组件，使用渐进式动画展示分析步骤
+  - 前端：`HomePage.vue` 集成并监听 usage 数据
+
+- **图表生成 (✅ 已完成)**：
+  - 后端：Prompt 添加 JSON 图表数据生成指令
+  - 后端：解析图表 JSON 数据并嵌入 `usage` 字典
+  - 前端：安装 `chart.js` 和 `vue-chartjs`
+  - 前端：创建 `ChartPanel.vue` 组件，支持 Bar/Line/Pie 图表
+  - 前端：`HomePage.vue` 集成图表展示
+
+### Documentation
+- 更新 `README.md` v2.3 功能状态（全部标记为已上线）
+- 更新 `CHANGELOG.md` 详细记录所有修改
+- 更新 `types/api.ts` 添加 CoT 和图表类型定义
+
+---
 
 ## [2.1.0] - 2025-12-25
 
@@ -133,4 +205,3 @@ Owner: Core Eng
 - 暗色模式
 - 响应式设计
 - 云端部署支持
-

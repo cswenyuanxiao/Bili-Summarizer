@@ -66,6 +66,36 @@
                 </option>
               </select>
             </div>
+
+            <div class="option-group flex flex-col md:flex-row md:items-center gap-2 md:gap-3 w-full md:w-auto">
+              <label for="output-language" class="text-sm font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                语言
+              </label>
+              <select
+                v-model="formData.output_language"
+                id="output-language"
+                class="px-4 py-2 border border-gray-300/80 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 cursor-pointer w-full md:w-auto min-w-[140px]"
+              >
+                <option value="zh">🇨🇳 中文</option>
+                <option value="en">🇺🇸 English</option>
+                <option value="ja">🇯🇵 日本語</option>
+                <option value="ko">🇰🇷 한국어</option>
+                <option value="es">🇪🇸 Español</option>
+                <option value="fr">🇫🇷 Français</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- Advanced Options -->
+          <div class="advanced-options flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                v-model="formData.enable_cot"
+                type="checkbox"
+                class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary cursor-pointer"
+              />
+              <span class="text-sm text-gray-600 dark:text-gray-400">🧠 显示思考过程</span>
+            </label>
           </div>
         </form>
       </div>
@@ -95,7 +125,9 @@ const formData = reactive<SummarizeRequest & { template_id?: string | null }>({
   url: props.modelValue || '',
   mode: 'smart',
   focus: 'default',
-  template_id: null
+  template_id: null,
+  output_language: 'zh',
+  enable_cot: false
 })
 
 // 同步外部传入的 modelValue
