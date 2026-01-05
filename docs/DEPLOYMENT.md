@@ -188,9 +188,14 @@ CREATE POLICY "Users can delete own summaries"
 ### API认证流程
 
 ```
-用户登录 → Supabase返回JWT
+请求发起
   ↓
-前端存储Token (localStorage)
+优先检查: x-api-key
+  ↓
+若存在则直接验证 API Key
+  ↓
+若不存在，则走 Bearer Token:
+用户登录 → Supabase返回JWT → 前端存储Token (localStorage)
   ↓
 每次请求携带: Authorization: Bearer <token>
   ↓

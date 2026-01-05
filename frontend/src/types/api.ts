@@ -38,6 +38,10 @@ export interface UsageInfo {
             values: number[];
         };
     }>;
+    keywords?: Array<{
+        text: string;
+        value: number;
+    }>;
 }
 
 // Response Types

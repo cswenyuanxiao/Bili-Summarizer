@@ -14,6 +14,26 @@
       </div>
 
       <div v-else class="mt-8 space-y-8" data-reveal>
+        <!-- Badges -->
+        <section class="page-card">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">我的成就</h3>
+            <span class="text-xs text-gray-400">本地记录</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div
+              v-for="badge in badges"
+              :key="badge.id"
+              class="flex flex-col items-center gap-2 rounded-xl border border-gray-100 dark:border-slate-800 px-3 py-4"
+              :class="unlockedIds.includes(badge.id) ? 'bg-white dark:bg-slate-900' : 'bg-gray-50 dark:bg-slate-800/40 opacity-50'"
+            >
+              <div class="text-2xl">{{ badge.icon }}</div>
+              <div class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ badge.title }}</div>
+              <div class="text-xs text-gray-500 text-center">{{ badge.description }}</div>
+            </div>
+          </div>
+        </section>
+
         <!-- Top Stats Cards -->
         <section class="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div class="page-card relative overflow-hidden group">
@@ -192,6 +212,7 @@
 <script setup lang="ts">
 import { inject, ref, onMounted, watch, computed } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import { useBadges } from '../composables/useBadges'
 import { useReveal } from '../composables/useReveal'
 import { useChartData } from '../composables/useChartData'
 import { isSupabaseConfigured, supabase } from '../supabase'
@@ -205,6 +226,7 @@ import {
 } from '@heroicons/vue/24/outline'
 
 const { user } = useAuth()
+const { badges, unlockedIds } = useBadges()
 useReveal()
 const appActions = inject<{ openLogin: () => void; openPricing: () => void }>('appActions')
 const openLogin = () => appActions?.openLogin()

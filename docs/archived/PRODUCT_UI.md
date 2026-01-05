@@ -7,6 +7,7 @@ Owner: Frontend
 - 视觉语言：流光渐变 + 玻璃质感卡片 + 微动效。
 - 组件基准：`page-hero`、`page-card`、`badge-pill`、`card-action`。
 - 动效：轻浮动（float）、轻摇（wiggle），避免高频抖动。
+- Icon 体系：统一使用 Heroicons（Outline），禁止 emoji 作为功能图标；大小使用 `icon-chip`/`icon-chip-sm`/`icon-chip-inline`。
 
 ## 路由结构
 - `/` 首页

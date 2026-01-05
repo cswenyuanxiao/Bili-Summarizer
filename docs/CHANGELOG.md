@@ -3,6 +3,21 @@
 Last updated: 2026-01-05  
 Owner: Core Eng
 
+## [2.3.4] - 2026-01-05
+
+### Added
+- **撒花特效**：总结完成时触发视觉反馈。
+- **词云可视化**：基于关键词权重渲染词云面板。
+- **手气不错**：一键填充精选视频链接，解决冷启动。
+- **成就徽章**：本地记录四类轻量成就并展示在 Dashboard。
+
+### Changed
+- **总结 Prompt**：新增关键词 JSON 输出要求。
+- **UI 视觉规范**：输入区与图标使用统一尺寸与 Heroicons，禁止 emoji 功能图标。
+
+### Documentation
+- 更新 `docs/API_REFERENCE.md` 的 usage 关键字段
+
 ## [2.3.3] - 2026-01-05
 
 ### Fixed

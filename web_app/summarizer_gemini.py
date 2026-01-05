@@ -199,7 +199,12 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
             "4. 禁止使用客套开场（如“好的/当然/下面是/这是对视频的总结”）。\n"
             "5. 先给 2-3 句概述，再用小标题组织内容（如“关键要点/结论/建议”）。\n"
             "6. 直接使用标准 Markdown 格式。\n"
-            f"7. **重要**：请用 {target_language} 输出以下所有内容（包括总结、思维导图节点文本）。"
+            f"7. **重要**：请用 {target_language} 输出以下所有内容（包括总结、思维导图节点文本）。\n"
+            "8. **关键词**（必填）：在总结末尾输出关键词 JSON（词云用），格式如下：\n"
+            "```json\n"
+            '{"keywords": [{"text": "AI", "value": 10}, {"text": "Python", "value": 8}]}\n'
+            "```\n"
+            "value 为 1-10 权重。"
         )
     else:
         # 根据不同的视角调整 Prompt
@@ -254,7 +259,12 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
             "```json\n"
             '{"charts": [{"type": "bar", "title": "标题", "data": {"labels": ["A"], "values": [10]}}]}\n'
             "```\n"
-            "type可选: bar/pie/line。"
+            "type可选: bar/pie/line。\n"
+            "11. **关键词**（必填）：在图表之后输出关键词 JSON（词云用），格式如下：\n"
+            "```json\n"
+            '{"keywords": [{"text": "AI", "value": 10}, {"text": "Python", "value": 8}]}\n'
+            "```\n"
+            "value 为 1-10 权重。"
         )
 
     content_parts = [prompt_text]
@@ -375,10 +385,27 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
                     chart_data = json.loads(chart_json)
                     if "charts" in chart_data and isinstance(chart_data["charts"], list):
                         usage["charts"] = chart_data["charts"]
-                        # 移除 JSON 代码块
-                        response_text = response_text.replace(json_match.group(0), "").strip()
+                    if "keywords" in chart_data and isinstance(chart_data["keywords"], list):
+                        usage["keywords"] = chart_data["keywords"]
+                    # 移除 JSON 代码块
+                    response_text = response_text.replace(json_match.group(0), "").strip()
             except Exception as e:
                 logger.warning(f"Failed to parse chart data: {e}")
+
+        # 解析关键词数据（词云用）
+        if "```json" in response_text and "keywords" in response_text:
+            try:
+                import json
+                import re
+                keyword_match = re.search(r'```json\s*(\{.*?"keywords".*?\})\s*```', response_text, re.DOTALL)
+                if keyword_match:
+                    keyword_json = keyword_match.group(1)
+                    keyword_data = json.loads(keyword_json)
+                    if "keywords" in keyword_data and isinstance(keyword_data["keywords"], list):
+                        usage["keywords"] = keyword_data["keywords"]
+                        response_text = response_text.replace(keyword_match.group(0), "").strip()
+            except Exception as e:
+                logger.warning(f"Failed to parse keyword data: {e}")
 
         return response_text, usage
 

@@ -37,6 +37,10 @@
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
   --section-gap: 2.5rem;
+  --icon-size-sm: 16px;
+  --icon-size-md: 18px;
+  --icon-size-lg: 20px;
+  --input-height: 52px;
 
   --bg-80: color-mix(in srgb, var(--bg) 80%, transparent);
   --bg-60: color-mix(in srgb, var(--bg) 60%, transparent);
@@ -79,9 +83,13 @@ body {
 }
 
 .icon-chip-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 28px;
   border-radius: 8px;
+  background: rgba(148, 163, 184, 0.16);
 }
 
 .icon-chip-inline {
@@ -94,7 +102,24 @@ body {
   background: rgba(148, 163, 184, 0.16);
 }
 
+.icon-chip svg,
+.icon-chip-sm svg {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  stroke-width: 2;
+}
+
+.icon-chip-inline svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  stroke-width: 2;
+}
+
 .dark .icon-chip {
+  background: rgba(30, 41, 59, 0.6);
+}
+
+.dark .icon-chip-sm {
   background: rgba(30, 41, 59, 0.6);
 }
 
@@ -451,6 +476,7 @@ body {
   /* Enhanced shadow */
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
   border: none;
+  min-height: var(--input-height);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -480,6 +506,7 @@ body {
   border-radius: var(--radius-md);
   font-weight: 500;
   transition: all 0.2s ease;
+  min-height: var(--input-height);
 }
 
 .btn-ghost:hover:not(:disabled) {
@@ -505,6 +532,7 @@ body {
   color: var(--text-main);
   transition: all 0.2s ease;
   outline: none;
+  min-height: var(--input-height);
 }
 
 .dark .input-base {

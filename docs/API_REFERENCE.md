@@ -18,7 +18,7 @@
 
 - **Base URL**: `http://localhost:8000` (开发) / `https://your-domain.com` (生产)
 - **数据格式**: JSON
-- **认证**: Bearer Token (Supabase JWT)
+- **认证**: `x-api-key` 优先，其次 `Authorization: Bearer <token>` (Supabase JWT)
 
 ---
 
@@ -61,6 +61,7 @@
 `summary_complete.usage` 关键字段（可选）：
 - `cot_steps`: `[{ "step": 1, "title": "...", "thinking": "..." }]`
 - `charts`: `[{ "type": "bar", "title": "...", "data": { "labels": [], "values": [] } }]`
+- `keywords`: `[{ "text": "AI", "value": 10 }]`
 
 ---
 
@@ -348,6 +349,15 @@ const { data, error } = await supabase
 ---
 
 ## 认证方式
+
+### API Key（x-api-key）
+
+**请求头**:
+```
+x-api-key: sk-bili-***
+```
+
+**优先级**: 若同时提供 `x-api-key` 与 `Authorization: Bearer`，以 `x-api-key` 为准。
 
 ### Supabase JWT Bearer Token
 

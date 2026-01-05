@@ -120,6 +120,11 @@
             v-if="chartData && chartData.length > 0"
             :charts="chartData"
           />
+
+          <WordCloudPanel
+            v-if="keywordData && keywordData.length > 0"
+            :keywords="keywordData"
+          />
           
           <ChatPanel
             v-if="result.summary"
@@ -155,6 +160,19 @@
         </div>
 
         </div>
+
+        <transition name="badge-toast">
+          <div v-if="badgeToast" class="fixed right-6 bottom-6 z-50">
+            <div class="badge-toast-card">
+              <div class="badge-toast-icon">🏆</div>
+              <div class="badge-toast-body">
+                <div class="badge-toast-title">成就解锁</div>
+                <div class="badge-toast-text">{{ badgeToast.title }}</div>
+              </div>
+              <div class="badge-toast-glow"></div>
+            </div>
+          </div>
+        </transition>
 
         <!-- Section: Product Features -->
         <section id="features" class="pt-10 pb-6 space-y-8 border-t border-gray-100 dark:border-gray-800/50" data-reveal>
@@ -344,12 +362,15 @@ import FavoritesImportModal from '../components/FavoritesImportModal.vue'
 import HistoryList from '../components/HistoryList.vue'
 import CoTPanel from '../components/CoTPanel.vue'
 import ChartPanel from '../components/ChartPanel.vue'
+import WordCloudPanel from '../components/WordCloudPanel.vue'
 import { useSummarize } from '../composables/useSummarize'
 import { useAuth } from '../composables/useAuth'
 import { useHistorySync } from '../composables/useHistorySync'
 import { useReveal } from '../composables/useReveal'
+import { useBadges } from '../composables/useBadges'
 import type { SummarizeRequest } from '../types/api'
 import { isSupabaseConfigured, supabase } from '../supabase'
+import confetti from 'canvas-confetti'
 
 const appActions = inject<{
   openLogin: () => void
@@ -384,20 +405,64 @@ const { isLoading, status, hint, detail, progress, phase, elapsedSeconds, errorC
 
 const cotSteps = ref<any[]>([])
 const chartData = ref<any[]>([])
+const keywordData = ref<any[]>([])
+const badgeToast = ref<{ title: string } | null>(null)
+const lastCelebratedSummary = ref('')
+
+const { checkAndUnlockBadges } = useBadges()
 
 // 监听 usage 变化，提取 CoT 和图表数据
 watch(() => result.value.usage, (newUsage) => {
   if (newUsage) {
     cotSteps.value = newUsage.cot_steps || []
     chartData.value = newUsage.charts || []
+    keywordData.value = newUsage.keywords || []
+  } else {
+    cotSteps.value = []
+    chartData.value = []
+    keywordData.value = []
   }
 }, { deep: true })
+
+const triggerConfetti = () => {
+  if (typeof window === 'undefined') return
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  confetti({
+    particleCount: 120,
+    spread: 70,
+    origin: { y: 0.6 }
+  })
+  confetti({
+    particleCount: 80,
+    spread: 120,
+    origin: { y: 0.2 },
+    ticks: 200
+  })
+}
+
+const showBadgeToast = (title: string) => {
+  badgeToast.value = { title }
+  window.setTimeout(() => {
+    badgeToast.value = null
+  }, 2500)
+}
 
 watch(() => result.value.summary, (newVal) => {
   if (newVal) {
     nextTick(() => {
       refreshReveal()
     })
+  }
+})
+
+watch([() => phase.value, () => result.value.summary], ([nextPhase, summary]) => {
+  if (nextPhase === 'complete' && summary && summary !== lastCelebratedSummary.value) {
+    lastCelebratedSummary.value = summary
+    triggerConfetti()
+    const unlocked = checkAndUnlockBadges()
+    if (unlocked.length > 0) {
+      showBadgeToast(unlocked[0].title)
+    }
   }
 })
 
@@ -957,3 +1022,83 @@ const handleExport = async (format: 'md' | 'txt' | 'pdf') => {
   }
 }
 </script>
+
+<style scoped>
+.badge-toast-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.15);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+
+.badge-toast-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(46, 131, 251, 0.2), rgba(46, 131, 251, 0.05));
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+}
+
+.badge-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.badge-toast-title {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(100, 116, 139, 0.9);
+}
+
+.badge-toast-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.badge-toast-glow {
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 80px;
+  height: 80px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(46, 131, 251, 0.18), transparent 70%);
+}
+
+.dark .badge-toast-card {
+  background: rgba(15, 23, 42, 0.92);
+  border-color: rgba(51, 65, 85, 0.8);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+}
+
+.dark .badge-toast-title {
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.dark .badge-toast-text {
+  color: #e2e8f0;
+}
+
+.badge-toast-enter-active,
+.badge-toast-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.badge-toast-enter-from,
+.badge-toast-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+}
+</style>
