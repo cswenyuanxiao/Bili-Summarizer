@@ -86,7 +86,10 @@ export function useBadges() {
     unlockedIds.value = updated
     writeUnlocked(updated)
 
-    return newUnlocked.map(id => BADGES.find(badge => badge.id === id)).filter(Boolean) as BadgeDef[]
+    const resolved = newUnlocked
+      .map(id => BADGES.find(badge => badge.id === id))
+      .filter((badge): badge is BadgeDef => Boolean(badge))
+    return resolved
   }
 
   return {

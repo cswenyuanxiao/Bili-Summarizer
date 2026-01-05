@@ -9,7 +9,7 @@
     </div>
 
     <div class="wordcloud-canvas">
-      <canvas :ref="setCanvasRef"></canvas>
+      <canvas ref="canvasRef"></canvas>
     </div>
   </div>
 </template>
@@ -32,10 +32,6 @@ const props = defineProps<{
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let chartInstance: Chart | null = null
-
-const setCanvasRef = (el: HTMLCanvasElement | null) => {
-  if (el) canvasRef.value = el
-}
 
 const renderWordCloud = () => {
   if (!canvasRef.value) return

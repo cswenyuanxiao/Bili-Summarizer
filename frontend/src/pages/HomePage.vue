@@ -460,8 +460,9 @@ watch([() => phase.value, () => result.value.summary], ([nextPhase, summary]) =>
     lastCelebratedSummary.value = summary
     triggerConfetti()
     const unlocked = checkAndUnlockBadges()
-    if (unlocked.length > 0) {
-      showBadgeToast(unlocked[0].title)
+    const firstUnlocked = unlocked[0]
+    if (firstUnlocked) {
+      showBadgeToast(firstUnlocked.title)
     }
   }
 })
@@ -811,7 +812,8 @@ const extractMindmapList = (summary: string) => {
   }
   if (!listBlock) {
     const mermaidMatch = normalized.match(/```mermaid[\s\S]*?\n([\s\S]*?)\n```/)
-    if (mermaidMatch?.[1]) return convertMermaidToMarkdown(mermaidMatch[1])
+    const mermaidContent = mermaidMatch?.[1]
+    if (mermaidContent) return convertMermaidToMarkdown(mermaidContent)
     return ''
   }
   const listLines = takeListLines(listBlock)

@@ -15,13 +15,14 @@
             />
             <button
               type="button"
-              class="px-4 btn-ghost rounded-xl text-sm font-semibold hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors flex items-center justify-center"
+              class="px-4 btn-ghost rounded-xl text-sm font-semibold hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors flex items-center justify-center gap-1.5"
               @click="handleLuckyPick"
               title="手气不错"
             >
               <span class="icon-chip-inline text-gray-500">
                 <BoltIcon class="h-3.5 w-3.5" />
               </span>
+              <span>随机总结</span>
             </button>
             <button
               type="submit"
@@ -246,11 +247,14 @@ const getDurationSeconds = (duration: number | string | undefined) => {
     const parts = duration.split(':').map((p) => Number(p))
     if (parts.some((p) => Number.isNaN(p))) return Number.POSITIVE_INFINITY
     if (parts.length === 3) {
-      const [h, m, s] = parts
+      const h = parts[0] ?? 0
+      const m = parts[1] ?? 0
+      const s = parts[2] ?? 0
       return h * 3600 + m * 60 + s
     }
     if (parts.length === 2) {
-      const [m, s] = parts
+      const m = parts[0] ?? 0
+      const s = parts[1] ?? 0
       return m * 60 + s
     }
   }
