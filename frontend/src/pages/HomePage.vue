@@ -807,7 +807,7 @@ const extractMindmapList = (summary: string) => {
   const headingMatch = normalized.match(/^\s*#+\s*思维导图.*\n([\s\S]*)$/m)
   const inlineMatch = normalized.match(/思维导图[:：]\n+([\s\S]*)$/)
   let listBlock = (markerMatch?.[1] || headingMatch?.[1] || inlineMatch?.[1] || '').trim()
-  if (listBlock.includes('```json')) {
+  if (listBlock && listBlock.includes('```json')) {
     listBlock = listBlock.split('```json')[0].trim()
   }
   if (!listBlock) {
@@ -818,7 +818,7 @@ const extractMindmapList = (summary: string) => {
   }
   const listLines = takeListLines(listBlock)
   if (listLines) return listLines
-  const fallbackList = takeListLines(normalized.split('```json')[0])
+  const fallbackList = takeListLines(normalized.split('```json')[0] || '')
   if (fallbackList) return fallbackList
   return extractSentencesForMindmap(normalized)
 }

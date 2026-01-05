@@ -124,7 +124,7 @@ const updateMarkmap = async () => {
   try {
     const { root } = transformer.transform(props.diagram)
     if (!markmapInstance.value) {
-      markmapInstance.value = Markmap.create(svgRef.value, { autoFit: true }, root)
+      markmapInstance.value = Markmap.create(svgRef.value, { autoFit: true } as any, root)
     } else {
       markmapInstance.value.setData(root)
     }
