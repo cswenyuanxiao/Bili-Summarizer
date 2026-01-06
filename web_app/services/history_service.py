@@ -113,7 +113,12 @@ async def sync_history(items: List[HistoryItem], user_id: str, user_token: str) 
                 headers=headers,
                 json=payload,
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                if exc.response is not None and exc.response.status_code == 409:
+                    return {"uploaded": len(payload), "total": len(items), "errors": None}
+                raise
             return {"uploaded": len(payload), "total": len(items), "errors": None}
     except Exception as e:
         logger.error(f"Batch sync error: {e}")
