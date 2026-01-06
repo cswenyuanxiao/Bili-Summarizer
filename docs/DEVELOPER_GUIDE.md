@@ -75,7 +75,9 @@
 │  └────────────────────────────────┘  │
 │  ┌────────────────────────────────┐  │
 │  │  Services                      │  │
-│  │  - subscriptions.py (B站API)   │  │
+│  │  - services/history_service.py │  │
+│  │  - services/subscriptions_service.py │  │
+│  │  - clients/bilibili_client.py  │  │
 │  │  - wbi.py (签名)               │  │
 │  │  - db.py (SQLite)              │  │
 │  │  - scheduler.py (定时任务)     │  │
@@ -130,13 +132,22 @@ Gemini API生成总结+思维导图
 ```
 summarizer/
 ├── web_app/                 # 后端代码
-│   ├── main.py              # FastAPI入口
+│   ├── main.py              # FastAPI入口（仅实例化+注册路由）
+│   ├── app_setup.py         # 中间件与静态资源挂载
+│   ├── lifecycle.py         # 启动/关闭生命周期
+│   ├── exceptions.py        # 全局异常处理注册
+│   ├── legacy_main.py       # 历史路由聚合（APIRouter）
 │   ├── routers/             # API路由模块
 │   │   ├── subscriptions.py # 订阅相关
 │   │   ├── trending.py      # 热门视频
 │   │   ├── payments.py      # 支付
 │   │   └── templates.py     # 自定义模板
-│   ├── subscriptions.py     # 订阅服务逻辑
+│   ├── services/            # 业务服务层
+│   │   ├── history_service.py
+│   │   └── subscriptions_service.py
+│   ├── clients/             # 第三方客户端
+│   │   └── bilibili_client.py
+│   ├── subscriptions.py     # 兼容层（历史导入路径）
 │   ├── wbi.py               # B站WBI签名
 │   ├── db.py                # 数据库操作
 │   └── scheduler.py         # 定时任务调度

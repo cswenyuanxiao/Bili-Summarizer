@@ -1,7 +1,24 @@
 # Changelog
 
-Last updated: 2026-01-05  
+Last updated: 2026-01-07  
 Owner: Core Eng
+
+## [2.3.7] - 2026-01-07
+
+### Added
+- **服务层拆分**：新增 `services/` 与 `clients/` 目录，历史同步与订阅逻辑下沉。
+
+### Changed
+- **入口瘦身**：`main.py` 仅保留 app 实例化与路由注册。
+- **启动结构**：抽离 `lifecycle.py` 与 `app_setup.py`，集中管理生命周期与中间件/静态资源。
+
+### Fixed
+- **历史同步**：Supabase 409 冲突视为幂等成功，避免 `/api/history` 500。
+- **路由顺序**：SPA 路由改为最后注册，避免拦截 `/api/*`。
+- **总结接口**：恢复 legacy 路由即时注册，避免 `/api/summarize` 404。
+
+### Performance
+- **启动去阻塞**：收藏夹/团队表初始化与清理任务改为后台执行，降低首屏连接阻塞。
 
 ## [2.3.4] - 2026-01-05
 
@@ -30,6 +47,18 @@ Owner: Core Eng
 
 ### Documentation
 - 更新 `docs/CONFIGURATION.md` 新增 `DOUYIN_COOKIE`
+
+## [2.3.6] - 2026-01-06
+
+### Added
+- **抖音 Evil0ctal 解析链路**：替换默认 savetik，支持自建解析服务与字段探测兜底。
+- **抖音下载缓存**：按 TTL 复用已下载视频，避免重复拉取。
+
+### Changed
+- **抖音解析器选择**：新增 `DOUYIN_RESOLVER_PROVIDER`（默认 `evil0ctal`，`savetik` 标记为弃用）。
+
+### Documentation
+- 更新 `.env.example`、`docs/CONFIGURATION.md`、`docs/DEPLOYMENT.md`
 
 ## [2.3.3] - 2026-01-05
 
