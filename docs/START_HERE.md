@@ -41,7 +41,7 @@ Bili‑Summarizer 是面向 B 站视频的 AI 总结工具：输入视频链接�
 
 ## 最小闭环验证
 1) 设置 `GOOGLE_API_KEY`  
-2) 启动后端：`uvicorn web_app.main:app --reload --port 7860`  
+2) 启动后端：`uvicorn web_app.main:app --reload --port 8000`  
 3) 启动前端：`cd frontend && npm install && npm run dev`  
 4) 访问：`http://localhost:5173`  
 5) 验证：SSE 收到 `summary_complete`，页面渲染成功

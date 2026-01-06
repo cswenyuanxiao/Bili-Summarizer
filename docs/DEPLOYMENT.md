@@ -43,6 +43,18 @@ cd frontend && npm run dev -- --port 5173
 
 ---
 
+## 抖音链路验证（最小步骤）
+
+1. 启动 Evil0ctal 解析服务（见上文）
+2. 启动后端：`python -m uvicorn web_app.main:app --reload --port 8000`
+3. 触发 SSE（示例）：
+   ```bash
+   curl -N \
+     -H "Authorization: Bearer <YOUR_SUPABASE_JWT>" \
+     "http://localhost:8000/api/summarize?url=https%3A%2F%2Fv.douyin.com%2Fxxxxxxxx%2F&mode=smart"
+   ```
+4. 预期：流式返回 `status` → `transcript_complete`（可选） → `summary_complete`
+
 ## 环境配置
 
 ### 必需的环境变量
@@ -90,6 +102,17 @@ PAYPAL_CLIENT_SECRET="your_secret"
 3. Application → Cookies → bilibili.com
 4. 复制`SESSDATA`的值
 5. 粘贴到`.env`
+
+#### 抖音解析服务 (Evil0ctal)
+1. 启动解析服务（示例，按 Evil0ctal/Douyin_TikTok_Download_API 的 README 为准）：
+   ```bash
+   docker run --rm -p 8001:8001 evil0ctal/douyin_tiktok_download_api:latest
+   ```
+2. 配置本项目环境变量：
+   ```bash
+   DOUYIN_API_BASE="http://localhost:8001"
+   DOUYIN_RESOLVER_PROVIDER="evil0ctal"
+   ```
 
 ---
 

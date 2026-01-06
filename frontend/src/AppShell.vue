@@ -14,7 +14,7 @@
           <div class="flex items-center justify-between h-14 sm:h-16">
             <RouterLink to="/" class="flex items-center gap-3">
               <img src="/favicon.png" alt="Logo" class="w-9 h-9 rounded-xl shadow-sm" />
-              <div class="text-base sm:text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">Bili-Summarizer</div>
+              <div class="text-base sm:text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">Video Summarizer</div>
             </RouterLink>
 
             <nav class="hidden lg:flex items-center gap-6 text-sm text-gray-600 dark:text-gray-300">

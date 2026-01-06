@@ -8,7 +8,7 @@ API Key 功能测试脚本 - 修复版
 import requests
 import json
 
-BASE_URL = "http://localhost:7860"
+BASE_URL = "http://localhost:8000"
 
 def test_health():
     """测试健康检查"""

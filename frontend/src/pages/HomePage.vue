@@ -99,7 +99,7 @@
 
             <div class="lg:col-span-2 space-y-6">
                 <SummaryCard
-                  :content="result.summary"
+                  :content="cleanSummary"
                   :loading="isLoading"
                   @copy="copySummary"
                   @refresh="handleResummarize"
@@ -108,9 +108,9 @@
                 
                 <ExportBar @export="handleExport" @share="openShareCard" />
                 
-                <AudioPlayer 
+                  <AudioPlayer 
                   v-if="showTTS" 
-                  :text="result.summary" 
+                  :text="cleanSummary" 
                   @close="showTTS = false" 
                 />
               </div>
@@ -136,8 +136,8 @@
 
         <ShareCardModal
           :show="showShareCard"
-          :title="videoInfo?.title || extractTitle(result.summary)"
-          :summary="result.summary"
+          :title="videoInfo?.title || extractTitle(cleanSummary)"
+          :summary="cleanSummary"
           :thumbnail="videoInfo?.thumbnail || ''"
           @close="showShareCard = false"
         />
@@ -808,7 +808,7 @@ const extractMindmapList = (summary: string) => {
   const inlineMatch = normalized.match(/思维导图[:：]\n+([\s\S]*)$/)
   let listBlock = (markerMatch?.[1] || headingMatch?.[1] || inlineMatch?.[1] || '').trim()
   if (listBlock && listBlock.includes('```json')) {
-    listBlock = listBlock.split('```json')[0].trim()
+    listBlock = (listBlock.split('```json')[0] || '').trim()
   }
   if (!listBlock) {
     const mermaidMatch = normalized.match(/```mermaid[\s\S]*?\n([\s\S]*?)\n```/)
@@ -824,6 +824,15 @@ const extractMindmapList = (summary: string) => {
 }
 
 const extractedMindmap = computed(() => extractMindmapList(result.value.summary))
+
+const cleanSummary = computed(() => {
+  if (!result.value.summary) return ''
+  return result.value.summary
+    .replace(/【思维导图】[\s\S]*$/, '')
+    .replace(/^\s*#+\s*思维导图[\s\S]*$/gm, '')
+    .replace(/```mermaid[\s\S]*?```/g, '')
+    .trim()
+})
 
 const loadingSteps = ['连接', '下载/字幕', 'AI 分析', '整理结果']
 const activeStep = computed(() => {

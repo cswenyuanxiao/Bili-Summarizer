@@ -11,7 +11,15 @@ Owner: Ops
 - `SUPABASE_URL`、`SUPABASE_ANON_KEY`（可选）：登录与云端历史。
 - `SUPABASE_SERVICE_KEY`（可选）：后端服务客户端密钥。
 - `DOUYIN_COOKIE`（可选）：抖音下载所需 Cookie（需保持新鲜）。
-- `DOUYIN_SAVETIK_DEBUG`（可选）：开启 SaveTik 调试模式（截图 + HTML dump）。
+- `DOUYIN_RESOLVER_PROVIDER`（可选）：抖音解析器选择（`evil0ctal` | `savetik`，默认 `evil0ctal`，`savetik` 已弃用）。
+- `DOUYIN_API_BASE`（可选）：Evil0ctal 解析服务 Base URL（默认 `http://localhost:8001`）。
+- `DOUYIN_HTTP_TIMEOUT_CONNECT`（可选）：抖音解析服务连接超时（秒）。
+- `DOUYIN_HTTP_TIMEOUT_READ`（可选）：抖音解析服务读取超时（秒）。
+- `DOUYIN_HTTP_MAX_RETRIES`（可选）：抖音解析请求最大重试次数。
+- `DOUYIN_CACHE_TTL_SECONDS`（可选）：抖音视频缓存 TTL（秒）。
+- `DOUYIN_MIN_BYTES`（可选）：抖音视频最小有效大小（字节）。
+- `DOUYIN_USER_AGENT`（可选）：抖音解析请求 UA。
+- `DOUYIN_SAVETIK_DEBUG`（可选）：开启 SaveTik 调试模式（截图 + HTML dump，仅在 `savetik` 方案下使用）。
 - `DOUYIN_SAVETIK_DEBUG_DIR`（可选）：调试输出目录（默认 `videos/savetik_debug`）。
 
 ## 运行时开关

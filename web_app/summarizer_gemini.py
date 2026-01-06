@@ -91,7 +91,8 @@ def extract_ai_transcript(file_path: Path, progress_callback=None, uploaded_file
     
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
+        model = genai.GenerativeModel(model_name="models/gemini-3-flash-preview")
+        logger.info(f"Using AI Model: {model.model_name}")
         
         # 如果 uploaded_file 存在，说明是并行模式，main.py 已经发送了统一的进度消息
         if progress_callback and not uploaded_file:
@@ -184,7 +185,7 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
     try:
         genai.configure(api_key=api_key)
         # 使用完整的模型名称
-        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
+        model = genai.GenerativeModel(model_name="models/gemini-3-flash-preview")
     except Exception as e:
         raise Exception(f"Google AI SDK 配置失败: {e}")
 
@@ -251,8 +252,7 @@ def summarize_content(file_path: Path, media_type: str, progress_callback=None, 
             "8. 直接使用标准 Markdown 格式。严禁使用 LaTeX 格式，表示方向请直接使用 '→' 或 '->'。\n"
             "9. 先输出结构化正文，再输出思维导图/图表/关键词。\n"
             "10. 请严格按以下结构输出：\n"
-            "# 🎯 核心摘要 (Executive Summary)\n"
-            "用 100 字左右概述主旨、核心冲突或主要结论（必须有内容，禁止只给标题）。\n\n"
+            "首先，直接输出 100 字左右的核心摘要（Executive Summary），不要使用任何标题（#）。\n\n"
             "# 🔑 关键概念与深度解析 (Key Concepts & Deep Dive)\n"
             "提取 3-5 个核心概念或论点，每个点必须包含：\n"
             "- 核心定义：它是什么？\n"
@@ -449,7 +449,7 @@ def generate_ppt_structure(summary_text: str) -> dict:
     
     genai.configure(api_key=api_key)
     # 使用较快的模型处理简单的格式转换任务
-    model = genai.GenerativeModel("models/gemini-2.0-flash")
+    model = genai.GenerativeModel("models/gemini-3-flash-preview")
     
     prompt = """User wants to turn the following textual summary into a PowerPoint presentation.
     Please act as a Presentation Expert and structure the content into a JSON format suitable for generating slides.

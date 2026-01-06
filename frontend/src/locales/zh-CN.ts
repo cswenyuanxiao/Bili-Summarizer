@@ -43,7 +43,7 @@ export default {
 
     // 首页
     home: {
-        title: 'Bili-Summarizer',
+        title: 'Video Summarizer',
         subtitle: '把 B站长视频 拆成可执行的知识模块',
         inputPlaceholder: '粘贴 B 站视频链接，开始总结...',
         summarizeButton: '开始总结',

@@ -58,7 +58,7 @@
             </div>
             <span class="summary-block__pill">Summary</span>
           </div>
-          <p v-if="abstractText" class="summary-block__body">{{ abstractText }}</p>
+          <p v-if="abstractText" class="summary-block__body" v-html="abstractText"></p>
           <p v-else class="summary-empty">暂无摘要内容。</p>
         </section>
 
@@ -71,9 +71,9 @@
             <span class="summary-block__pill is-outline">Takeaways</span>
           </div>
           <ul v-if="keyPoints.length" class="summary-takeaway-list">
-            <li v-for="(point, index) in keyPoints" :key="`${point}-${index}`">
+            <li v-for="(point, index) in keyPoints" :key="index">
               <span class="summary-takeaway-dot"></span>
-              <span>{{ point }}</span>
+              <span v-html="point"></span>
             </li>
           </ul>
           <p v-else class="summary-empty">暂无要点。</p>
@@ -87,7 +87,7 @@
             </div>
             <span class="summary-block__pill is-highlight">Insight</span>
           </div>
-          <p class="summary-block__quote">{{ quoteText }}</p>
+          <p class="summary-block__quote" v-html="quoteText"></p>
         </section>
 
         <section class="summary-block summary-block--details">
@@ -159,20 +159,21 @@ const quoteTokenIndex = computed(() => getTokenIndex('blockquote'))
 
 const abstractText = computed(() => {
   const token = tokens.value[abstractTokenIndex.value] as any
-  return token?.text?.trim() || ''
+  return token?.text ? marked.parseInline(token.text.trim()) : ''
 })
 
 const keyPoints = computed(() => {
   const listToken = tokens.value[listTokenIndex.value] as any
   if (!listToken || !listToken.items?.length) return []
-  return listToken.items.slice(0, 5).map((item: any) => item.text.trim()).filter(Boolean)
+  return listToken.items.slice(0, 5).map((item: any) => marked.parseInline(item.text.trim())).filter(Boolean)
 })
 
 const quoteText = computed(() => {
   const quoteToken = tokens.value[quoteTokenIndex.value] as any
   if (!quoteToken) return ''
   const parts = quoteToken.tokens?.map((item: any) => item.text).filter(Boolean) || []
-  return parts.join(' ').trim()
+  const text = parts.join(' ').trim()
+  return text ? marked.parseInline(text) : ''
 })
 
 const renderedContent = computed(() => {

@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile.backend
     container_name: bili-summarizer-backend-dev
     ports:
-      - "7860:7860" # 开发模式直接暴露端口
+      - "8000:8000" # 开发模式直接暴露端口
     volumes:
       # 持久化数据
       - ./summarizer.db:/app/summarizer.db
@@ -18,7 +18,7 @@ services:
       - ./web_app:/app/web_app
     env_file:
       - .env
-    command: uvicorn web_app.main:app --reload --host 0.0.0.0 --port 7860
+    command: uvicorn web_app.main:app --reload --host 0.0.0.0 --port 8000
     restart: unless-stopped
 
   # 前端开发模式 (Vite 热更新)
@@ -30,7 +30,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_PROXY_TARGET=http://backend:7860
+      - VITE_PROXY_TARGET=http://backend:8000
       - CHOKIDAR_USEPOLLING=true
     volumes:
       - ./frontend:/app
@@ -41,7 +41,7 @@ services:
 
 # 开发模式说明:
 # 1. 前端通过容器运行 Vite (localhost:5173)
-# 2. Vite 会自动代理 /api 到 backend:7860
+# 2. Vite 会自动代理 /api 到 backend:8000
 # 3. 后端使用此配置启动,支持代码热更新
 #
 # 启动命令:

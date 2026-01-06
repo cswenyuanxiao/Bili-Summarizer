@@ -91,7 +91,7 @@ async def compare_summaries(
     )
     
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash-exp")
+        model = genai.GenerativeModel("gemini-3-flash-preview")
         
         response = model.generate_content(
             prompt,

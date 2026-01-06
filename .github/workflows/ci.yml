@@ -82,7 +82,7 @@ jobs:
         working-directory: frontend
       - name: Start backend
         run: |
-          uvicorn web_app.main:app --host 127.0.0.1 --port 7860 > backend.log 2>&1 &
+          uvicorn web_app.main:app --host 127.0.0.1 --port 8000 > backend.log 2>&1 &
           echo $! > backend.pid
       - name: Wait for backend startup
         run: sleep 10
@@ -90,4 +90,4 @@ jobs:
         if: always()
         run: cat backend.log || echo "No log file"
       - name: Preflight health check
-        run: ./scripts/preflight_check.sh http://localhost:7860
+        run: ./scripts/preflight_check.sh http://localhost:8000

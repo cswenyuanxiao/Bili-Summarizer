@@ -23,7 +23,7 @@
           <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">推荐访问入口</h3>
           <ul class="list-disc ml-5 space-y-1">
             <li>开发调试：`http://localhost:5173`</li>
-            <li>本地准上线：`http://localhost:7860`</li>
+            <li>本地准上线：`http://localhost:8000`</li>
             <li>Docker：`http://localhost`</li>
             <li>Render：服务 URL（例如 `https://xxx.onrender.com`）</li>
           </ul>

@@ -90,3 +90,40 @@ To resume debugging, start here:
 3.  **Files of Interest**:
     *   `web_app/scraper_savetik.py`: The logic that parses the page.
     *   `web_app/downloader.py`: The caller.
+
+## 6. Evil0ctal API 样例响应（脱敏）
+
+> 说明：以下为脱敏后的响应样例模板，用于字段映射审计。运行后端解析时会追加真实响应到本文件。
+
+### /api/hybrid/video_data
+
+```json
+{
+  "data": {
+    "title": "[REDACTED]",
+    "desc": "[REDACTED]",
+    "author": {
+      "nickname": "[REDACTED]"
+    },
+    "cover": "https://example.com/cover.jpg",
+    "duration": 123
+  }
+}
+```
+
+### /api/download
+
+```json
+{
+  "data": {
+    "nwm_video_url": "https://example.com/video.mp4",
+    "video": {
+      "play_addr": {
+        "url_list": [
+          "https://example.com/video.mp4"
+        ]
+      }
+    }
+  }
+}
+```

@@ -1,4 +1,4 @@
-# ✨ Bili-Summarizer
+# ✨ Video Summarizer
 
 > **AI 视频总结助手** — 一键获取 Bilibili 视频的智能总结、思维导图和完整转录
 
@@ -110,7 +110,7 @@ docker-compose up -d --build
 pip install -r requirements.txt
 brew install ffmpeg  # macOS
 export GOOGLE_API_KEY="你的密钥"
-uvicorn web_app.main:app --reload --port 7860
+uvicorn web_app.main:app --reload --port 8000
 
 # 终端 2: 启动前端
 cd frontend
@@ -123,7 +123,7 @@ npm run dev
 
 ```bash
 # 启动应用后，运行以下命令生成公网链接
-npx localtunnel --port 7860
+npx localtunnel --port 8000
 ```
 
 ---

@@ -43,7 +43,7 @@ export default {
 
     // Home
     home: {
-        title: 'Bili-Summarizer',
+        title: 'Video Summarizer',
         subtitle: 'Transform long Bilibili videos into actionable knowledge modules',
         inputPlaceholder: 'Paste a Bilibili video link to start summarizing...',
         summarizeButton: 'Summarize',

@@ -8,6 +8,18 @@ import yt_dlp
 import subprocess
 import glob
 import urllib.request
+import time
+import hashlib
+
+from .douyin_resolver import (
+    Evil0ctalBackend,
+    DouyinHttpConfig,
+    is_douyin_url,
+    extract_aweme_id,
+    build_cache_key,
+    extract_download_url,
+    extract_metadata,
+)
 
 # 定义视频存储目录
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -73,6 +85,105 @@ def _normalize_douyin_url(url: str) -> str:
         
     return url
 
+
+def _get_env_int(key: str, default: int) -> int:
+    try:
+        return int(os.getenv(key, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _get_env_float(key: str, default: float) -> float:
+    try:
+        return float(os.getenv(key, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _get_douyin_cache_path(cache_key: str) -> Path:
+    cache_dir = VIDEOS_DIR / "douyin_cache"
+    cache_dir.mkdir(exist_ok=True)
+    return cache_dir / f"{cache_key}.mp4"
+
+
+def _is_cache_valid(path: Path, ttl_seconds: int) -> bool:
+    if not path.exists():
+        return False
+    if ttl_seconds <= 0:
+        return True
+    age = time.time() - path.stat().st_mtime
+    if age <= ttl_seconds:
+        return True
+    try:
+        path.unlink()
+    except Exception:
+        pass
+    return False
+
+
+def _download_via_evil0ctal(url: str, output_dir: Path, progress_callback=None) -> tuple[Optional[Path], Optional[str]]:
+    """
+    使用 Evil0ctal 自建解析服务下载抖音视频。
+    Returns: (file_path, error_message)
+    """
+    try:
+        base_url = os.getenv("DOUYIN_API_BASE", "http://localhost:8001").rstrip("/")
+        timeout_connect = _get_env_float("DOUYIN_HTTP_TIMEOUT_CONNECT", 5.0)
+        timeout_read = _get_env_float("DOUYIN_HTTP_TIMEOUT_READ", 60.0)
+        max_retries = _get_env_int("DOUYIN_HTTP_MAX_RETRIES", 2)
+        user_agent = os.getenv(
+            "DOUYIN_USER_AGENT",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+        cache_ttl = _get_env_int("DOUYIN_CACHE_TTL_SECONDS", 86400)
+        min_bytes = _get_env_int("DOUYIN_MIN_BYTES", 51200)
+
+        resolver = Evil0ctalBackend(
+            DouyinHttpConfig(
+                base_url=base_url,
+                timeout_connect=timeout_connect,
+                timeout_read=timeout_read,
+                max_retries=max_retries,
+                user_agent=user_agent
+            )
+        )
+
+        normalized_url = resolver.resolve_url(url)
+        if progress_callback:
+            progress_callback("Douyin: 解析作品信息...")
+        video_data = resolver.fetch_video_data(normalized_url)
+        metadata = extract_metadata(video_data)
+        aweme_id = extract_aweme_id(normalized_url)
+        cache_key = build_cache_key(normalized_url, aweme_id)
+        cache_path = _get_douyin_cache_path(cache_key)
+
+        if _is_cache_valid(cache_path, cache_ttl):
+            if progress_callback:
+                progress_callback("Douyin: 命中缓存，直接复用视频...")
+            return cache_path, None
+
+        if progress_callback:
+            progress_callback("Douyin: 解析下载链接...")
+        download_data = resolver.fetch_download_data(normalized_url)
+        download_url = extract_download_url(download_data)
+        if not download_url:
+            return None, "Evil0ctal 返回中未找到可用下载链接"
+
+        if progress_callback:
+            progress_callback("Douyin: 开始下载视频...")
+        resolver.download_file(download_url, cache_path, progress_callback)
+
+        if not cache_path.exists() or cache_path.stat().st_size < min_bytes:
+            return None, "下载文件体积异常"
+
+        if metadata.get("title"):
+            print(f"Douyin 下载成功: {metadata['title']}")
+        return cache_path, None
+
+    except Exception as e:
+        return None, f"Evil0ctal 下载流程异常: {e}"
+
 def _download_via_savetik(url: str, output_dir: Path, progress_callback=None) -> tuple[Optional[Path], Optional[str]]:
     """
     使用 savetik.co 下载抖音视频 (Subprocess + Playwright 方案)。
@@ -98,18 +209,25 @@ def _download_via_savetik(url: str, output_dir: Path, progress_callback=None) ->
         if progress_callback:
             progress_callback("正在解析下载链接 (优先低画质以提速)...")
 
-        # 运行子进程
-        process = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        # 运行子进程，传递环境变量
+        # Timeout=300s (5 min) to handle large video files (e.g. 132MB)
+        import os
+        env = os.environ.copy()
+        process = subprocess.run(cmd, capture_output=True, text=True, timeout=300, env=env)
+        
+        # Print stderr for debugging
+        if process.stderr:
+            print(f"[Scraper stderr]: {process.stderr}",file=sys.stderr)
         
         if process.returncode != 0:
-            err = f"Scraper process failed: {process.stderr}"
+            err = f"Scraper process failed (code {process.returncode}): {process.stderr}"
             print(err, file=sys.stderr)
             return None, err
             
         try:
             result = json.loads(process.stdout)
         except json.JSONDecodeError:
-            err = f"Scraper returned invalid JSON: {process.stdout}"
+            err = f"Scraper returned invalid JSON: {process.stdout[:500]}"
             print(err, file=sys.stderr)
             return None, err
             
@@ -118,10 +236,30 @@ def _download_via_savetik(url: str, output_dir: Path, progress_callback=None) ->
             print(err, file=sys.stderr)
             return None, err
             
+        # Check if scraper returned a file path (new behavior) or URL (old behavior)
+        if "file_path" in result["data"]:
+            # Scraper already downloaded the file
+            temp_file = Path(result["data"]["file_path"])
+            if not temp_file.exists():
+                return None, f"Downloaded file not found: {temp_file}"
+            
+            # Move to output directory with a proper name
+            import shutil
+            video_id = str(uuid.uuid4())[:8]
+            output_path = output_dir / f"savetik_{video_id}.mp4"
+            shutil.move(str(temp_file), str(output_path))
+            
+            if progress_callback:
+                progress_callback("Download complete!")
+            
+            print(f"SaveTik 下载成功: {output_path}")
+            return output_path, None
+            
+        # Old behavior: scraper returned URL (kept for compatibility)
         download_link = result["data"].get("url")
         
         if not download_link:
-            return None, "No download link in response"
+            return None, "No download link or file path in response"
             
         if progress_callback:
             progress_callback("获取链接成功，开始下载...")
@@ -211,6 +349,19 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
     url = _normalize_douyin_url(url)
     print(f"准备智能处理: {url}")
     VIDEOS_DIR.mkdir(exist_ok=True)
+
+    if is_douyin_url(url):
+        provider = (os.getenv("DOUYIN_RESOLVER_PROVIDER") or "evil0ctal").lower()
+        transcript_text = ""
+        if provider == "savetik":
+            video_path, err = _download_via_savetik(url, VIDEOS_DIR, progress_callback)
+        else:
+            video_path, err = _download_via_evil0ctal(url, VIDEOS_DIR, progress_callback)
+        if err:
+            raise Exception(f"抖音下载失败：{err}")
+        if not video_path:
+            raise Exception("抖音下载失败：未获取到视频文件")
+        return video_path, "video", transcript_text
 
     def yt_dlp_progress_hook(d):
         if d['status'] == 'downloading':
@@ -357,37 +508,45 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
 
     # 针对 Douyin: 生成 Netscape 格式的 Cookie 文件 (比 Header 更稳定)
     douyin_cookie = (os.getenv("DOUYIN_COOKIE") or "").strip()
+    youtube_cookie = (os.getenv("YOUTUBE_COOKIES") or "").strip()
     cookie_temp_file = None
     
-    if "douyin.com" in url and douyin_cookie:
+    # 统一 Cookie 处理函数
+    def create_cookie_file(cookie_str: str, domain: str) -> str:
         try:
             import tempfile
             import time
+            tf = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt')
+            tf.write("# Netscape HTTP Cookie File\n")
+            tf.write("# This file was generated by Bili-Summarizer\n")
             
-            # 创建临时 cookie 文件
-            cookie_temp_file = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt')
-            cookie_temp_file.write("# Netscape HTTP Cookie File\n")
-            cookie_temp_file.write("# This file was generated by Bili-Summarizer\n")
-            
-            # 解析 cookie 字符串 (key=value; key2=value2)
-            # 简单的解析逻辑，假设 cookie 中没有分号
-            for item in douyin_cookie.split(';'):
+            for item in cookie_str.split(';'):
                 if '=' not in item: continue
                 name, value = item.strip().split('=', 1)
-                # 构造 Netscape 格式行
                 # domain flag path secure expiration name value
-                # 注意: .douyin.com 是通配子域名
-                line = f".douyin.com\tTRUE\t/\tTRUE\t{int(time.time()) + 31536000}\t{name}\t{value}\n"
-                cookie_temp_file.write(line)
+                line = f"{domain}\tTRUE\t/\tTRUE\t{int(time.time()) + 31536000}\t{name}\t{value}\n"
+                tf.write(line)
             
-            cookie_temp_file.close()
-            common_opts['cookiefile'] = cookie_temp_file.name
-            print(f"生成的 Cookie 文件: {cookie_temp_file.name}")
-            
+            tf.close()
+            print(f"生成的 Cookie 文件 ({domain}): {tf.name}")
+            return tf.name
         except Exception as e:
             print(f"Cookie 文件生成失败: {e}", file=sys.stderr)
+            return None
 
-    # 如果没有使用 cookie file，则尝试 header 注入作为 fallback (虽然 yt-dlp 对 header cookie 支持有限)
+    if "douyin.com" in url and douyin_cookie:
+        cookie_path = create_cookie_file(douyin_cookie, ".douyin.com")
+        if cookie_path:
+            common_opts['cookiefile'] = cookie_path
+            cookie_temp_file = cookie_path # Keep ref to cleanup if needed (though we rely on OS mostly)
+
+    elif ("youtube.com" in url or "youtu.be" in url) and youtube_cookie:
+        cookie_path = create_cookie_file(youtube_cookie, ".youtube.com")
+        if cookie_path:
+            common_opts['cookiefile'] = cookie_path
+            cookie_temp_file = cookie_path
+
+    # 如果没有使用 cookie file，则尝试 header 注入作为 fallback (Douyin only)
     if "douyin.com" in url and not common_opts.get('cookiefile'):
         http_headers = dict(common_opts.get('http_headers', {}))
         http_headers.update({
@@ -440,7 +599,7 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
 
     video_opts = {
         **common_opts,
-        'format': 'bestvideo[height<=360]+bestaudio/best[height<=360]/best',
+        'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]/best',
         'outtmpl': str(VIDEOS_DIR / '%(id)s.%(ext)s'),
         'progress_hooks': [yt_dlp_progress_hook],
         'merge_output_format': 'mp4',

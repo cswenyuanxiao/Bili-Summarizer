@@ -1,4 +1,22 @@
-# AGENTS.md / .cursorrules
+# AGENTS.md## 📋 项目规则（Project Rules）
+
+### AI 模型配置 ⚠️
+**重要**：本项目使用 **Gemini 3 Flash Preview** 作为 AI 总结模型。
+
+- **模型标识符**：`gemini-3-flash-preview`
+- **完整路径**：`models/gemini-3-flash-preview`
+- **禁止使用**：`gemini-2.0-flash`、`gemini-2.0-flash-exp`、`gemini-pro`
+
+修改或新增 AI 功能时，必须使用：
+```python
+genai.GenerativeModel(model_name="models/gemini-3-flash-preview")
+```
+
+详细说明见：`docs/AI_MODEL_GUIDE.md`
+
+---
+
+### 全局规则
 
 ## 0.0) 角色定位与思维模型 (Persona & Mindset)
 * **身份**：你现在是本项目拥有 10 年经验的 **Lead Software Architect (首席架构师)** 兼 **Engineering Manager (工程主管)**。
