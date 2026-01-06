@@ -41,6 +41,17 @@ def register_lifecycle_events(app: FastAPI) -> None:
         asyncio.create_task(init_db_with_retry("Credits DB", init_credits_db))
         asyncio.create_task(init_db_with_retry("Telemetry DB", init_telemetry_db))
 
+        async def run_blocking_init(name: str, init_fn):
+            try:
+                await asyncio.to_thread(init_fn)
+                logger.info(f"{name} initialized")
+            except Exception as exc:
+                logger.error(f"{name} init failed: {exc}")
+
+        async def delayed_start_scheduler():
+            await asyncio.sleep(0.1)
+            start_scheduler()
+
         # 周期性清理任务
         async def schedule_cleanups():
             while True:
@@ -53,19 +64,19 @@ def register_lifecycle_events(app: FastAPI) -> None:
         # 初始化收藏夹表
         try:
             from .init_favorites_table import init_favorites_table
-            init_favorites_table()
+            asyncio.create_task(run_blocking_init("Favorites table", init_favorites_table))
         except Exception as e:
             logger.error(f"Failed to initialize favorites table: {e}")
 
         # 初始化团队协作表
         try:
             from .init_teams_tables import init_teams_tables
-            init_teams_tables()
+            asyncio.create_task(run_blocking_init("Teams tables", init_teams_tables))
         except Exception as e:
             logger.error(f"Failed to initialize teams tables: {e}")
 
         # 启动定时任务调度器 (P4 每日推送到订阅)
-        start_scheduler()
+        asyncio.create_task(delayed_start_scheduler())
 
     @app.on_event("startup")
     async def start_queue():
@@ -117,7 +128,7 @@ def register_lifecycle_events(app: FastAPI) -> None:
     @app.on_event("startup")
     async def schedule_cleanup():
         """启动时清理过期文件"""
-        cleanup_expired_cards()
+        await asyncio.to_thread(cleanup_expired_cards)
 
     @app.on_event("shutdown")
     async def shutdown_queue():
