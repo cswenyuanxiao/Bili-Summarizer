@@ -10,6 +10,9 @@ Owner: Ops
 - `DATABASE_URL`（推荐）：外部 Postgres 连接字符串（生产建议）。
 - `SUPABASE_URL`、`SUPABASE_ANON_KEY`（可选）：登录与云端历史。
 - `SUPABASE_SERVICE_KEY`（可选）：后端服务客户端密钥。
+- `DOUYIN_COOKIE`（可选）：抖音下载所需 Cookie（需保持新鲜）。
+- `DOUYIN_SAVETIK_DEBUG`（可选）：开启 SaveTik 调试模式（截图 + HTML dump）。
+- `DOUYIN_SAVETIK_DEBUG_DIR`（可选）：调试输出目录（默认 `videos/savetik_debug`）。
 
 ## 运行时开关
 - `DEBUG_API`：`0`（默认）/ `1`（开启调试接口）
@@ -59,4 +62,3 @@ Owner: Ops
 - 开发：`DATABASE_URL` 可省略（SQLite），`PAYMENT_MOCK=1`，`DEBUG_API=1`
 - 生产：`DATABASE_URL` 必配（Postgres），`PAYMENT_MOCK=0`，`DEBUG_API=0`
 - v2.0：需配置 `VAPID_*` 以启用浏览器推送
-

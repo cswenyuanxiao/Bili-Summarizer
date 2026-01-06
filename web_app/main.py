@@ -789,6 +789,23 @@ async def get_video_info(request: VideoInfoRequest):
     import yt_dlp
     
     try:
+        # Special handling for Douyin
+        if "douyin.com" in request.url:
+            from .downloader import get_douyin_metadata_via_savetik
+            import asyncio
+            
+            loop = asyncio.get_event_loop()
+            # Run the synchronous scraper in a thread
+            metadata = await loop.run_in_executor(None, get_douyin_metadata_via_savetik, request.url)
+            
+            if metadata:
+                return metadata
+            # If scraper fails, fall through or raise error? 
+            # Let's fallback to "Unknown" or raise error if critical.
+            # For now, if scraper returns None, we might fallback to default error behavior or empty dict.
+            if not metadata:
+                 raise Exception("无法通过 SaveTik 获取抖音视频信息")
+
         # Extract video info without downloading
         ydl_opts = {
             'quiet': True,

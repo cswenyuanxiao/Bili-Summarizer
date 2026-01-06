@@ -7,6 +7,7 @@ from typing import Optional
 import yt_dlp
 import subprocess
 import glob
+import urllib.request
 
 # 定义视频存储目录
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -41,6 +42,161 @@ def extract_audio_for_transcript(video_path: Path) -> Optional[Path]:
         print(f"音频提取失败: {e}", file=sys.stderr)
         return None
 
+def _normalize_douyin_url(url: str) -> str:
+    """Resolve Douyin short links and convert to canonical format."""
+    if "douyin.com" not in url:
+        return url
+        
+    try:
+        # 1. Resolve short links (v.douyin.com)
+        if "v.douyin.com" in url:
+            print(f"Resolving short URL: {url}")
+            req = urllib.request.Request(
+                url, 
+                headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+            )
+            with urllib.request.urlopen(req) as response:
+                url = response.geturl()
+                print(f"Resolved Douyin URL: {url}")
+        
+        # 2. Convert to canonical /video/ format if it is an iesdouyin/share link
+        match = re.search(r'/video/(\d+)', url)
+        if match:
+            video_id = match.group(1)
+            new_url = f"https://www.douyin.com/video/{video_id}"
+            if new_url != url:
+                print(f"Normalized to canonical URL: {new_url}")
+            return new_url
+            
+    except Exception as e:
+        print(f"Warning: URL normalization failed: {e}", file=sys.stderr)
+        
+    return url
+
+def _download_via_savetik(url: str, output_dir: Path, progress_callback=None) -> tuple[Optional[Path], Optional[str]]:
+    """
+    使用 savetik.co 下载抖音视频 (Subprocess + Playwright 方案)。
+    将 Playwright 隔离在独立进程中，避免与 FastAPI 事件循环冲突。
+    Returns: (file_path, error_message)
+    """
+    import urllib.request
+    import uuid
+    import subprocess
+    import json
+    import sys
+    
+    try:
+        if progress_callback:
+            progress_callback("启动 Playwright scraper (subprocess)...")
+            
+        # 定义 scraper 脚本路径
+        scraper_script = Path(__file__).parent / "scraper_savetik.py"
+        
+        # 调用子进程 (使用 'lowest' 画质以提高速度)
+        cmd = [sys.executable, str(scraper_script), url, "--mode", "download", "--quality", "lowest"]
+        
+        if progress_callback:
+            progress_callback("正在解析下载链接 (优先低画质以提速)...")
+
+        # 运行子进程
+        process = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        
+        if process.returncode != 0:
+            err = f"Scraper process failed: {process.stderr}"
+            print(err, file=sys.stderr)
+            return None, err
+            
+        try:
+            result = json.loads(process.stdout)
+        except json.JSONDecodeError:
+            err = f"Scraper returned invalid JSON: {process.stdout}"
+            print(err, file=sys.stderr)
+            return None, err
+            
+        if not result.get("success"):
+            err = f"Scraper reported failure: {result.get('error')}"
+            print(err, file=sys.stderr)
+            return None, err
+            
+        download_link = result["data"].get("url")
+        
+        if not download_link:
+            return None, "No download link in response"
+            
+        if progress_callback:
+            progress_callback("获取链接成功，开始下载...")
+            
+        # 下载文件
+        video_id = str(uuid.uuid4())[:8]
+        output_path = output_dir / f"savetik_{video_id}.mp4"
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        
+        # 使用更大的 Block Size 和更长的 Timeout
+        req = urllib.request.Request(download_link, headers=headers)
+        
+        # 10分钟超时 (600s), 1MB buffer
+        with urllib.request.urlopen(req, timeout=600) as response:
+            with open(output_path, 'wb') as f:
+                total_size = response.getheader('Content-Length')
+                downloaded = 0
+                block_size = 1024 * 1024 # 1MB Chunk
+                while True:
+                    chunk = response.read(block_size)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    if total_size and progress_callback:
+                        percent = int(downloaded / int(total_size) * 100)
+                        progress_callback(f"SaveTik: Downloading {percent}%")
+        
+        if output_path.exists() and output_path.stat().st_size > 0:
+            print(f"SaveTik 下载成功: {output_path}")
+            return output_path, None
+            
+    except Exception as e:
+        err = f"SaveTik 下载流程异常: {e}"
+        print(err, file=sys.stderr)
+        return None, err
+    
+    return None, "Unknown failure"
+
+def get_douyin_metadata_via_savetik(url: str) -> dict:
+    """
+    使用 savetik.co 获取抖音视频的元数据 (Subprocess 方案)。
+    """
+    import subprocess
+    import json
+    import sys
+    import os
+    
+    try:
+        scraper_script = Path(__file__).parent / "scraper_savetik.py"
+        cmd = [sys.executable, str(scraper_script), url, "--mode", "metadata"]
+        
+        process = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        
+        if process.returncode != 0:
+            print(f"Metadata Scraper failed: {process.stderr}", file=sys.stderr)
+            return None
+            
+        try:
+            result = json.loads(process.stdout)
+        except json.JSONDecodeError:
+            return None
+            
+        if not result.get("success"):
+            return None
+            
+        return result["data"]
+
+    except Exception as e:
+        print(f"SaveTik Metadata 流程失败: {e}", file=sys.stderr)
+        return None
+
 def download_content(url: str, mode: str = "smart", progress_callback=None) -> tuple[Path, str, str]:
     """
     下载内容：
@@ -51,6 +207,8 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
         (file_path, media_type)
         media_type: 'subtitle', 'audio', 'video'
     """
+    # Pre-process URL
+    url = _normalize_douyin_url(url)
     print(f"准备智能处理: {url}")
     VIDEOS_DIR.mkdir(exist_ok=True)
 
@@ -186,16 +344,58 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
     common_opts = {
         'quiet': True,
         'no_warnings': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'noplaylist': True,
     }
-    
+
     # 针对 Bilibili 添加特定防盗链 Header
     if "bilibili.com" in url:
         common_opts['http_headers'] = {
             'Referer': 'https://www.bilibili.com/',
             'Origin': 'https://www.bilibili.com',
         }
+
+    # 针对 Douyin: 生成 Netscape 格式的 Cookie 文件 (比 Header 更稳定)
+    douyin_cookie = (os.getenv("DOUYIN_COOKIE") or "").strip()
+    cookie_temp_file = None
+    
+    if "douyin.com" in url and douyin_cookie:
+        try:
+            import tempfile
+            import time
+            
+            # 创建临时 cookie 文件
+            cookie_temp_file = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt')
+            cookie_temp_file.write("# Netscape HTTP Cookie File\n")
+            cookie_temp_file.write("# This file was generated by Bili-Summarizer\n")
+            
+            # 解析 cookie 字符串 (key=value; key2=value2)
+            # 简单的解析逻辑，假设 cookie 中没有分号
+            for item in douyin_cookie.split(';'):
+                if '=' not in item: continue
+                name, value = item.strip().split('=', 1)
+                # 构造 Netscape 格式行
+                # domain flag path secure expiration name value
+                # 注意: .douyin.com 是通配子域名
+                line = f".douyin.com\tTRUE\t/\tTRUE\t{int(time.time()) + 31536000}\t{name}\t{value}\n"
+                cookie_temp_file.write(line)
+            
+            cookie_temp_file.close()
+            common_opts['cookiefile'] = cookie_temp_file.name
+            print(f"生成的 Cookie 文件: {cookie_temp_file.name}")
+            
+        except Exception as e:
+            print(f"Cookie 文件生成失败: {e}", file=sys.stderr)
+
+    # 如果没有使用 cookie file，则尝试 header 注入作为 fallback (虽然 yt-dlp 对 header cookie 支持有限)
+    if "douyin.com" in url and not common_opts.get('cookiefile'):
+        http_headers = dict(common_opts.get('http_headers', {}))
+        http_headers.update({
+            'Referer': 'https://www.douyin.com/',
+            'Origin': 'https://www.douyin.com',
+            'Cookie': douyin_cookie,
+        })
+        common_opts['http_headers'] = http_headers
 
     sub_opts = {
         **common_opts,
@@ -291,7 +491,18 @@ def download_content(url: str, mode: str = "smart", progress_callback=None) -> t
                 if f.stem == video_id:
                    return f, 'audio', transcript_text
     except Exception as e:
-        raise Exception(f"Failed to retrieve content. Error: {e}")
+        print(f"音频模式下载失败: {e}", file=sys.stderr)
+
+    # --- Strategy 4 (Douyin Only): Fallback ---
+    # 如果抖音链接走到这里（没有有效内容），尝试 SaveTik
+    if "douyin.com" in url:
+        print("所有 yt-dlp 策略均未返回内容，尝试 SaveTik...")
+        savetik_result, error_msg = _download_via_savetik(url, VIDEOS_DIR, progress_callback)
+        if savetik_result:
+            return savetik_result, 'video', transcript_text
+        
+        # 详细报错
+        raise Exception(f"抖音下载失败：yt-dlp 失败，且 SaveTik 后备方案报错: {error_msg or '未知错误'}")
 
     raise FileNotFoundError("无法下载有效内容。")
 

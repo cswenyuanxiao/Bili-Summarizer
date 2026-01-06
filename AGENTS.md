@@ -17,7 +17,7 @@
 * **输出格式**：对总结、Plan、Task、以及长内容输出，优先整理为表格；普通内容可用段落。
 * **工具使用**：
   - 文件与代码检索：使用 Serena MCP。
-  - 写/改文件：优先使用 `apply_patch`。
+  - 写/改文件：优先使用 `apply_patch` 或 `replace_file_content`。
   - 读文件：优先使用 Desktop Commander MCP。
   - 禁止使用 cmd/powershell/python 进行文件相关操作。
 

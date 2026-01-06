@@ -272,6 +272,8 @@ const renderedContent = computed(() => {
   font-size: 14px;
   line-height: 1.8;
   color: #212427;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .dark .summary-block__body {
@@ -284,6 +286,8 @@ const renderedContent = computed(() => {
   gap: 12px;
   font-size: 14px;
   color: #212427;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .dark .summary-takeaway-list {
@@ -314,6 +318,8 @@ const renderedContent = computed(() => {
   font-size: 14px;
   line-height: 1.8;
   color: #212427;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .dark .summary-block__quote {
@@ -338,6 +344,8 @@ const renderedContent = computed(() => {
   font-size: 14px;
   line-height: 1.8;
   color: #212427;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .summary-content :deep(> *) {
@@ -348,30 +356,36 @@ const renderedContent = computed(() => {
   font-size: 22px;
   font-weight: 700;
   color: #212427;
+  word-break: break-word;
 }
 
 .summary-content :deep(h2) {
   font-size: 20px;
   font-weight: 700;
   color: #212427;
+  word-break: break-word;
 }
 
 .summary-content :deep(h3) {
   font-size: 18px;
   font-weight: 700;
   color: #212427;
+  word-break: break-word;
 }
 
 .summary-content :deep(h4) {
   font-size: 16px;
   font-weight: 700;
   color: #212427;
+  word-break: break-word;
 }
 
 .summary-content :deep(p),
 .summary-content :deep(li) {
   font-size: 14px;
   color: #212427;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .summary-content :deep(ul),

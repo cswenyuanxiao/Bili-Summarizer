@@ -89,6 +89,15 @@ const resizeObserver = ref<ResizeObserver | null>(null)
 
 const getSvgElement = () => svgRef.value
 
+const syncSvgSize = () => {
+  if (!svgRef.value) return
+  const container = svgRef.value.parentElement
+  const width = container?.clientWidth || 800
+  const height = container?.clientHeight || 360
+  svgRef.value.setAttribute('width', String(Math.max(1, width)))
+  svgRef.value.setAttribute('height', String(Math.max(1, height)))
+}
+
 defineExpose({
   getSvgElement,
   isRendering
@@ -123,6 +132,7 @@ const updateMarkmap = async () => {
 
   try {
     const { root } = transformer.transform(props.diagram)
+    syncSvgSize()
     if (!markmapInstance.value) {
       markmapInstance.value = Markmap.create(svgRef.value, { autoFit: true } as any, root)
     } else {
@@ -132,7 +142,10 @@ const updateMarkmap = async () => {
     markmapInstance.value.fit()
     ensureToolbar()
     if (!resizeObserver.value && svgRef.value.parentElement) {
-      resizeObserver.value = new ResizeObserver(() => markmapInstance.value?.fit())
+      resizeObserver.value = new ResizeObserver(() => {
+        syncSvgSize()
+        markmapInstance.value?.fit()
+      })
       resizeObserver.value.observe(svgRef.value.parentElement)
     }
   } catch (err) {

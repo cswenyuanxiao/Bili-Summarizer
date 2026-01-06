@@ -18,6 +18,19 @@ Owner: Core Eng
 ### Documentation
 - 更新 `docs/API_REFERENCE.md` 的 usage 关键字段
 
+## [2.3.5] - 2026-01-05
+
+### Added
+- **抖音 Cookie 支持**：通过 `DOUYIN_COOKIE` 传入登录态，提升抖音链接下载成功率。
+- **SaveTik 调试模式**：支持截图与 HTML dump（`DOUYIN_SAVETIK_DEBUG`）。
+
+### Changed
+- **总结 Prompt**：增强结构化深度解析与概念解释要求，提升内容丰富度。
+- **思维导图输出**：强化 Markdown 无序列表格式要求，避免纯文本缩进导致结构丢失。
+
+### Documentation
+- 更新 `docs/CONFIGURATION.md` 新增 `DOUYIN_COOKIE`
+
 ## [2.3.3] - 2026-01-05
 
 ### Fixed
