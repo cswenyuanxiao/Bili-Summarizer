@@ -4,7 +4,6 @@ import json
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException, Security, Depends
 from fastapi.responses import StreamingResponse, FileResponse, Response
 from fastapi.security import APIKeyHeader
@@ -115,9 +114,6 @@ def is_unlimited_user(user: Optional[dict]) -> bool:
 app = APIRouter()
 
 # --- Frontend Static (Render) ---
-FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
-LEGACY_INDEX = Path(__file__).resolve().parent / "legacy_ui" / "index.html"
-
 # --- 健康检查路由 ---
 @app.get("/health")
 async def health_check():
@@ -1345,37 +1341,3 @@ async def list_comments(team_id: str, team_summary_id: str, request: Request):
     comments = get_summary_comments(team_summary_id)
     return {"comments": comments}
 
-
-# --- SPA Serving (Must be last) ---
-
-if FRONTEND_DIST.exists():
-    # Mount /assets explicitly since index.html references /assets/...
-    assets_dir = FRONTEND_DIST / "assets"
-    if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
-
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def serve_spa(full_path: str):
-        # Exclude specific API/Docs paths to ensure 404s are returned for them
-        if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("openapi.json") or full_path.startswith("videos"):
-            raise HTTPException(status_code=404, detail="Not Found")
-        
-        # Try to serve file directly (e.g. favicon.ico, robots.txt)
-        target_file = FRONTEND_DIST / full_path
-        if target_file.is_file():
-            return FileResponse(target_file)
-            
-        # Fallback to index.html for known frontend routes
-        index_file = FRONTEND_DIST / "index.html"
-        if index_file.exists():
-            return FileResponse(index_file)
-        # Fallback if index.html is missing (should not happen in production)
-        return JSONResponse(
-            {"status": "ok", "message": "API is running, frontend not available"},
-            status_code=200
-        )
-
-elif LEGACY_INDEX.exists():
-    @app.get("/", include_in_schema=False)
-    async def serve_legacy():
-        return FileResponse(LEGACY_INDEX)
