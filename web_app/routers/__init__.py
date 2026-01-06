@@ -3,6 +3,10 @@ Routers registry - 集中管理所有 API 路由
 """
 from fastapi import FastAPI
 
+from ..app_setup import configure_app
+from ..exceptions import register_exception_handlers
+from ..lifecycle import register_lifecycle_events
+
 from .health import router as health_router
 from .dashboard import router as dashboard_router
 from .share import router as share_router
@@ -20,6 +24,9 @@ from .teams import router as teams_router
 
 def register_routers(app: FastAPI):
     """注册所有路由到 FastAPI 应用"""
+    configure_app(app)
+    register_exception_handlers(app)
+    register_lifecycle_events(app)
     # Health router 必须第一个注册，确保健康检查不依赖其他模块
     app.include_router(health_router)
     
@@ -59,3 +66,6 @@ def register_routers(app: FastAPI):
     # Teams router - 团队协作
     app.include_router(teams_router)
 
+    # Legacy routes - 保持历史行为（必须最后注册）
+    from ..legacy_main import app as legacy_main_router
+    app.include_router(legacy_main_router)

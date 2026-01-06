@@ -7,7 +7,7 @@ from typing import List, Optional
 import logging
 
 from ..auth import verify_session_token
-from ..subscriptions import (
+from ..services.subscriptions_service import (
     search_up,
     subscribe_up,
     unsubscribe_up,

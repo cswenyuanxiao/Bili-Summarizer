@@ -7,7 +7,7 @@ from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from .subscriptions import get_all_subscriptions, get_up_latest_videos, update_subscription_check
+from .services.subscriptions_service import get_all_subscriptions, get_up_latest_videos, update_subscription_check
 from .notifications import queue_notification, process_notification_queue
 from .wbi import parse_wbi_keys
 import httpx
