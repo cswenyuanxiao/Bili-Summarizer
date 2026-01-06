@@ -32,7 +32,9 @@ def configure_app(app: FastAPI) -> None:
     tts_static.mkdir(parents=True, exist_ok=True)
     app.mount("/api/tts/audio", StaticFiles(directory=str(tts_static)), name="tts_audio")
 
-    # --- SPA Serving (Must be last) ---
+
+def register_spa_routes(app: FastAPI) -> None:
+    """SPA 资源路由，必须在 API 路由注册之后调用。"""
     frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
     legacy_index = Path(__file__).resolve().parent / "legacy_ui" / "index.html"
 

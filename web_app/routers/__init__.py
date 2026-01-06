@@ -3,7 +3,7 @@ Routers registry - 集中管理所有 API 路由
 """
 from fastapi import FastAPI
 
-from ..app_setup import configure_app
+from ..app_setup import configure_app, register_spa_routes
 from ..exceptions import register_exception_handlers
 from ..lifecycle import register_lifecycle_events
 
@@ -69,3 +69,6 @@ def register_routers(app: FastAPI):
     # Legacy routes - 保持历史行为（必须最后注册）
     from ..legacy_main import app as legacy_main_router
     app.include_router(legacy_main_router)
+
+    # SPA 路由必须最后注册，避免拦截 /api/*
+    register_spa_routes(app)
