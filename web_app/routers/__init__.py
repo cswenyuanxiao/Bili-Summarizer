@@ -66,9 +66,11 @@ def register_routers(app: FastAPI):
     # Teams router - 团队协作
     app.include_router(teams_router)
 
-    # Legacy routes - 保持历史行为（必须最后注册）
-    from ..legacy_main import app as legacy_main_router
-    app.include_router(legacy_main_router)
-
     # SPA 路由必须最后注册，避免拦截 /api/*
     register_spa_routes(app)
+
+
+def include_legacy_routes(app: FastAPI) -> None:
+    """延迟注册 legacy 路由，降低首屏阻塞。"""
+    from ..legacy_main import app as legacy_main_router
+    app.include_router(legacy_main_router)

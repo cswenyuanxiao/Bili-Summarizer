@@ -52,6 +52,11 @@ def register_lifecycle_events(app: FastAPI) -> None:
             await asyncio.sleep(0.1)
             start_scheduler()
 
+        async def delayed_register_legacy_routes():
+            await asyncio.sleep(0.2)
+            from .routers import include_legacy_routes
+            include_legacy_routes(app)
+
         # 周期性清理任务
         async def schedule_cleanups():
             while True:
@@ -77,6 +82,7 @@ def register_lifecycle_events(app: FastAPI) -> None:
 
         # 启动定时任务调度器 (P4 每日推送到订阅)
         asyncio.create_task(delayed_start_scheduler())
+        asyncio.create_task(delayed_register_legacy_routes())
 
     @app.on_event("startup")
     async def start_queue():
